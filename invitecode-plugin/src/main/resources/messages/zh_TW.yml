@@ -1,0 +1,5 @@
+messages-version: 1
+invite:
+  qualified:
+    inviter: "你的邀請已達成資格。"
+    invitee: "你已達成邀請資格。"

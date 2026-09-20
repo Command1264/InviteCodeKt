@@ -1,0 +1,22 @@
+config-version: 1
+
+language:
+  default: zh_TW
+  use-client-locale: true
+
+invite-code:
+  format: HEX_COLOR
+  custom-codes-enabled: false
+
+claim:
+  window: 24h
+  input-mode: AUTO
+  confirmation-timeout: 30s
+  chat-input-timeout: 60s
+  existing-player-policy: START_WINDOW
+
+anti-abuse:
+  matching-ip-action: DENY
+  ip-hash-retention: 30d
+
+time-zone: Asia/Taipei

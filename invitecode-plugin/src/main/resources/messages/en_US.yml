@@ -1,0 +1,5 @@
+messages-version: 1
+invite:
+  qualified:
+    inviter: "Your invitation has qualified."
+    invitee: "You have qualified as an invitee."

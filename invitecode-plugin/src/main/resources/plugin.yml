@@ -1,0 +1,55 @@
+name: InviteCodeKt
+version: "${version}"
+main: io.github.command1264.invitecode.plugin.InviteCodePlugin
+description: Cross-version invitation and referral rewards plugin for Minecraft.
+authors: [Command1264]
+website: https://github.com/Command1264/InviteCodeKt
+softdepend: [PlaceholderAPI, Vault]
+
+commands:
+  invitecode:
+    aliases: [ic]
+    description: InviteCodeKt main command.
+    permission: invitecode.command.basic
+
+permissions:
+  invitecode.command.basic:
+    default: true
+  invitecode.command.code:
+    default: true
+  invitecode.command.claim:
+    default: true
+  invitecode.command.status:
+    default: true
+  invitecode.command.stats:
+    default: true
+  invitecode.admin.*:
+    default: op
+    children:
+      invitecode.admin.inspect: true
+      invitecode.admin.invitation: true
+      invitecode.admin.eligibility: true
+      invitecode.admin.qualification: true
+      invitecode.admin.reward: true
+      invitecode.admin.code: true
+      invitecode.admin.storage: true
+      invitecode.admin.reload: true
+      invitecode.admin.doctor: true
+  invitecode.admin.inspect:
+    default: op
+  invitecode.admin.invitation:
+    default: op
+  invitecode.admin.eligibility:
+    default: op
+  invitecode.admin.qualification:
+    default: op
+  invitecode.admin.reward:
+    default: op
+  invitecode.admin.code:
+    default: op
+  invitecode.admin.storage:
+    default: op
+  invitecode.admin.reload:
+    default: op
+  invitecode.admin.doctor:
+    default: op

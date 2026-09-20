@@ -1,0 +1,10 @@
+config-version: 1
+
+policies:
+  new-player:
+    any-of:
+      - all-of:
+          - type: PLAY_TIME
+            at-least: 30m
+          - type: LOGIN_DAYS
+            at-least: 2

@@ -1,0 +1,12 @@
+config-version: 1
+
+qualification-rewards:
+  default:
+    inviter:
+      - type: MESSAGE
+        message: invite.qualified.inviter
+    invitee:
+      - type: MESSAGE
+        message: invite.qualified.invitee
+
+milestone-rewards: {}

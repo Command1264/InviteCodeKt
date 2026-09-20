@@ -1,12 +1,12 @@
-# Contributing
+# 貢獻方式
 
-InviteCodeKt is currently developed through issue-backed task branches.
+InviteCodeKt 目前透過有 GitHub issue 依據的 task branch 進行開發。
 
-1. Read `CONTEXT.md`, the relevant ADRs under `docs/adr/`, and the issue being implemented.
-2. Branch from the current `develop` head and use an isolated worktree.
-3. Keep `invitecode-core` free of Bukkit and storage implementation dependencies.
-4. Keep modern server API references inside `invitecode-platform-modern`.
-5. Add meaningful regression tests for changed behavior.
-6. Run `./gradlew check shadowJar` before requesting review.
+1. 閱讀 `CONTEXT.md`、`docs/adr/` 下的相關 ADR，以及本次實作對應的 issue。
+2. 從目前的 `develop` HEAD 建立 branch，並使用獨立 Worktree。
+3. 不要讓 `invitecode-core` 依賴 Bukkit 或任何 storage 實作。
+4. 新版伺服器 API reference 只能放在 `invitecode-platform-modern`。
+5. 為改變的行為新增有意義的回歸測試。
+6. 送交 review 前執行 `./gradlew check shadowJar`。
 
-Use the canonical domain terms from `CONTEXT.md`. Do not add legacy migration behavior unless a future accepted decision explicitly changes that non-goal.
+領域概念一律使用 `CONTEXT.md` 的標準詞彙。除非未來已接受的決策明確改變此項非目標，否則不得加入舊版遷移行為。

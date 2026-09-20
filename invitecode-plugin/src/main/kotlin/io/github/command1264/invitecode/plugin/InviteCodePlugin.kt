@@ -9,7 +9,7 @@ class InviteCodePlugin : JavaPlugin() {
     override fun onEnable() {
         saveDefaultConfig()
         getCommand("invitecode")?.setExecutor(ScaffoldCommand())
-        logger.info("InviteCodeKt ${description.version} scaffold enabled; domain features are not implemented yet.")
+        logger.info("InviteCodeKt ${description.version} 專案骨架已啟用；領域功能尚未實作。")
     }
 }
 
@@ -20,7 +20,7 @@ private class ScaffoldCommand : CommandExecutor {
         label: String,
         args: Array<out String>,
     ): Boolean {
-        sender.sendMessage("InviteCodeKt is installed; this scaffold does not implement player workflows yet.")
+        sender.sendMessage("InviteCodeKt 已安裝；目前的專案骨架尚未實作玩家操作流程。")
         return true
     }
 }

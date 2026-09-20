@@ -1,79 +1,79 @@
-# InviteCodeKt 1.0 Design
+# InviteCodeKt 1.0 設計規格
 
-## Product boundary
+## 產品邊界
 
-InviteCodeKt creates one durable Invitation between an Inviter and an Invitee, qualifies that Invitation through configurable policies, and delivers auditable rewards. It is a new product line: legacy source, configuration, and `playerData.json` are reference material only and receive no compatibility or importer.
+InviteCodeKt 在一名 Inviter 與一名 Invitee 之間建立一筆持久的 Invitation，依可設定的 policy 判定該 Invitation 是否符合資格，並交付可稽核的獎勵。這是新的產品線：舊版原始碼、設定與 `playerData.json` 只作為參考，不提供相容層或 importer。
 
-## Invitation lifecycle
+## Invitation 生命週期
 
-- A player owns an automatically generated Invite Code but becomes an Inviter only after another player claims it.
-- An Invitee has at most one Inviter. An Inviter may have many Invitees.
-- A player may claim only while they have no Invitation, have not become an Inviter, and remain inside the Claim Window.
-- First Seen At is when InviteCodeKt first observes the player. The default Claim Window is 24 hours.
-- Claim requires a 30-second confirmation that shows the current Inviter name and code.
-- A Claimed Invitation may become Qualified exactly once. Qualification is permanent.
-- Ordinary players cannot undo an Invitation. Audited administration supports Unlink, Eligibility Reset, Transfer of unqualified Invitations, and Force Qualification.
+- 每位玩家都擁有自動產生的 Invite Code，但只有另一名玩家 Claim 該邀請碼後，擁有者才成為 Inviter。
+- 一名 Invitee 最多只能有一名 Inviter；一名 Inviter 可以有多名 Invitee。
+- 玩家只有在沒有 Invitation、尚未成為 Inviter，且仍在 Claim Window 內時才可 Claim。
+- First Seen At 是 InviteCodeKt 首次觀察到該玩家的時間；Claim Window 預設為 24 小時。
+- Claim 必須經過 30 秒內完成的確認，確認畫面顯示目前的 Inviter 名稱與邀請碼。
+- Claimed Invitation 只能成為 Qualified Invitation 一次；Qualification 為永久狀態。
+- 一般玩家不能撤銷 Invitation。可稽核的管理操作支援 Unlink、Eligibility Reset、未 qualified Invitation 的 Transfer，以及 Force Qualification。
 
-## Invite Codes and input
+## Invite Code 與輸入方式
 
-- The default is a unique six-character hexadecimal Color Invite Code.
-- Minecraft 1.16 and later display its actual RGB color; older clients receive the nearest legacy color.
-- Optional Crockford Base32 and validated custom codes may be enabled later.
-- Modern capable Paper and Spigot servers use native Dialog text input.
-- Legacy servers use a one-shot private chat input with a 60-second timeout.
-- `/invitecode claim <code>` remains available everywhere.
+- 預設使用唯一的六字元十六進位 Color Invite Code。
+- Minecraft 1.16 以上版本顯示邀請碼實際代表的 RGB 顏色；舊版 client 使用最接近的 legacy color。
+- 未來可選擇啟用 Crockford Base32 與經過驗證的 custom code。
+- 有對應能力的新版 Paper 與 Spigot 伺服器使用原生 Dialog 文字輸入。
+- 舊版伺服器使用一次性的私密聊天輸入，timeout 為 60 秒。
+- 所有版本都保留 `/invitecode claim <code>`。
 
 ## Qualification
 
-- A policy is an OR of groups whose conditions are ANDed.
-- Built-in conditions cover tracked online time, elapsed time, distinct login days, Bukkit permissions, PlaceholderAPI comparisons, and administrator approval.
-- Placeholder errors produce `UNKNOWN`, which cannot qualify an Invitation.
-- Other plugins may register condition providers or request reevaluation. Only the explicit Admin API may force qualification.
-- Events are emitted after transaction commit and cannot be cancelled.
-- Qualified records preserve the stable policy ID and an immutable revision hash.
+- 一份 policy 由多個 OR group 組成，每個 group 內的 condition 使用 AND。
+- 內建 condition 包含累積在線時間、經過時間、不同登入日數、Bukkit permission、PlaceholderAPI 比較與管理員核准。
+- Placeholder 發生錯誤時產生 `UNKNOWN`，不得讓 Invitation 因此 qualified。
+- 其他插件可註冊 condition provider 或要求重新評估；只有明確的 Admin API 可以強制 qualification。
+- Event 在 transaction commit 後送出，且不可取消。
+- Qualified record 保留穩定的 policy ID 與不可變的 revision hash。
 
-## Rewards
+## Reward
 
-- Qualification Rewards may target Inviter, Invitee, or both. Milestone Rewards target Inviter counts.
-- Actions include console commands, player commands, messages, and Vault Economy deposits.
-- Player commands never gain temporary operator privileges.
-- Offline-required actions remain Pending and are retried when the player joins.
-- Command dispatch acceptance counts as delivery; downstream side effects cannot be inferred.
-- Unsafe interruption during processing yields `UNCERTAIN`, never an automatic retry.
-- Reward Delivery and action state transitions are auditable and idempotency-keyed.
+- Qualification Reward 可發給 Inviter、Invitee 或雙方；Milestone Reward 依 Inviter 的 qualified invitation 數量觸發。
+- Action 包含 console command、player command、message 與 Vault Economy deposit。
+- Player command 不得暫時取得 operator 權限。
+- 必須在線才能執行的 action，在玩家離線時維持 Pending，並於玩家登入後重試。
+- Command dispatch 被接受即視為已交付，不推定下游 side effect 是否成功。
+- 處理途中若發生無法安全判定結果的中斷，狀態設為 `UNCERTAIN`，不得自動重試。
+- Reward Delivery 與 action state transition 必須可稽核，並以 idempotency key 防止重複發放。
 
-## Storage and privacy
+## Storage 與隱私
 
-- SQLite and MySQL are production backends. MySQL must remain correct under concurrent plugin instances.
-- JSON is for small installations, tests, and versioned interchange.
-- Backend switching uses an explicit migration with preflight, write pause, verification, and cutover.
-- Storage failures fail closed; the plugin never falls back to memory or another backend.
-- IP anti-abuse stores a keyed hash for 30 days, not the raw address.
-- Anonymization removes names, IP hashes, and display data while preserving historical consistency.
-- Credentials and IP hashes never appear in logs.
+- SQLite 與 MySQL 是 production backend；MySQL 必須在多個 plugin instance 同時操作時仍維持正確性。
+- JSON 用於小型安裝環境、測試與有版本的資料交換。
+- 切換 backend 時必須執行明確的 migration，包含 preflight、暫停寫入、verification 與 cutover。
+- Storage 發生錯誤時採拒絕操作的安全失敗模式；插件不得退回 memory 或其他 backend。
+- IP 防濫用機制保存 keyed hash 30 天，不保存原始位址。
+- Anonymization 移除名稱、IP hash 與顯示資料，同時保留歷史一致性。
+- Log 不得包含憑證與 IP hash。
 
-## Configuration and operations
+## 設定與維運
 
-- Configuration is split into general, storage, qualifications, rewards, and locale files.
-- Invalid reloads preserve the previous valid configuration.
-- Storage and secret changes require restart.
-- Configuration migration creates a reviewable output and never silently rewrites the user's file.
-- `doctor` is read-only and reports storage, integration, configuration, and reward-delivery health.
-- No metrics, telemetry, or automatic update download is included in 1.0.
+- 設定拆分為 general、storage、qualifications、rewards 與 locale 檔案。
+- Reload 的新設定無效時，繼續使用前一份有效設定。
+- Storage 與 secret 變更後必須重新啟動。
+- Configuration migration 產生可供 review 的輸出，不得在未告知的情況下改寫使用者檔案。
+- `doctor` 是唯讀指令，用於回報 storage、integration、configuration 與 reward delivery 健康狀態。
+- 1.0 不包含 metrics、telemetry 或自動下載更新。
 
-## Platform and compatibility
+## 平台與相容性
 
-- Kotlin with Gradle Kotlin DSL, packaged as one JAR.
-- Java 8 bytecode is the legacy baseline. No NMS is allowed.
-- Official support spans tested Spigot and Paper releases from 1.8.8 onward.
-- Release tests cover Spigot 1.8.8, 1.12.2, 1.16.5; Paper 1.20.6, 1.21.8; and the latest Paper and Spigot at release time.
-- Folia is experimental. Its failure blocks the compatibility claim but not a Paper/Spigot release.
+- 使用 Kotlin 與 Gradle Kotlin DSL，封裝為單一 JAR。
+- 舊版基線為 Java 8 bytecode，不得使用 NMS。
+- 官方支援範圍為 Spigot 與 Paper 1.8.8 起的已測試版本。
+- 發行測試涵蓋 Spigot 1.8.8、1.12.2、1.16.5；Paper 1.20.6、1.21.8；以及發行當下最新的 Paper 與 Spigot。
+- Folia 為實驗性支援。Folia 測試失敗會阻止宣稱 Folia 相容，但不阻止 Paper／Spigot 發行。
 
-## Initial non-goals
+## 初期非目標
 
-- Legacy data or configuration import
+- 匯入舊版資料或設定
 - Reward exchange GUI
-- Native permission-grant reward action
+- 原生 permission grant Reward Action
 - NMS integration
-- Metrics or automatic updating
-- Automatic storage migration during startup
+- Metrics 或自動更新
+- 啟動時自動執行 storage migration

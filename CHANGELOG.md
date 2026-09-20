@@ -1,12 +1,12 @@
-# Changelog
+# 變更紀錄
 
-All notable changes to this project will be documented in this file.
+本檔案記錄此專案所有值得注意的變更。
 
-## Unreleased
+## 尚未發行
 
-### Added
+### 新增
 
-- Initial Kotlin multi-module scaffold.
-- Canonical domain glossary and accepted 1.0 design specification.
-- Java 8 bytecode verification and initial CI workflow.
-- Minimal Bukkit plugin metadata and configuration examples.
+- 初始 Kotlin 多模組專案骨架。
+- 標準領域詞彙與已接受的 1.0 設計規格。
+- Java 8 bytecode 驗證與初始 CI workflow。
+- 最小 Bukkit 插件 metadata 與設定範例。

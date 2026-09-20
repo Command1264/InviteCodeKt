@@ -1,7 +1,7 @@
 name: InviteCodeKt
 version: "${version}"
 main: io.github.command1264.invitecode.plugin.InviteCodePlugin
-description: Cross-version invitation and referral rewards plugin for Minecraft.
+description: 跨 Minecraft 版本的邀請與推薦獎勵插件。
 authors: [Command1264]
 website: https://github.com/Command1264/InviteCodeKt
 softdepend: [PlaceholderAPI, Vault]
@@ -9,7 +9,7 @@ softdepend: [PlaceholderAPI, Vault]
 commands:
   invitecode:
     aliases: [ic]
-    description: InviteCodeKt main command.
+    description: InviteCodeKt 主要指令。
     permission: invitecode.command.basic
 
 permissions:

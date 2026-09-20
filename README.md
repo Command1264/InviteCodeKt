@@ -1,46 +1,46 @@
 # InviteCodeKt
 
-InviteCodeKt is a from-scratch Kotlin rewrite of a Minecraft invitation and referral rewards plugin. It targets a single installable JAR across Spigot and Paper 1.8.8 through the latest tested release, with modern capabilities loaded through isolated adapters.
+InviteCodeKt 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件。目標是以單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並透過隔離的 adapter 載入新版能力。
 
 > [!IMPORTANT]
-> This repository is currently a `0.1.0-SNAPSHOT` scaffold. Invitation, qualification, storage, and reward workflows are deliberately not implemented yet.
+> 這個 repository 目前是 `0.1.0-SNAPSHOT` 專案骨架。Invitation、qualification、storage 與 reward 工作流程尚未實作。
 
-## Project goals
+## 專案目標
 
-- Establish one permanent Inviter-to-Invitee relationship through an Invite Code.
-- Separate claiming an Invitation from qualifying it for rewards.
-- Support configurable qualification policies and durable reward delivery.
-- Support SQLite and MySQL, with JSON limited to small installations and interchange.
-- Preserve Java 8 runtime compatibility without using NMS.
-- Add native Dialog input on capable modern servers and safe chat/command fallbacks elsewhere.
+- 透過 Invite Code 建立一筆永久的 Inviter 與 Invitee 關係。
+- 將建立 Invitation 與達成獎勵資格分成不同階段。
+- 支援可設定的 Qualification Policy 與可復原的 Reward Delivery。
+- 支援 SQLite 與 MySQL；JSON 僅用於小型安裝環境與資料交換。
+- 在不使用 NMS 的前提下維持 Java 8 執行環境相容性。
+- 在有能力的新版伺服器使用原生 Dialog 輸入，其餘版本安全退回聊天或指令輸入。
 
-The canonical domain language is in [`CONTEXT.md`](./CONTEXT.md). The accepted product and engineering scope is in [`docs/spec/invitecode-1.0.md`](./docs/spec/invitecode-1.0.md).
+標準領域詞彙記錄於 [`CONTEXT.md`](./CONTEXT.md)，已確認的產品與工程範圍記錄於 [`docs/spec/invitecode-1.0.md`](./docs/spec/invitecode-1.0.md)。
 
-## Build
+## 建置
 
-Requirements:
+需求：
 
-- JDK 8 or newer to run the checked-in Gradle wrapper; JDK 11 is recommended for development
-- Network access for the first dependency resolution
+- 使用 JDK 8 以上版本執行 repository 內的 Gradle Wrapper；開發環境建議使用 JDK 11
+- 第一次解析 dependency 時需要網路連線
 
 ```powershell
 ./gradlew check shadowJar
 ```
 
-The installable scaffold JAR is written to:
+可安裝的骨架 JAR 會輸出至：
 
 ```text
 invitecode-plugin/build/libs/InviteCodeKt-0.1.0-SNAPSHOT.jar
 ```
 
-The build verifies that current production classes use Java 8 bytecode. Future modern adapters may use newer bytecode only when their classes remain isolated and are verified not to load on legacy JVMs.
+建置流程會驗證目前 production class 使用 Java 8 bytecode。未來的新版 adapter 只有在 class 維持隔離，並驗證舊版 JVM 不會載入時，才可使用新版 bytecode。
 
-## Branches
+## 分支
 
-- `main`: stable release baseline and GitHub default branch
-- `develop`: day-to-day integration branch
-- task branches: isolated worktrees targeting `develop`
+- `main`：穩定發行基線與 GitHub 預設分支
+- `develop`：日常整合分支
+- task branch：使用獨立 Worktree，目標分支為 `develop`
 
-## Status
+## 目前狀態
 
-Implementation work is tracked in this repository's GitHub Issues. No legacy InviteCode data or configuration compatibility is planned.
+實作工作記錄於本 repository 的 GitHub Issues。不規劃相容或匯入舊版 InviteCode 的資料與設定。

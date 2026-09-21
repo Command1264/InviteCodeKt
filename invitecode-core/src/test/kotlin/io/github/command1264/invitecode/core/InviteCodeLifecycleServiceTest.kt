@@ -10,12 +10,12 @@ import org.junit.jupiter.api.assertThrows
 class InviteCodeLifecycleServiceTest {
     @Test
     fun `assignment retries a collision and activates the next candidate`() {
-        val occupiedOwner = UUID.randomUUID()
-        val newOwner = UUID.randomUUID()
+        val occupiedInviterId = UUID.randomUUID()
+        val newInviterId = UUID.randomUUID()
         val occupiedCode = InviteCode.parse("AAAAAA", InviteCodeFormats.colorHex)
         val availableCode = InviteCode.parse("BBBBBB", InviteCodeFormats.colorHex)
         val registry = InMemoryInviteCodeRegistry(
-            ActiveInviteCode(occupiedOwner, occupiedCode, Instant.EPOCH),
+            ActiveInviteCode(occupiedInviterId, occupiedCode, Instant.EPOCH),
         )
         val service = InviteCodeLifecycleService(
             registry = registry,
@@ -23,22 +23,22 @@ class InviteCodeLifecycleServiceTest {
             maxCollisionAttempts = 3,
         )
 
-        val assigned = service.assign(newOwner, Instant.parse("2026-09-21T02:00:00Z"))
+        val assigned = service.assign(newInviterId, Instant.parse("2026-09-21T02:00:00Z"))
 
         assertEquals(availableCode, assigned.code)
-        assertEquals(newOwner, registry.resolveActiveOwner(availableCode))
-        assertEquals(occupiedOwner, registry.resolveActiveOwner(occupiedCode))
+        assertEquals(newInviterId, registry.resolveActiveInviter(availableCode))
+        assertEquals(occupiedInviterId, registry.resolveActiveInviter(occupiedCode))
     }
 
     @Test
-    fun `rotation retires the old code and activates a new code for the same owner`() {
-        val ownerId = UUID.randomUUID()
+    fun `rotation retires the old code and activates a new code for the same inviter`() {
+        val inviterId = UUID.randomUUID()
         val oldCode = InviteCode.parse("A25981", InviteCodeFormats.colorHex)
         val newCode = InviteCode.parse("FFAA00", InviteCodeFormats.colorHex)
         val activatedAt = Instant.parse("2026-09-01T00:00:00Z")
         val rotatedAt = Instant.parse("2026-09-21T02:30:00Z")
         val registry = InMemoryInviteCodeRegistry(
-            ActiveInviteCode(ownerId, oldCode, activatedAt),
+            ActiveInviteCode(inviterId, oldCode, activatedAt),
         )
         val service = InviteCodeLifecycleService(
             registry = registry,
@@ -46,20 +46,20 @@ class InviteCodeLifecycleServiceTest {
             maxCollisionAttempts = 3,
         )
 
-        val rotation = service.rotate(ownerId, rotatedAt)
+        val rotation = service.rotate(inviterId, rotatedAt)
 
         assertEquals(oldCode, rotation.previous.code)
         assertEquals(rotatedAt, rotation.previous.retiredAt)
         assertEquals(newCode, rotation.current.code)
-        assertEquals(null, registry.resolveActiveOwner(oldCode))
-        assertEquals(ownerId, registry.resolveActiveOwner(newCode))
+        assertEquals(null, registry.resolveActiveInviter(oldCode))
+        assertEquals(inviterId, registry.resolveActiveInviter(newCode))
     }
 
     @Test
     fun `assignment returns the existing active code without generating another candidate`() {
-        val ownerId = UUID.randomUUID()
+        val inviterId = UUID.randomUUID()
         val existing = ActiveInviteCode(
-            ownerId = ownerId,
+            inviterId = inviterId,
             code = InviteCode.parse("A25981", InviteCodeFormats.colorHex),
             activatedAt = Instant.EPOCH,
         )
@@ -69,7 +69,7 @@ class InviteCodeLifecycleServiceTest {
             maxCollisionAttempts = 3,
         )
 
-        assertEquals(existing, service.assign(ownerId, Instant.parse("2026-09-21T03:00:00Z")))
+        assertEquals(existing, service.assign(inviterId, Instant.parse("2026-09-21T03:00:00Z")))
     }
 
     @Test
@@ -97,15 +97,15 @@ class InviteCodeLifecycleServiceTest {
     }
 
     @Test
-    fun `rotation retries candidates that are current or owned by another player`() {
-        val ownerId = UUID.randomUUID()
-        val otherOwnerId = UUID.randomUUID()
+    fun `rotation retries current and reserved candidates`() {
+        val inviterId = UUID.randomUUID()
+        val otherInviterId = UUID.randomUUID()
         val currentCode = InviteCode.parse("AAAAAA", InviteCodeFormats.colorHex)
         val occupiedCode = InviteCode.parse("BBBBBB", InviteCodeFormats.colorHex)
         val replacementCode = InviteCode.parse("CCCCCC", InviteCodeFormats.colorHex)
         val registry = InMemoryInviteCodeRegistry(
-            ActiveInviteCode(ownerId, currentCode, Instant.EPOCH),
-            ActiveInviteCode(otherOwnerId, occupiedCode, Instant.EPOCH),
+            ActiveInviteCode(inviterId, currentCode, Instant.EPOCH),
+            ActiveInviteCode(otherInviterId, occupiedCode, Instant.EPOCH),
         )
         val service = InviteCodeLifecycleService(
             registry = registry,
@@ -113,10 +113,36 @@ class InviteCodeLifecycleServiceTest {
             maxCollisionAttempts = 3,
         )
 
-        val rotation = service.rotate(ownerId, Instant.parse("2026-09-21T03:00:00Z"))
+        val rotation = service.rotate(inviterId, Instant.parse("2026-09-21T03:00:00Z"))
 
         assertEquals(replacementCode, rotation.current.code)
-        assertEquals(otherOwnerId, registry.resolveActiveOwner(occupiedCode))
+        assertEquals(otherInviterId, registry.resolveActiveInviter(occupiedCode))
+    }
+
+    @Test
+    fun `retired code remains reserved and cannot be assigned to another inviter`() {
+        val originalInviterId = UUID.randomUUID()
+        val newInviterId = UUID.randomUUID()
+        val retiredCode = InviteCode.parse("AAAAAA", InviteCodeFormats.colorHex)
+        val rotatedCode = InviteCode.parse("BBBBBB", InviteCodeFormats.colorHex)
+        val newInviterCode = InviteCode.parse("CCCCCC", InviteCodeFormats.colorHex)
+        val registry = InMemoryInviteCodeRegistry(
+            ActiveInviteCode(originalInviterId, retiredCode, Instant.EPOCH),
+        )
+        InviteCodeLifecycleService(
+            registry = registry,
+            generator = SequenceInviteCodeGenerator(rotatedCode),
+            maxCollisionAttempts = 2,
+        ).rotate(originalInviterId, Instant.parse("2026-09-21T03:00:00Z"))
+
+        val assigned = InviteCodeLifecycleService(
+            registry = registry,
+            generator = SequenceInviteCodeGenerator(retiredCode, newInviterCode),
+            maxCollisionAttempts = 2,
+        ).assign(newInviterId, Instant.parse("2026-09-21T04:00:00Z"))
+
+        assertEquals(newInviterCode, assigned.code)
+        assertEquals(null, registry.resolveActiveInviter(retiredCode))
     }
 }
 
@@ -131,37 +157,40 @@ private class SequenceInviteCodeGenerator(
 private class InMemoryInviteCodeRegistry(
     vararg initialCodes: ActiveInviteCode,
 ) : InviteCodeRegistry {
-    private val byOwner = initialCodes.associateByTo(mutableMapOf()) { it.ownerId }
-    private val ownerByCode = initialCodes.associateTo(mutableMapOf()) { it.code to it.ownerId }
+    private val byInviter = initialCodes.associateByTo(mutableMapOf()) { it.inviterId }
+    private val activeInviterByCode = initialCodes.associateTo(mutableMapOf()) { it.code to it.inviterId }
+    private val reservedCodes = initialCodes.mapTo(mutableSetOf()) { it.code }
 
     override fun <T> atomically(operation: (InviteCodeTransaction) -> T): T = synchronized(this) {
         operation(object : InviteCodeTransaction {
-            override fun activeCode(ownerId: UUID): ActiveInviteCode? = byOwner[ownerId]
+            override fun activeCode(inviterId: UUID): ActiveInviteCode? = byInviter[inviterId]
 
-            override fun activeOwner(code: InviteCode): UUID? = ownerByCode[code]
+            override fun isReserved(code: InviteCode): Boolean = code in reservedCodes
 
             override fun activate(activeInviteCode: ActiveInviteCode) {
-                check(byOwner[activeInviteCode.ownerId] == null)
-                check(ownerByCode[activeInviteCode.code] == null)
-                byOwner[activeInviteCode.ownerId] = activeInviteCode
-                ownerByCode[activeInviteCode.code] = activeInviteCode.ownerId
+                check(byInviter[activeInviteCode.inviterId] == null)
+                check(activeInviteCode.code !in reservedCodes)
+                byInviter[activeInviteCode.inviterId] = activeInviteCode
+                activeInviterByCode[activeInviteCode.code] = activeInviteCode.inviterId
+                reservedCodes += activeInviteCode.code
             }
 
             override fun replace(
                 previous: RetiredInviteCode,
                 current: ActiveInviteCode,
             ) {
-                check(byOwner[previous.ownerId]?.code == previous.code)
-                check(ownerByCode[previous.code] == previous.ownerId)
-                check(ownerByCode[current.code] == null)
-                byOwner[current.ownerId] = current
-                ownerByCode.remove(previous.code)
-                ownerByCode[current.code] = current.ownerId
+                check(byInviter[previous.inviterId]?.code == previous.code)
+                check(activeInviterByCode[previous.code] == previous.inviterId)
+                check(current.code !in reservedCodes)
+                byInviter[current.inviterId] = current
+                activeInviterByCode.remove(previous.code)
+                activeInviterByCode[current.code] = current.inviterId
+                reservedCodes += current.code
             }
         })
     }
 
-    fun resolveActiveOwner(code: InviteCode): UUID? = synchronized(this) {
-        ownerByCode[code]
+    fun resolveActiveInviter(code: InviteCode): UUID? = synchronized(this) {
+        activeInviterByCode[code]
     }
 }

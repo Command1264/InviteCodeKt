@@ -4,13 +4,13 @@ import java.time.Instant
 import java.util.UUID
 
 data class ActiveInviteCode(
-    val ownerId: UUID,
+    val inviterId: UUID,
     val code: InviteCode,
     val activatedAt: Instant,
 )
 
 data class RetiredInviteCode(
-    val ownerId: UUID,
+    val inviterId: UUID,
     val code: InviteCode,
     val activatedAt: Instant,
     val retiredAt: Instant,
@@ -29,16 +29,17 @@ data class InviteCodeRotation(
 
 /**
  * Runs Invite Code allocation operations atomically. Implementations must prevent two overlapping
- * operations from activating the same normalized code or more than one active code for an owner.
+ * operations from activating the same normalized code, reusing a retired code, or activating more
+ * than one code for an Inviter.
  */
 interface InviteCodeRegistry {
     fun <T> atomically(operation: (InviteCodeTransaction) -> T): T
 }
 
 interface InviteCodeTransaction {
-    fun activeCode(ownerId: UUID): ActiveInviteCode?
+    fun activeCode(inviterId: UUID): ActiveInviteCode?
 
-    fun activeOwner(code: InviteCode): UUID?
+    fun isReserved(code: InviteCode): Boolean
 
     fun activate(activeInviteCode: ActiveInviteCode)
 
@@ -56,8 +57,8 @@ class InviteCodeCollisionException(
 )
 
 class ActiveInviteCodeNotFoundException(
-    ownerId: UUID,
-) : IllegalStateException("Player $ownerId does not have an active Invite Code to rotate.")
+    inviterId: UUID,
+) : IllegalStateException("Inviter $inviterId does not have an active Invite Code to rotate.")
 
 class InviteCodeLifecycleService(
     private val registry: InviteCodeRegistry,
@@ -69,84 +70,76 @@ class InviteCodeLifecycleService(
     }
 
     fun assign(
-        ownerId: UUID,
+        inviterId: UUID,
         activatedAt: Instant,
-    ): ActiveInviteCode {
-        repeat(maxCollisionAttempts) {
-            when (val attempt = tryAssign(ownerId, activatedAt)) {
-                is AssignmentAttempt.Assigned -> return attempt.activeInviteCode
-                AssignmentAttempt.Collision -> Unit
-            }
-        }
-        throw InviteCodeCollisionException(maxCollisionAttempts)
+    ): ActiveInviteCode = retryCollisions {
+        tryAssign(inviterId, activatedAt)
     }
 
     fun rotate(
-        ownerId: UUID,
+        inviterId: UUID,
         rotatedAt: Instant,
-    ): InviteCodeRotation {
-        repeat(maxCollisionAttempts) {
-            when (val attempt = tryRotate(ownerId, rotatedAt)) {
-                is RotationAttempt.Rotated -> return attempt.rotation
-                RotationAttempt.Collision -> Unit
-            }
-        }
-        throw InviteCodeCollisionException(maxCollisionAttempts)
+    ): InviteCodeRotation = retryCollisions {
+        tryRotate(inviterId, rotatedAt)
     }
 
     private fun tryAssign(
-        ownerId: UUID,
+        inviterId: UUID,
         activatedAt: Instant,
-    ): AssignmentAttempt = registry.atomically { transaction ->
-        transaction.activeCode(ownerId)?.let { existing ->
-            return@atomically AssignmentAttempt.Assigned(existing)
+    ): CollisionAttempt<ActiveInviteCode> = registry.atomically { transaction ->
+        transaction.activeCode(inviterId)?.let { existing ->
+            return@atomically CollisionAttempt.Success(existing)
         }
 
         val candidate = generator.generate()
-        if (transaction.activeOwner(candidate) != null) {
-            return@atomically AssignmentAttempt.Collision
+        if (transaction.isReserved(candidate)) {
+            return@atomically CollisionAttempt.Collision
         }
 
-        val activeInviteCode = ActiveInviteCode(ownerId, candidate, activatedAt)
+        val activeInviteCode = ActiveInviteCode(inviterId, candidate, activatedAt)
         transaction.activate(activeInviteCode)
-        AssignmentAttempt.Assigned(activeInviteCode)
+        CollisionAttempt.Success(activeInviteCode)
     }
 
     private fun tryRotate(
-        ownerId: UUID,
+        inviterId: UUID,
         rotatedAt: Instant,
-    ): RotationAttempt = registry.atomically { transaction ->
-        val existing = transaction.activeCode(ownerId)
-            ?: throw ActiveInviteCodeNotFoundException(ownerId)
+    ): CollisionAttempt<InviteCodeRotation> = registry.atomically { transaction ->
+        val existing = transaction.activeCode(inviterId)
+            ?: throw ActiveInviteCodeNotFoundException(inviterId)
         val candidate = generator.generate()
-        if (candidate == existing.code || transaction.activeOwner(candidate) != null) {
-            return@atomically RotationAttempt.Collision
+        if (transaction.isReserved(candidate)) {
+            return@atomically CollisionAttempt.Collision
         }
 
         val previous = RetiredInviteCode(
-            ownerId = existing.ownerId,
+            inviterId = existing.inviterId,
             code = existing.code,
             activatedAt = existing.activatedAt,
             retiredAt = rotatedAt,
         )
         val current = ActiveInviteCode(
-            ownerId = ownerId,
+            inviterId = inviterId,
             code = candidate,
             activatedAt = rotatedAt,
         )
         transaction.replace(previous, current)
-        RotationAttempt.Rotated(InviteCodeRotation(previous, current))
+        CollisionAttempt.Success(InviteCodeRotation(previous, current))
+    }
+
+    private inline fun <T> retryCollisions(attempt: () -> CollisionAttempt<T>): T {
+        repeat(maxCollisionAttempts) {
+            when (val result = attempt()) {
+                is CollisionAttempt.Success -> return result.value
+                CollisionAttempt.Collision -> Unit
+            }
+        }
+        throw InviteCodeCollisionException(maxCollisionAttempts)
     }
 }
 
-private sealed class AssignmentAttempt {
-    data class Assigned(val activeInviteCode: ActiveInviteCode) : AssignmentAttempt()
+private sealed class CollisionAttempt<out T> {
+    data class Success<T>(val value: T) : CollisionAttempt<T>()
 
-    object Collision : AssignmentAttempt()
-}
-
-private sealed class RotationAttempt {
-    data class Rotated(val rotation: InviteCodeRotation) : RotationAttempt()
-
-    object Collision : RotationAttempt()
+    object Collision : CollisionAttempt<Nothing>()
 }

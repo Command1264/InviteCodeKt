@@ -11,6 +11,8 @@ import io.github.command1264.invitecode.core.InvitationClaimResult
 import io.github.command1264.invitecode.core.InvitationClaimService
 import io.github.command1264.invitecode.core.AuditRecord
 import io.github.command1264.invitecode.core.AuditedInvitationTransition
+import io.github.command1264.invitecode.core.InvitationAdministrationContext
+import io.github.command1264.invitecode.core.PlayerClaimState
 import io.github.command1264.invitecode.core.Invitation
 import io.github.command1264.invitecode.core.InvitationAuditAction
 import io.github.command1264.invitecode.core.InvitationAuditDetails
@@ -421,6 +423,84 @@ class SqliteInviteCodeStorageTest {
             }
 
             assertEquals(invitation, storage.invitation(invitation.id))
+        }
+    }
+
+    @Test
+    fun `Eligibility Reset starts a new unique Claim generation and saves its Audit Record`() {
+        val database = temporaryDirectory.resolve("eligibility-reset.db")
+        val offMainThread = BlockingOperationGuard { }
+        val oldInviter = UUID.fromString("00000000-0000-0000-0000-000000000061")
+        val newInviter = UUID.fromString("00000000-0000-0000-0000-000000000062")
+        val invitee = UUID.fromString("00000000-0000-0000-0000-000000000063")
+        val initialFirstSeen = Instant.parse("2026-09-22T00:00:00Z")
+        val resetAt = Instant.parse("2026-09-22T06:00:00Z")
+        val oldInvitation = Invitation(
+            UUID.fromString("10000000-0000-0000-0000-000000000061"),
+            oldInviter,
+            invitee,
+            InvitationStatus.UNLINKED,
+            Instant.parse("2026-09-22T01:00:00Z"),
+        )
+        val context = InvitationAdministrationContext(
+            auditRecordId = UUID.fromString("40000000-0000-0000-0000-000000000061"),
+            actor = "console",
+            reason = "Restore eligibility after unlink",
+            occurredAt = resetAt,
+        )
+        SqliteSchemaMigrator(database, offMainThread).migrate()
+        SqliteInviteCodeStorage.open(database, offMainThread).use { storage ->
+            listOf(oldInviter, newInviter, invitee).forEach {
+                storage.savePlayer(StoredPlayer(it, initialFirstSeen))
+            }
+            storage.saveInvitation(oldInvitation)
+            val reset = PlayerClaimState(invitee, initialFirstSeen, false, true)
+                .adminResetEligibility(context)
+
+            storage.saveAuditedClaimStateTransition(reset)
+
+            assertEquals(resetAt, storage.player(invitee)!!.firstSeenAt)
+            assertEquals(reset.auditRecord, storage.auditRecord(context.auditRecordId))
+            val claim = InvitationClaimService(
+                transactions = storage,
+                eligibilityPolicy = ClaimEligibilityPolicy(Duration.ofHours(24)),
+                invitationIdGenerator = {
+                    UUID.fromString("10000000-0000-0000-0000-000000000062")
+                },
+            ).claim(
+                ClaimConfirmation.present(
+                    invitee, newInviter, "NewInviter", InviteCode.parse("A25981"),
+                    resetAt, Duration.ofSeconds(30),
+                ).confirm(invitee, resetAt.plusSeconds(1)),
+            )
+            assertEquals(true, claim is InvitationClaimResult.Claimed)
+        }
+    }
+
+    @Test
+    fun `Eligibility Reset rolls back when its Audit Record cannot be saved`() {
+        val database = temporaryDirectory.resolve("eligibility-reset-rollback.db")
+        val offMainThread = BlockingOperationGuard { }
+        val playerId = UUID.fromString("00000000-0000-0000-0000-000000000071")
+        val firstSeenAt = Instant.parse("2026-09-22T00:00:00Z")
+        val context = InvitationAdministrationContext(
+            auditRecordId = UUID.fromString("40000000-0000-0000-0000-000000000071"),
+            actor = "console",
+            reason = "Test duplicate Audit Record",
+            occurredAt = Instant.parse("2026-09-22T07:00:00Z"),
+        )
+        val existingAudit = PlayerClaimState(playerId, firstSeenAt, false, false)
+            .adminResetEligibility(context).auditRecord
+        SqliteSchemaMigrator(database, offMainThread).migrate()
+        SqliteInviteCodeStorage.open(database, offMainThread).use { storage ->
+            storage.savePlayer(StoredPlayer(playerId, firstSeenAt))
+            storage.saveAuditRecord(existingAudit)
+            val reset = PlayerClaimState(playerId, firstSeenAt, false, false)
+                .adminResetEligibility(context)
+
+            assertThrows<SqliteStorageException> { storage.saveAuditedClaimStateTransition(reset) }
+
+            assertEquals(firstSeenAt, storage.player(playerId)!!.firstSeenAt)
         }
     }
 }

@@ -53,7 +53,7 @@ invitecode-plugin/build/libs/InviteCodeKt-0.1.0-SNAPSHOT.jar
 
 - schema 只會由 `SqliteSchemaMigrator` 依版本順序明確遷移；開啟 storage 不會暗中修改 schema。
 - migration 在 transaction 內執行；失敗時回復原 schema version，並保留既有資料庫供檢查與重試。
-- Claim 使用 SQLite write transaction，且資料庫以 unique constraint 保證一名 Invitee 最多只有一筆 Invitation。
+- Claim 使用 SQLite write transaction，且資料庫以 unique constraint 保證一名 Invitee 在每次 Claim Eligibility 世代最多只有一筆 Invitation；可稽核的 Eligibility Reset 會開始新世代並保留歷史資料。
 - Reward Delivery 與其所有 Reward Actions 以單一 transaction 建立；任一 Action 寫入失敗時整批回復。
 - 所有 SQLite 入口都要求 `BlockingOperationGuard`；Minecraft adapter 必須用它拒絕 server main thread，並在專用 executor 呼叫同步 storage interface。
 - storage 錯誤會拒絕當次操作，不會自動切換成 memory、JSON 或其他 backend。

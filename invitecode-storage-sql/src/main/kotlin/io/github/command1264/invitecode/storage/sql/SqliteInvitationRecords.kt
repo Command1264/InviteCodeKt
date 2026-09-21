@@ -13,10 +13,17 @@ import java.util.UUID
 
 internal object SqliteInvitationRecords {
     fun save(connection: Connection, invitation: Invitation, updateExisting: Boolean) {
+        val inviterGeneration = SqlitePlayerRecords.eligibilityGeneration(connection, invitation.inviterId)
+        val inviteeGeneration = SqlitePlayerRecords.eligibilityGeneration(connection, invitation.inviteeId)
         val conflictClause = if (updateExisting) {
             """
             ON CONFLICT(invitation_id) DO UPDATE SET
                 inviter_id = excluded.inviter_id,
+                inviter_eligibility_generation = CASE
+                    WHEN invitecode_invitations.inviter_id <> excluded.inviter_id
+                    THEN excluded.inviter_eligibility_generation
+                    ELSE invitecode_invitations.inviter_eligibility_generation
+                END,
                 status = excluded.status,
                 qualified_at = excluded.qualified_at,
                 qualification_revision = excluded.qualification_revision
@@ -27,19 +34,22 @@ internal object SqliteInvitationRecords {
         connection.prepareStatement(
             """
             INSERT INTO invitecode_invitations(
-                invitation_id, inviter_id, invitee_id, status, claimed_at,
+                invitation_id, inviter_id, inviter_eligibility_generation,
+                invitee_id, invitee_eligibility_generation, status, claimed_at,
                 qualified_at, qualification_revision
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             $conflictClause
             """.trimIndent(),
         ).use { statement ->
             statement.setString(1, invitation.id.toString())
             statement.setString(2, invitation.inviterId.toString())
-            statement.setString(3, invitation.inviteeId.toString())
-            statement.setString(4, invitation.status.name)
-            statement.setString(5, invitation.claimedAt.toString())
-            statement.setString(6, invitation.qualifiedAt?.toString())
-            statement.setString(7, invitation.qualificationRevision)
+            statement.setInt(3, inviterGeneration)
+            statement.setString(4, invitation.inviteeId.toString())
+            statement.setInt(5, inviteeGeneration)
+            statement.setString(6, invitation.status.name)
+            statement.setString(7, invitation.claimedAt.toString())
+            statement.setString(8, invitation.qualifiedAt?.toString())
+            statement.setString(9, invitation.qualificationRevision)
             statement.executeUpdate()
         }
     }

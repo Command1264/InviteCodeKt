@@ -125,7 +125,8 @@ class SqliteSchemaMigrator(
                     CREATE TABLE invitecode_players (
                         player_id TEXT PRIMARY KEY,
                         first_seen_at TEXT NOT NULL,
-                        last_known_name TEXT NULL
+                        last_known_name TEXT NULL,
+                        eligibility_generation INTEGER NOT NULL DEFAULT 0 CHECK (eligibility_generation >= 0)
                     )
                     """.trimIndent(),
                 ),
@@ -158,20 +159,26 @@ class SqliteSchemaMigrator(
                     CREATE TABLE invitecode_invitations (
                         invitation_id TEXT PRIMARY KEY,
                         inviter_id TEXT NOT NULL,
-                        invitee_id TEXT NOT NULL UNIQUE,
+                        inviter_eligibility_generation INTEGER NOT NULL,
+                        invitee_id TEXT NOT NULL,
+                        invitee_eligibility_generation INTEGER NOT NULL,
                         status TEXT NOT NULL,
                         claimed_at TEXT NOT NULL,
                         qualified_at TEXT NULL,
                         qualification_revision TEXT NULL,
                         FOREIGN KEY (inviter_id) REFERENCES invitecode_players(player_id),
                         FOREIGN KEY (invitee_id) REFERENCES invitecode_players(player_id),
+                        UNIQUE (invitee_id, invitee_eligibility_generation),
                         CHECK (
                             (qualified_at IS NULL AND qualification_revision IS NULL) OR
                             (qualified_at IS NOT NULL AND qualification_revision IS NOT NULL)
                         )
                     )
                     """.trimIndent(),
-                    "CREATE INDEX invitecode_invitations_by_inviter ON invitecode_invitations(inviter_id)",
+                    """
+                    CREATE INDEX invitecode_invitations_by_inviter
+                    ON invitecode_invitations(inviter_id, inviter_eligibility_generation)
+                    """.trimIndent(),
                 ),
             ),
             SqliteSchemaMigration(

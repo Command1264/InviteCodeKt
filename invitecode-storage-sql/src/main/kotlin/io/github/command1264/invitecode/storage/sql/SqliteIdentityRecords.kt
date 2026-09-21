@@ -1,6 +1,7 @@
 package io.github.command1264.invitecode.storage.sql
 
 import io.github.command1264.invitecode.core.ActiveInviteCode
+import io.github.command1264.invitecode.core.AuditedClaimStateTransition
 import io.github.command1264.invitecode.core.InviteCode
 import io.github.command1264.invitecode.core.PlayerClaimState
 import io.github.command1264.invitecode.core.RetiredInviteCode
@@ -42,30 +43,66 @@ internal object SqlitePlayerRecords {
         }
 
     fun claimState(connection: Connection, playerId: UUID): PlayerClaimState {
-        val firstSeenAt = connection.prepareStatement(
-            "SELECT first_seen_at FROM invitecode_players WHERE player_id = ?",
+        val playerState = connection.prepareStatement(
+            "SELECT first_seen_at, eligibility_generation FROM invitecode_players WHERE player_id = ?",
         ).use { statement ->
             statement.setString(1, playerId.toString())
             statement.executeQuery().use { result ->
                 check(result.next()) { "Player $playerId must be stored before evaluating Claim Eligibility." }
-                Instant.parse(result.getString("first_seen_at"))
+                Instant.parse(result.getString("first_seen_at")) to result.getInt("eligibility_generation")
             }
         }
         val roles = connection.prepareStatement(
             """
             SELECT
-                EXISTS(SELECT 1 FROM invitecode_invitations WHERE inviter_id = ?) AS is_inviter,
-                EXISTS(SELECT 1 FROM invitecode_invitations WHERE invitee_id = ?) AS has_invitation
+                EXISTS(
+                    SELECT 1 FROM invitecode_invitations
+                    WHERE inviter_id = ? AND inviter_eligibility_generation = ?
+                ) AS is_inviter,
+                EXISTS(
+                    SELECT 1 FROM invitecode_invitations
+                    WHERE invitee_id = ? AND invitee_eligibility_generation = ?
+                ) AS has_invitation
             """.trimIndent(),
         ).use { statement ->
             statement.setString(1, playerId.toString())
-            statement.setString(2, playerId.toString())
+            statement.setInt(2, playerState.second)
+            statement.setString(3, playerId.toString())
+            statement.setInt(4, playerState.second)
             statement.executeQuery().use { result ->
                 result.next()
                 result.getBoolean("is_inviter") to result.getBoolean("has_invitation")
             }
         }
-        return PlayerClaimState(playerId, firstSeenAt, roles.first, roles.second)
+        return PlayerClaimState(playerId, playerState.first, roles.first, roles.second)
+    }
+
+    fun eligibilityGeneration(connection: Connection, playerId: UUID): Int =
+        connection.prepareStatement(
+            "SELECT eligibility_generation FROM invitecode_players WHERE player_id = ?",
+        ).use { statement ->
+            statement.setString(1, playerId.toString())
+            statement.executeQuery().use { result ->
+                check(result.next()) { "Player $playerId must be stored before creating an Invitation." }
+                result.getInt("eligibility_generation")
+            }
+        }
+
+    fun resetEligibility(connection: Connection, transition: AuditedClaimStateTransition) {
+        val changed = connection.prepareStatement(
+            """
+            UPDATE invitecode_players
+            SET first_seen_at = ?, eligibility_generation = eligibility_generation + 1
+            WHERE player_id = ?
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, transition.state.firstSeenAt.toString())
+            statement.setString(2, transition.state.playerId.toString())
+            statement.executeUpdate()
+        }
+        check(changed == 1) {
+            "Player ${transition.state.playerId} must be stored before resetting Claim Eligibility."
+        }
     }
 }
 

@@ -2,6 +2,7 @@ package io.github.command1264.invitecode.storage.sql
 
 import io.github.command1264.invitecode.core.ActiveInviteCode
 import io.github.command1264.invitecode.core.AuditRecord
+import io.github.command1264.invitecode.core.AuditedClaimStateTransition
 import io.github.command1264.invitecode.core.AuditedInvitationTransition
 import io.github.command1264.invitecode.core.InviteCode
 import io.github.command1264.invitecode.core.InviteCodeStorage
@@ -92,6 +93,13 @@ class SqliteInviteCodeStorage private constructor(
     override fun saveAuditedInvitationTransition(transition: AuditedInvitationTransition) {
         write { connection ->
             SqliteInvitationRecords.save(connection, transition.invitation, updateExisting = true)
+            SqliteAuditRecords.save(connection, transition.auditRecord)
+        }
+    }
+
+    override fun saveAuditedClaimStateTransition(transition: AuditedClaimStateTransition) {
+        write { connection ->
+            SqlitePlayerRecords.resetEligibility(connection, transition)
             SqliteAuditRecords.save(connection, transition.auditRecord)
         }
     }

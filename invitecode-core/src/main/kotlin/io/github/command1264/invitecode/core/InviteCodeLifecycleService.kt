@@ -29,8 +29,8 @@ data class InviteCodeRotation(
 
 /**
  * Runs Invite Code allocation operations atomically. Implementations must prevent two overlapping
- * operations from activating the same normalized code, reusing a retired code, or activating more
- * than one code for an Inviter.
+ * operations from activating the same normalized Invite Code, reusing a retired Invite Code, or
+ * activating more than one Invite Code for an Inviter.
  */
 interface InviteCodeRegistry {
     fun <T> atomically(operation: (InviteCodeTransaction) -> T): T
@@ -53,7 +53,7 @@ class InviteCodeCollisionException(
     val attempts: Int,
 ) : IllegalStateException(
     "Could not allocate a unique Invite Code after $attempts attempts; " +
-        "increase the code space or inspect the active code registry.",
+        "increase the Invite Code namespace or inspect the Invite Code registry.",
 )
 
 class ActiveInviteCodeNotFoundException(

@@ -91,7 +91,7 @@ class InviteCodeLifecycleServiceTest {
         assertEquals(2, error.attempts)
         assertEquals(
             "Could not allocate a unique Invite Code after 2 attempts; " +
-                "increase the code space or inspect the active code registry.",
+                "increase the Invite Code namespace or inspect the Invite Code registry.",
             error.message,
         )
     }

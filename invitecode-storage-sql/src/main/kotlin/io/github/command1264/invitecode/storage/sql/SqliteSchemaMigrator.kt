@@ -9,6 +9,16 @@ import java.sql.SQLException
 /** 在任何 SQLite I/O 前確認目前 thread 允許執行 blocking operation。 */
 fun interface BlockingOperationGuard {
     fun checkAllowed()
+
+    companion object {
+        fun rejectingServerMainThread(isServerMainThread: () -> Boolean): BlockingOperationGuard =
+            BlockingOperationGuard {
+                check(!isServerMainThread()) {
+                    "SQLite storage cannot run on the server main thread; " +
+                        "schedule the operation on a dedicated storage executor."
+                }
+            }
+    }
 }
 
 class SqliteStorageException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
@@ -181,6 +191,18 @@ class SqliteSchemaMigrator(
                     )
                     """.trimIndent(),
                     """
+                    CREATE TABLE invitecode_reward_deliveries (
+                        delivery_id TEXT PRIMARY KEY,
+                        invitation_id TEXT NULL,
+                        reward_id TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        idempotency_key TEXT NOT NULL UNIQUE,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL,
+                        FOREIGN KEY (invitation_id) REFERENCES invitecode_invitations(invitation_id)
+                    )
+                    """.trimIndent(),
+                    """
                     CREATE TABLE invitecode_reward_actions (
                         action_id TEXT PRIMARY KEY,
                         reward_delivery_id TEXT NOT NULL,
@@ -195,6 +217,7 @@ class SqliteSchemaMigrator(
                         updated_at TEXT NOT NULL,
                         last_error TEXT NULL,
                         UNIQUE (reward_delivery_id, position),
+                        FOREIGN KEY (reward_delivery_id) REFERENCES invitecode_reward_deliveries(delivery_id),
                         FOREIGN KEY (invitation_id) REFERENCES invitecode_invitations(invitation_id),
                         FOREIGN KEY (recipient_id) REFERENCES invitecode_players(player_id)
                     )

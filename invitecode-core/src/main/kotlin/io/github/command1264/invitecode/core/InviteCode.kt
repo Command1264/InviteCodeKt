@@ -41,12 +41,3 @@ class InviteCode private constructor(val normalized: String) {
         }
     }
 }
-
-enum class RewardActionStatus {
-    PENDING,
-    PROCESSING,
-    DELIVERED,
-    FAILED,
-    UNCERTAIN,
-    EXPIRED,
-}

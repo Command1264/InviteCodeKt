@@ -17,6 +17,8 @@ import io.github.command1264.invitecode.core.QualificationFact
 import io.github.command1264.invitecode.core.QualificationFactOutcome
 import io.github.command1264.invitecode.core.RewardActionStatus
 import io.github.command1264.invitecode.core.StoredRewardAction
+import io.github.command1264.invitecode.core.StoredRewardDelivery
+import io.github.command1264.invitecode.core.RewardDeliveryStatus
 import io.github.command1264.invitecode.api.InvitationStatus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -57,7 +59,7 @@ class SqliteInviteCodeStorageTest {
     }
 
     @Test
-    fun `player upsert preserves the earliest First Seen At`() {
+    fun `player upsert preserves the initial First Seen At`() {
         val database = temporaryDirectory.resolve("first-seen.db")
         val offMainThread = BlockingOperationGuard { }
         val playerId = UUID.fromString("00000000-0000-0000-0000-000000000009")
@@ -65,7 +67,7 @@ class SqliteInviteCodeStorageTest {
 
         SqliteInviteCodeStorage.open(database, offMainThread).use { storage ->
             storage.savePlayer(StoredPlayer(playerId, Instant.parse("2026-09-22T02:00:00Z"), "NewName"))
-            storage.savePlayer(StoredPlayer(playerId, Instant.parse("2026-09-22T03:00:00Z"), "LatestName"))
+            storage.savePlayer(StoredPlayer(playerId, Instant.parse("2026-09-22T02:00:00.100Z"), "LatestName"))
 
             assertEquals(
                 StoredPlayer(playerId, Instant.parse("2026-09-22T02:00:00Z"), "LatestName"),
@@ -77,13 +79,17 @@ class SqliteInviteCodeStorageTest {
     @Test
     fun `thread guard rejects migration before database IO begins`() {
         val database = temporaryDirectory.resolve("main-thread.db")
-        val guard = BlockingOperationGuard { error("Blocking storage operation on server main thread") }
+        val guard = BlockingOperationGuard.rejectingServerMainThread { true }
 
         val error = assertThrows<IllegalStateException> {
             SqliteSchemaMigrator(database, guard).migrate()
         }
 
-        assertEquals("Blocking storage operation on server main thread", error.message)
+        assertEquals(
+            "SQLite storage cannot run on the server main thread; " +
+                "schedule the operation on a dedicated storage executor.",
+            error.message,
+        )
         assertEquals(false, Files.exists(database))
     }
 
@@ -306,6 +312,15 @@ class SqliteInviteCodeStorageTest {
             createdAt = qualifiedAt,
             updatedAt = qualifiedAt,
         )
+        val delivery = StoredRewardDelivery(
+            id = action.rewardDeliveryId,
+            invitationId = invitationId,
+            rewardId = "qualification-default",
+            status = RewardDeliveryStatus.PENDING,
+            idempotencyKey = "qualification:$invitationId",
+            createdAt = qualifiedAt,
+            updatedAt = qualifiedAt,
+        )
         val audit = AuditRecord(
             id = UUID.fromString("40000000-0000-0000-0000-000000000021"),
             action = InvitationAuditAction.FORCE_QUALIFIED,
@@ -321,15 +336,52 @@ class SqliteInviteCodeStorageTest {
             storage.savePlayer(StoredPlayer(inviteeId, Instant.EPOCH, "Invitee"))
             storage.saveInvitation(invitation)
             storage.saveQualificationFact(fact)
-            storage.saveRewardAction(action)
+            storage.saveRewardDelivery(delivery, listOf(action))
             storage.saveAuditRecord(audit)
         }
 
         SqliteInviteCodeStorage.open(database, offMainThread).use { reopened ->
             assertEquals(invitation, reopened.invitation(invitationId))
             assertEquals(fact, reopened.qualificationFact(fact.id))
+            assertEquals(delivery, reopened.rewardDelivery(delivery.id))
             assertEquals(action, reopened.rewardAction(action.id))
             assertEquals(audit, reopened.auditRecord(audit.id))
+        }
+    }
+
+    @Test
+    fun `Reward Delivery and all actions roll back together`() {
+        val database = temporaryDirectory.resolve("reward-rollback.db")
+        val offMainThread = BlockingOperationGuard { }
+        val recipientId = UUID.fromString("00000000-0000-0000-0000-000000000041")
+        val delivery = StoredRewardDelivery(
+            id = UUID.fromString("31000000-0000-0000-0000-000000000041"),
+            invitationId = null,
+            rewardId = "milestone-five",
+            status = RewardDeliveryStatus.PENDING,
+            idempotencyKey = "milestone:$recipientId:5",
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val first = StoredRewardAction(
+            UUID.fromString("30000000-0000-0000-0000-000000000041"), delivery.id, null,
+            recipientId, 0, "message", "First", RewardActionStatus.PENDING,
+            "duplicate-action-key", Instant.EPOCH, Instant.EPOCH,
+        )
+        val second = first.copy(
+            id = UUID.fromString("30000000-0000-0000-0000-000000000042"),
+            position = 1,
+        )
+        SqliteSchemaMigrator(database, offMainThread).migrate()
+        SqliteInviteCodeStorage.open(database, offMainThread).use { storage ->
+            storage.savePlayer(StoredPlayer(recipientId, Instant.EPOCH))
+
+            assertThrows<SqliteStorageException> {
+                storage.saveRewardDelivery(delivery, listOf(first, second))
+            }
+
+            assertEquals(null, storage.rewardDelivery(delivery.id))
+            assertEquals(null, storage.rewardAction(first.id))
         }
     }
 }

@@ -59,6 +59,22 @@ data class StoredRewardAction(
     }
 }
 
+data class StoredRewardDelivery(
+    val id: UUID,
+    val invitationId: UUID?,
+    val rewardId: String,
+    val status: RewardDeliveryStatus,
+    val idempotencyKey: String,
+    val createdAt: Instant,
+    val updatedAt: Instant,
+) {
+    init {
+        require(rewardId.isNotBlank()) { "Reward ID must not be blank." }
+        require(idempotencyKey.isNotBlank()) { "Reward Delivery idempotency key must not be blank." }
+        require(!updatedAt.isBefore(createdAt)) { "Reward Delivery cannot be updated before it was created." }
+    }
+}
+
 /**
  * 持久化領域狀態的同步介面。SQL adapter 會執行 blocking I/O，呼叫端必須將操作排程至
  * server main thread 以外的專用 executor。
@@ -83,6 +99,10 @@ interface InviteCodeStorage : InvitationTransactions, InviteCodeRegistry, AutoCl
     fun saveRewardAction(action: StoredRewardAction)
 
     fun rewardAction(actionId: UUID): StoredRewardAction?
+
+    fun saveRewardDelivery(delivery: StoredRewardDelivery, actions: List<StoredRewardAction>)
+
+    fun rewardDelivery(deliveryId: UUID): StoredRewardDelivery?
 
     fun saveAuditRecord(record: AuditRecord)
 

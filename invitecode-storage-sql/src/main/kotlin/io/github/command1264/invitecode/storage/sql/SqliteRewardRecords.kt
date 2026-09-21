@@ -20,13 +20,17 @@ internal object SqliteRewardRecords {
     ) {
         val current = findDelivery(connection, delivery.id)
         if (current != null) {
+            if (current == delivery) return
             require(
                 current.invitationId == delivery.invitationId &&
                     current.rewardId == delivery.rewardId &&
                     current.idempotencyKey == delivery.idempotencyKey &&
                     current.createdAt == delivery.createdAt,
             ) { "Reward Delivery ${delivery.id} identity fields cannot be changed." }
-            require(current.status == delivery.status || delivery.updatedAt.isAfter(current.updatedAt)) {
+            require(current.status != delivery.status) {
+                "Reward Delivery ${delivery.id} cannot change data without a status transition."
+            }
+            require(delivery.updatedAt.isAfter(current.updatedAt)) {
                 "Reward Delivery ${delivery.id} status transitions require a newer update timestamp."
             }
             require(
@@ -102,6 +106,7 @@ internal object SqliteRewardRecords {
     ) {
         val current = findAction(connection, action.id)
         if (current != null) {
+            if (current == action) return
             require(
                 current.rewardDeliveryId == action.rewardDeliveryId &&
                     current.invitationId == action.invitationId &&
@@ -112,7 +117,10 @@ internal object SqliteRewardRecords {
                     current.idempotencyKey == action.idempotencyKey &&
                     current.createdAt == action.createdAt,
             ) { "Reward Action ${action.id} identity fields cannot be changed." }
-            require(current.status == action.status || action.updatedAt.isAfter(current.updatedAt)) {
+            require(current.status != action.status) {
+                "Reward Action ${action.id} cannot change data without a status transition."
+            }
+            require(action.updatedAt.isAfter(current.updatedAt)) {
                 "Reward Action ${action.id} status transitions require a newer update timestamp."
             }
             require(

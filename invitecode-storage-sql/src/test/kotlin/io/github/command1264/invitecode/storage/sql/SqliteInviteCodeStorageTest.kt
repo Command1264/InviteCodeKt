@@ -752,6 +752,16 @@ class SqliteInviteCodeStorageTest {
             storage.savePlayer(StoredPlayer(recipientId, Instant.EPOCH))
             storage.saveRewardDelivery(delivery, listOf(pending))
             storage.saveRewardAction(pending.copy(status = RewardActionStatus.PROCESSING, updatedAt = processingAt))
+            assertThrows<IllegalArgumentException> {
+                storage.saveRewardAction(
+                    pending.copy(
+                        status = RewardActionStatus.PROCESSING,
+                        updatedAt = processingAt.minusMillis(1),
+                        lastError = "stale error",
+                    ),
+                )
+            }
+            assertEquals(processingAt, storage.rewardAction(pending.id)!!.updatedAt)
 
             assertEquals(1, storage.recoverInterruptedRewardActions(recoveredAt))
             val uncertain = storage.rewardAction(pending.id)!!
@@ -810,6 +820,54 @@ class SqliteInviteCodeStorageTest {
 
             assertThrows<IllegalArgumentException> { storage.saveRewardDelivery(delivery, listOf(pending)) }
             assertEquals(null, storage.rewardDelivery(delivery.id))
+        }
+    }
+
+    @Test
+    fun `Reward aggregate rejects appended duplicate and mismatched Invitation Actions`() {
+        val database = temporaryDirectory.resolve("reward-aggregate-boundaries.db")
+        val guard = BlockingOperationGuard { }
+        val recipientId = UUID.fromString("00000000-0000-0000-0000-0000000000c2")
+        val invitationId = UUID.fromString("10000000-0000-0000-0000-0000000000c2")
+        val delivery = StoredRewardDelivery(
+            UUID.fromString("31000000-0000-0000-0000-0000000000c2"), invitationId, "aggregate",
+            RewardDeliveryStatus.PENDING, "aggregate-delivery", Instant.EPOCH, Instant.EPOCH,
+        )
+        val action = StoredRewardAction(
+            UUID.fromString("30000000-0000-0000-0000-0000000000c2"), delivery.id, invitationId,
+            recipientId, 0, "message", "hello", RewardActionStatus.PENDING,
+            "aggregate-action", Instant.EPOCH, Instant.EPOCH,
+        )
+        val duplicateWithDifferentState = action.copy(
+            status = RewardActionStatus.PROCESSING,
+            updatedAt = Instant.EPOCH.plusSeconds(1),
+        )
+
+        SqliteSchemaMigrator(database, guard).migrate()
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            assertThrows<IllegalArgumentException> {
+                storage.saveRewardDelivery(delivery, listOf(action, duplicateWithDifferentState))
+            }
+            assertThrows<IllegalArgumentException> {
+                storage.saveRewardDelivery(delivery, listOf(action.copy(invitationId = UUID.randomUUID())))
+            }
+        }
+
+        val milestoneDelivery = delivery.copy(invitationId = null)
+        val milestoneAction = action.copy(invitationId = null)
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            storage.savePlayer(StoredPlayer(recipientId, Instant.EPOCH))
+            storage.saveRewardDelivery(milestoneDelivery, listOf(milestoneAction))
+            assertThrows<IllegalArgumentException> {
+                storage.saveRewardAction(
+                    milestoneAction.copy(
+                        id = UUID.randomUUID(),
+                        position = 1,
+                        idempotencyKey = "appended-action",
+                    ),
+                )
+            }
+            assertEquals(listOf(milestoneAction), storage.rewardActions(milestoneDelivery.id))
         }
     }
 

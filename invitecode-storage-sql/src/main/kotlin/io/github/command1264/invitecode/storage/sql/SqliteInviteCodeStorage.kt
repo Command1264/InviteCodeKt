@@ -65,6 +65,9 @@ class SqliteInviteCodeStorage private constructor(
 
     override fun saveRewardAction(action: StoredRewardAction) {
         write { connection ->
+            requireNotNull(SqliteRewardRecords.findAction(connection, action.id)) {
+                "Reward Action ${action.id} must be created with its complete Reward Delivery."
+            }
             SqliteRewardRecords.saveAction(connection, action)
             updateDeliveryAggregate(connection, action.rewardDeliveryId, action.updatedAt)
         }
@@ -135,6 +138,15 @@ class SqliteInviteCodeStorage private constructor(
         require(actions.isNotEmpty()) { "Reward Delivery must contain at least one Reward Action." }
         require(actions.all { it.rewardDeliveryId == delivery.id }) {
             "Every Reward Action must belong to Reward Delivery ${delivery.id}."
+        }
+        require(actions.all { it.invitationId == delivery.invitationId }) {
+            "Every Reward Action must have the same Invitation as Reward Delivery ${delivery.id}."
+        }
+        require(actions.map { it.id }.distinct().size == actions.size) {
+            "Reward Delivery ${delivery.id} cannot contain duplicate Reward Action IDs."
+        }
+        require(actions.map { it.position }.distinct().size == actions.size) {
+            "Reward Delivery ${delivery.id} cannot contain duplicate Reward Action positions."
         }
         require(delivery.status == aggregateStatus(actions)) {
             "Reward Delivery ${delivery.id} status ${delivery.status} does not match its Action states."

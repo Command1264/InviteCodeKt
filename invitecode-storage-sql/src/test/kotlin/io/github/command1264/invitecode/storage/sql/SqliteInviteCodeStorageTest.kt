@@ -10,6 +10,7 @@ import io.github.command1264.invitecode.core.ClaimConfirmation
 import io.github.command1264.invitecode.core.InvitationClaimResult
 import io.github.command1264.invitecode.core.InvitationClaimService
 import io.github.command1264.invitecode.core.AuditRecord
+import io.github.command1264.invitecode.core.AuditedInvitationTransition
 import io.github.command1264.invitecode.core.Invitation
 import io.github.command1264.invitecode.core.InvitationAuditAction
 import io.github.command1264.invitecode.core.InvitationAuditDetails
@@ -382,6 +383,44 @@ class SqliteInviteCodeStorageTest {
 
             assertEquals(null, storage.rewardDelivery(delivery.id))
             assertEquals(null, storage.rewardAction(first.id))
+        }
+    }
+
+    @Test
+    fun `Invitation transition rolls back when its Audit Record cannot be saved`() {
+        val database = temporaryDirectory.resolve("audit-rollback.db")
+        val offMainThread = BlockingOperationGuard { }
+        val inviterId = UUID.fromString("00000000-0000-0000-0000-000000000051")
+        val inviteeId = UUID.fromString("00000000-0000-0000-0000-000000000052")
+        val invitation = Invitation(
+            UUID.fromString("10000000-0000-0000-0000-000000000051"),
+            inviterId,
+            inviteeId,
+            InvitationStatus.CLAIMED,
+            Instant.EPOCH,
+        )
+        val audit = AuditRecord(
+            id = UUID.fromString("40000000-0000-0000-0000-000000000051"),
+            action = InvitationAuditAction.FORCE_QUALIFIED,
+            actor = "console",
+            reason = "Test duplicate Audit Record",
+            occurredAt = Instant.parse("2026-09-22T05:00:00Z"),
+            invitationId = invitation.id,
+            details = InvitationAuditDetails.ForceQualification("sha256:test"),
+        )
+        SqliteSchemaMigrator(database, offMainThread).migrate()
+        SqliteInviteCodeStorage.open(database, offMainThread).use { storage ->
+            storage.savePlayer(StoredPlayer(inviterId, Instant.EPOCH))
+            storage.savePlayer(StoredPlayer(inviteeId, Instant.EPOCH))
+            storage.saveInvitation(invitation)
+            storage.saveAuditRecord(audit)
+            val qualified = invitation.qualify(audit.occurredAt, "sha256:test")
+
+            assertThrows<SqliteStorageException> {
+                storage.saveAuditedInvitationTransition(AuditedInvitationTransition(qualified, audit))
+            }
+
+            assertEquals(invitation, storage.invitation(invitation.id))
         }
     }
 }

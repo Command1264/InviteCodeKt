@@ -107,4 +107,6 @@ interface InviteCodeStorage : InvitationTransactions, InviteCodeRegistry, AutoCl
     fun saveAuditRecord(record: AuditRecord)
 
     fun auditRecord(recordId: UUID): AuditRecord?
+
+    fun saveAuditedInvitationTransition(transition: AuditedInvitationTransition)
 }

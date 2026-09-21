@@ -2,6 +2,7 @@ package io.github.command1264.invitecode.storage.sql
 
 import io.github.command1264.invitecode.core.ActiveInviteCode
 import io.github.command1264.invitecode.core.AuditRecord
+import io.github.command1264.invitecode.core.AuditedInvitationTransition
 import io.github.command1264.invitecode.core.InviteCode
 import io.github.command1264.invitecode.core.InviteCodeStorage
 import io.github.command1264.invitecode.core.InviteCodeTransaction
@@ -86,6 +87,13 @@ class SqliteInviteCodeStorage private constructor(
 
     override fun auditRecord(recordId: UUID): AuditRecord? = read {
         SqliteAuditRecords.find(it, recordId)
+    }
+
+    override fun saveAuditedInvitationTransition(transition: AuditedInvitationTransition) {
+        write { connection ->
+            SqliteInvitationRecords.save(connection, transition.invitation, updateExisting = true)
+            SqliteAuditRecords.save(connection, transition.auditRecord)
+        }
     }
 
     override fun <T> atomically(operation: (InviteCodeTransaction) -> T): T = write { connection ->

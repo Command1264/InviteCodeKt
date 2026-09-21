@@ -90,6 +90,26 @@ class InvitationAdministrationTest {
         assertEquals(inviteeId, transition.auditRecord.playerId)
     }
 
+    @Test
+    fun `audited invitation transition rejects a mismatched target`() {
+        val valid = claimedInvitation().adminUnlink(context())
+        val wrongTarget = valid.auditRecord.copy(invitationId = UUID.randomUUID())
+
+        assertThrows<IllegalArgumentException> {
+            AuditedInvitationTransition(valid.invitation, wrongTarget)
+        }
+    }
+
+    @Test
+    fun `audited eligibility reset rejects a mismatched player`() {
+        val valid = PlayerClaimState(inviteeId, Instant.EPOCH, true, true)
+            .adminResetEligibility(context())
+
+        assertThrows<IllegalArgumentException> {
+            AuditedClaimStateTransition(valid.state.copy(playerId = UUID.randomUUID()), valid.auditRecord)
+        }
+    }
+
     private fun context() = InvitationAdministrationContext(
         auditRecordId = UUID.fromString("20000000-0000-0000-0000-000000000001"),
         actor = "console",

@@ -1,5 +1,6 @@
 package io.github.command1264.invitecode.core
 
+import io.github.command1264.invitecode.api.InvitationStatus
 import java.time.Instant
 import java.util.UUID
 
@@ -49,9 +50,54 @@ sealed class InvitationAuditDetails {
 data class AuditedInvitationTransition(
     val invitation: Invitation,
     val auditRecord: AuditRecord,
-)
+) {
+    init {
+        require(auditRecord.invitationId == invitation.id && auditRecord.playerId == null) {
+            "Invitation transition Audit Record must target Invitation ${invitation.id}."
+        }
+        when (auditRecord.action) {
+            InvitationAuditAction.UNLINKED -> require(
+                invitation.status == InvitationStatus.UNLINKED &&
+                    auditRecord.details == InvitationAuditDetails.None,
+            ) { "Unlink Audit Record must describe an unlinked Invitation without extra details." }
+            InvitationAuditAction.TRANSFERRED -> {
+                val details = auditRecord.details as? InvitationAuditDetails.Transfer
+                    ?: throw IllegalArgumentException("Transfer Audit Record requires transfer details.")
+                require(
+                    invitation.status == InvitationStatus.CLAIMED &&
+                        details.newInviterId == invitation.inviterId,
+                ) { "Transfer Audit Record must identify the Invitation's new Inviter." }
+            }
+            InvitationAuditAction.FORCE_QUALIFIED -> {
+                val details = auditRecord.details as? InvitationAuditDetails.ForceQualification
+                    ?: throw IllegalArgumentException(
+                        "Force Qualification Audit Record requires qualification details.",
+                    )
+                require(
+                    invitation.status == InvitationStatus.QUALIFIED &&
+                        details.qualificationRevision == invitation.qualificationRevision,
+                ) { "Force Qualification Audit Record must match the qualified Invitation revision." }
+            }
+            InvitationAuditAction.ELIGIBILITY_RESET -> throw IllegalArgumentException(
+                "Eligibility Reset cannot audit an Invitation transition.",
+            )
+        }
+    }
+}
 
 data class AuditedClaimStateTransition(
     val state: PlayerClaimState,
     val auditRecord: AuditRecord,
-)
+) {
+    init {
+        require(
+            auditRecord.action == InvitationAuditAction.ELIGIBILITY_RESET &&
+                auditRecord.playerId == state.playerId &&
+                auditRecord.invitationId == null &&
+                auditRecord.details == InvitationAuditDetails.None,
+        ) { "Eligibility Reset Audit Record must target player ${state.playerId} without extra details." }
+        require(
+            !state.isInviter && !state.hasInvitation && state.firstSeenAt == auditRecord.occurredAt,
+        ) { "Eligibility Reset state must restore eligibility from the Audit Record timestamp." }
+    }
+}

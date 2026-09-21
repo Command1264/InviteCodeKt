@@ -31,8 +31,54 @@ class InvitationTest {
         val qualified = claimedInvitation().qualify(Instant.EPOCH, "policy@1")
 
         assertThrows<IllegalStateException> {
-            qualified.transfer(UUID.randomUUID())
+            qualified.adminTransfer(
+                newInviterId = UUID.randomUUID(),
+                context = InvitationAdministrationContext(
+                    auditRecordId = UUID.randomUUID(),
+                    actor = "console",
+                    reason = "test transfer",
+                    occurredAt = Instant.EPOCH,
+                ),
+            )
         }
+    }
+
+    @Test
+    fun `qualified invitation requires both timestamp and policy revision`() {
+        assertThrows<IllegalArgumentException> {
+            claimedInvitation().copy(status = InvitationStatus.QUALIFIED)
+        }
+        assertThrows<IllegalArgumentException> {
+            claimedInvitation().copy(
+                status = InvitationStatus.QUALIFIED,
+                qualifiedAt = Instant.EPOCH,
+            )
+        }
+    }
+
+    @Test
+    fun `claimed invitation cannot contain qualification metadata`() {
+        assertThrows<IllegalArgumentException> {
+            claimedInvitation().copy(qualificationRevision = "policy@1")
+        }
+    }
+
+    @Test
+    fun `administrative unlink preserves completed qualification metadata`() {
+        val qualified = claimedInvitation().qualify(Instant.EPOCH, "policy@1")
+
+        val transition = qualified.adminUnlink(
+            InvitationAdministrationContext(
+                auditRecordId = UUID.randomUUID(),
+                actor = "console",
+                reason = "privacy request",
+                occurredAt = Instant.EPOCH,
+            ),
+        )
+
+        assertEquals(InvitationStatus.UNLINKED, transition.invitation.status)
+        assertEquals(Instant.EPOCH, transition.invitation.qualifiedAt)
+        assertEquals("policy@1", transition.invitation.qualificationRevision)
     }
 
     private fun claimedInvitation() = Invitation(

@@ -15,8 +15,17 @@ data class Invitation(
 ) {
     init {
         require(inviterId != inviteeId) { "An inviter cannot invite themselves." }
-        require(status == InvitationStatus.QUALIFIED || qualifiedAt == null) {
-            "Only a qualified invitation may have a qualification timestamp."
+        require((qualifiedAt == null) == (qualificationRevision == null)) {
+            "Qualification timestamp and revision must either both be present or both be absent."
+        }
+        require(qualificationRevision == null || qualificationRevision.isNotBlank()) {
+            "Qualification revision must not be blank."
+        }
+        require(status != InvitationStatus.CLAIMED || qualifiedAt == null) {
+            "A claimed Invitation cannot contain qualification metadata."
+        }
+        require(status != InvitationStatus.QUALIFIED || qualifiedAt != null) {
+            "A qualified Invitation requires qualification metadata."
         }
     }
 
@@ -32,16 +41,63 @@ data class Invitation(
         )
     }
 
-    fun unlink(): Invitation {
+    fun adminUnlink(context: InvitationAdministrationContext): AuditedInvitationTransition {
         check(status != InvitationStatus.UNLINKED) { "Invitation is already unlinked." }
-        return copy(status = InvitationStatus.UNLINKED)
+        return AuditedInvitationTransition(
+            invitation = copy(status = InvitationStatus.UNLINKED),
+            auditRecord = AuditRecord(
+                id = context.auditRecordId,
+                action = InvitationAuditAction.UNLINKED,
+                actor = context.actor,
+                reason = context.reason,
+                occurredAt = context.occurredAt,
+                invitationId = id,
+            ),
+        )
     }
 
-    fun transfer(newInviterId: UUID): Invitation {
+    fun adminTransfer(
+        newInviterId: UUID,
+        context: InvitationAdministrationContext,
+    ): AuditedInvitationTransition {
         check(status == InvitationStatus.CLAIMED) {
             "Only a claimed invitation can be transferred; current status is $status."
         }
         require(newInviterId != inviteeId) { "An invitee cannot become their own inviter." }
-        return copy(inviterId = newInviterId)
+        return AuditedInvitationTransition(
+            invitation = copy(inviterId = newInviterId),
+            auditRecord = AuditRecord(
+                id = context.auditRecordId,
+                action = InvitationAuditAction.TRANSFERRED,
+                actor = context.actor,
+                reason = context.reason,
+                occurredAt = context.occurredAt,
+                invitationId = id,
+                details = InvitationAuditDetails.Transfer(
+                    previousInviterId = inviterId,
+                    newInviterId = newInviterId,
+                ),
+            ),
+        )
+    }
+
+    fun adminForceQualify(
+        qualifiedAt: Instant,
+        qualificationRevision: String,
+        context: InvitationAdministrationContext,
+    ): AuditedInvitationTransition {
+        val qualified = qualify(qualifiedAt, qualificationRevision)
+        return AuditedInvitationTransition(
+            invitation = qualified,
+            auditRecord = AuditRecord(
+                id = context.auditRecordId,
+                action = InvitationAuditAction.FORCE_QUALIFIED,
+                actor = context.actor,
+                reason = context.reason,
+                occurredAt = context.occurredAt,
+                invitationId = id,
+                details = InvitationAuditDetails.ForceQualification(qualificationRevision),
+            ),
+        )
     }
 }

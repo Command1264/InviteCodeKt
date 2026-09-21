@@ -31,6 +31,14 @@ class InviteCode private constructor(val normalized: String) {
             format.requireValid(normalized)
             return InviteCode(normalized)
         }
+
+        /** Restores a canonical value previously accepted and stored by InviteCodeKt. */
+        fun fromNormalized(normalized: String): InviteCode {
+            require(normalized.isNotBlank() && normalized == normalized.trim()) {
+                "Stored Invite Code must be a non-blank canonical value."
+            }
+            return InviteCode(normalized)
+        }
     }
 }
 

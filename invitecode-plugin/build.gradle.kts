@@ -97,6 +97,10 @@ val verifyPluginJar by tasks.registering(VerifyPluginJar::class) {
             "messages/zh_TW.yml",
             "messages/en_US.yml",
             "io/github/command1264/invitecode/plugin/InviteCodePlugin.class",
+            "org/sqlite/JDBC.class",
+            "org/sqlite/native/Linux/x86_64/libsqlitejdbc.so",
+            "org/sqlite/native/Windows/x86_64/sqlitejdbc.dll",
+            "META-INF/services/java.sql.Driver",
         ),
     )
 }

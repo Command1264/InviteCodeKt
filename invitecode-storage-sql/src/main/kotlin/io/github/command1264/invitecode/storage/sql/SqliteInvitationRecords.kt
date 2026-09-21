@@ -14,25 +14,16 @@ import java.util.UUID
 
 internal object SqliteInvitationRecords {
     fun save(connection: Connection, invitation: Invitation, updateExisting: Boolean) {
+        require(invitation.status == InvitationStatus.CLAIMED) {
+            "Only a newly claimed Invitation can use the initial persistence path."
+        }
         if (updateExisting) {
             val current = find(connection, invitation.id)
             if (current != null) {
                 if (current == invitation) return
-                if (
-                    current.status != InvitationStatus.CLAIMED ||
-                    invitation.status != InvitationStatus.QUALIFIED ||
-                    current.id != invitation.id ||
-                    current.inviterId != invitation.inviterId ||
-                    current.inviteeId != invitation.inviteeId ||
-                    current.claimedAt != invitation.claimedAt
-                ) {
-                    throw SqliteStorageException(
-                        "Invitation ${invitation.id} cannot be replaced from ${current.status} " +
-                            "with ${invitation.status}; use an audited administrative transition.",
-                    )
-                }
-                update(connection, invitation)
-                return
+                throw SqliteStorageException(
+                    "Invitation ${invitation.id} already exists and cannot be replaced through the initial path.",
+                )
             }
         }
         val inviterGeneration = SqlitePlayerRecords.eligibilityGeneration(connection, invitation.inviterId)
@@ -69,6 +60,22 @@ internal object SqliteInvitationRecords {
             )
         }
         update(connection, transition.invitation)
+    }
+
+    fun qualify(connection: Connection, invitation: Invitation) {
+        require(invitation.status == InvitationStatus.QUALIFIED) {
+            "Qualification persistence requires a qualified Invitation."
+        }
+        val current = find(connection, invitation.id)
+            ?: throw SqliteStorageException("Invitation ${invitation.id} does not exist.")
+        require(
+            current.status == InvitationStatus.CLAIMED &&
+                current.id == invitation.id &&
+                current.inviterId == invitation.inviterId &&
+                current.inviteeId == invitation.inviteeId &&
+                current.claimedAt == invitation.claimedAt,
+        ) { "Only the matching claimed Invitation can become qualified." }
+        update(connection, invitation)
     }
 
     private fun update(connection: Connection, invitation: Invitation) {

@@ -55,6 +55,21 @@ class SqliteInviteCodeStorage private constructor(
         SqliteInvitationRecords.find(it, invitationId)
     }
 
+    override fun saveQualifiedInvitation(invitation: Invitation, facts: List<QualificationFact>) {
+        require(facts.isNotEmpty()) { "Qualification requires at least one persisted Qualification Fact." }
+        require(
+            facts.all {
+                it.invitationId == invitation.id &&
+                    it.policyId == invitation.qualificationPolicyId &&
+                    it.qualificationRevision == invitation.qualificationRevision
+            },
+        ) { "Every Qualification Fact must match the Invitation policy ID and revision." }
+        write { connection ->
+            SqliteInvitationRecords.qualify(connection, invitation)
+            facts.forEach { SqliteQualificationRecords.save(connection, it) }
+        }
+    }
+
     override fun saveQualificationFact(fact: QualificationFact) {
         write { SqliteQualificationRecords.save(it, fact) }
     }
@@ -152,6 +167,12 @@ class SqliteInviteCodeStorage private constructor(
             "Reward Delivery ${delivery.id} status ${delivery.status} does not match its Action states."
         }
         write { connection ->
+            val isNewDelivery = SqliteRewardRecords.findDelivery(connection, delivery.id) == null
+            require(
+                !isNewDelivery ||
+                    delivery.status == RewardDeliveryStatus.PENDING &&
+                    actions.all { it.status == RewardActionStatus.PENDING },
+            ) { "A new Reward Delivery and all of its Actions must start in PENDING state." }
             val existingActionIds = SqliteRewardRecords.findActions(connection, delivery.id).map { it.id }.toSet()
             require(existingActionIds.isEmpty() || existingActionIds == actions.map { it.id }.toSet()) {
                 "Reward Delivery ${delivery.id} must update its complete Reward Action set."

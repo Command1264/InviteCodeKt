@@ -54,9 +54,9 @@ invitecode-plugin/build/libs/InviteCodeKt-0.1.0-SNAPSHOT.jar
 - schema 只會由 `SqliteSchemaMigrator` 依版本順序明確遷移；開啟 storage 不會暗中修改 schema。
 - migration 在 transaction 內執行；失敗時回復原 schema version，並保留既有資料庫供檢查與重試；rollback 本身失敗時會回報狀態不確定，且不再切回 auto-commit。
 - Claim 使用 SQLite write transaction，且資料庫以 unique constraint 保證一名 Invitee 在每次 Claim Eligibility 世代最多只有一筆 Invitation；可稽核的 Eligibility Reset 會開始新世代並保留歷史資料。
-- Reward Delivery 與其完整 Reward Action 集合以單一 transaction 建立或更新；狀態不一致或任一 Action 寫入失敗時整批回復。Delivery 與 Action 的狀態轉換會在同一 transaction 追加不可覆寫的歷史，Pending Action 可依收件玩家於重新登入或重啟後找回。
+- Reward Delivery 與其完整 Reward Action 集合只能從 `PENDING` 開始，並以單一 transaction 建立或更新；狀態不一致或任一 Action 寫入失敗時整批回復。Delivery 與 Action 的狀態轉換會在同一 transaction 追加不可覆寫的歷史，Pending Action 可依收件玩家於重新登入或重啟後找回。
 - Reward Action 使用明確狀態轉換；重啟時會將中斷於 `PROCESSING` 的 Action 原子轉為 `UNCERTAIN`，之後只有記錄 actor 與 reason 的管理操作可決定重試或視為已交付。
-- Qualified Invitation 會同時保存穩定的 Qualification Policy ID 與 revision；Qualification Fact 為不可變稽核事實，只接受內容完全相同的冪等重送。
+- 初始 Invitation 只能以 `CLAIMED` 保存；一般 qualification 必須將 Qualified Invitation 與相符的 Qualification Facts 原子保存，管理員變更則使用可稽核轉換。Qualified Invitation 會同時保存穩定的 Qualification Policy ID 與 revision；Qualification Fact 為不可變稽核事實，只接受內容完全相同的冪等重送。
 - 所有 SQLite 入口都要求 `BlockingOperationGuard`；Minecraft adapter 必須用它拒絕 server main thread，並在專用 executor 呼叫同步 storage interface。
 - storage 錯誤會拒絕當次操作，不會自動切換成 memory、JSON 或其他 backend。
 

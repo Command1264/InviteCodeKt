@@ -127,6 +127,8 @@ interface InviteCodeStorage : InvitationTransactions, InviteCodeRegistry, AutoCl
 
     fun saveInvitation(invitation: Invitation)
 
+    fun saveQualifiedInvitation(invitation: Invitation, facts: List<QualificationFact>)
+
     fun invitation(invitationId: UUID): Invitation?
 
     fun saveQualificationFact(fact: QualificationFact)

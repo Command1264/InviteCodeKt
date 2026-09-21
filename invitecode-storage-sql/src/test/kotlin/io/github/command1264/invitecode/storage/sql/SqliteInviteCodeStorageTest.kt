@@ -400,6 +400,12 @@ class SqliteInviteCodeStorageTest {
             qualificationPolicyId = "default",
             qualificationRevision = "sha256:qualification-v1",
         )
+        val claimedInvitation = invitation.copy(
+            status = InvitationStatus.CLAIMED,
+            qualifiedAt = null,
+            qualificationPolicyId = null,
+            qualificationRevision = null,
+        )
         val fact = QualificationFact(
             id = UUID.fromString("20000000-0000-0000-0000-000000000021"),
             invitationId = invitationId,
@@ -444,8 +450,9 @@ class SqliteInviteCodeStorageTest {
         SqliteInviteCodeStorage.open(database, offMainThread).use { storage ->
             storage.savePlayer(StoredPlayer(inviterId, Instant.EPOCH, "Inviter"))
             storage.savePlayer(StoredPlayer(inviteeId, Instant.EPOCH, "Invitee"))
-            storage.saveInvitation(invitation)
-            storage.saveQualificationFact(fact)
+            assertThrows<IllegalArgumentException> { storage.saveInvitation(invitation) }
+            storage.saveInvitation(claimedInvitation)
+            storage.saveQualifiedInvitation(invitation, listOf(fact))
             storage.saveRewardDelivery(delivery, listOf(action))
             storage.saveAuditRecord(audit)
         }
@@ -548,7 +555,7 @@ class SqliteInviteCodeStorageTest {
             UUID.fromString("10000000-0000-0000-0000-000000000061"),
             oldInviter,
             invitee,
-            InvitationStatus.UNLINKED,
+            InvitationStatus.CLAIMED,
             Instant.parse("2026-09-22T01:00:00Z"),
         )
         val context = InvitationAdministrationContext(
@@ -563,6 +570,16 @@ class SqliteInviteCodeStorageTest {
                 storage.savePlayer(StoredPlayer(it, initialFirstSeen))
             }
             storage.saveInvitation(oldInvitation)
+            storage.saveAuditedInvitationTransition(
+                oldInvitation.adminUnlink(
+                    InvitationAdministrationContext(
+                        UUID.fromString("40000000-0000-0000-0000-000000000060"),
+                        "console",
+                        "Unlink before restoring eligibility",
+                        resetAt.minusSeconds(1),
+                    ),
+                ),
+            )
             val reset = PlayerClaimState(invitee, initialFirstSeen, false, true)
                 .adminResetEligibility(context)
 
@@ -819,6 +836,12 @@ class SqliteInviteCodeStorageTest {
             storage.savePlayer(StoredPlayer(recipientId, Instant.EPOCH))
 
             assertThrows<IllegalArgumentException> { storage.saveRewardDelivery(delivery, listOf(pending)) }
+            assertThrows<IllegalArgumentException> {
+                storage.saveRewardDelivery(
+                    delivery,
+                    listOf(pending.copy(status = RewardActionStatus.DELIVERED)),
+                )
+            }
             assertEquals(null, storage.rewardDelivery(delivery.id))
         }
     }

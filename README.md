@@ -3,7 +3,7 @@
 InviteCodeKt 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件。目標是以單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並透過隔離的 adapter 載入新版能力。
 
 > [!IMPORTANT]
-> 這個 repository 目前是 `0.1.0-SNAPSHOT`。平台無關的 Invitation 核心狀態機已實作；qualification、storage、reward 與 Minecraft 平台工作流程尚未完成串接。
+> 這個 repository 目前是 `0.1.0-SNAPSHOT`。平台無關的 Invitation 核心狀態機，以及 Invite Code 的產生、驗證、顏色資訊與 rotation lifecycle 已實作；qualification、storage、reward 與 Minecraft 平台工作流程尚未完成串接。
 
 ## 專案目標
 

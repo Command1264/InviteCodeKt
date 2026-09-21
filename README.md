@@ -23,19 +23,21 @@ InviteCodeKt 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件。�
 - 已安裝 [mise](https://mise.jdx.dev/)
 - 第一次解析 dependency 時需要網路連線
 
-專案透過 `mise.toml` 固定使用 Temurin 11。先安裝工具並確認實際 JDK：
+本機開發透過 `mise.toml` 使用已登錄的 `java@local-11`。先確認 mise 可解析工具與實際 JDK：
 
 ```powershell
-mise install
+mise where java
 mise exec -- java -version
 mise exec -- .\gradlew.bat check shadowJar
 ```
 
-驗證 Java 8 執行環境時，使用專案指定的 Temurin 8 版本覆寫預設 JDK：
+驗證 Java 8 執行環境時，使用已登錄的 `java@local-8` 覆寫預設 JDK：
 
 ```powershell
-mise exec java@temurin-8.0.504+1 -- .\gradlew.bat clean check shadowJar
+mise exec java@local-8 -- .\gradlew.bat clean check shadowJar
 ```
+
+`local-8` 與 `local-11` 由開發機的 mise 設定連結至既有 JDK。GitHub Actions 沒有這些本機 alias，因此 CI 透過 `MISE_JAVA_VERSION` 改用對應的 Temurin Java 8 與 Java 11。
 
 可安裝的骨架 JAR 會輸出至：
 

@@ -3,13 +3,28 @@ package io.github.command1264.invitecode.storage.sql
 import io.github.command1264.invitecode.core.RewardActionStatus
 import io.github.command1264.invitecode.core.RewardDeliveryStatus
 import io.github.command1264.invitecode.core.StoredRewardAction
+import io.github.command1264.invitecode.core.StoredRewardActionTransition
 import io.github.command1264.invitecode.core.StoredRewardDelivery
+import io.github.command1264.invitecode.core.StoredRewardDeliveryTransition
 import java.sql.Connection
 import java.time.Instant
 import java.util.UUID
 
 internal object SqliteRewardRecords {
     fun saveDelivery(connection: Connection, delivery: StoredRewardDelivery) {
+        val current = findDelivery(connection, delivery.id)
+        if (current != null) {
+            require(
+                current.invitationId == delivery.invitationId &&
+                    current.rewardId == delivery.rewardId &&
+                    current.idempotencyKey == delivery.idempotencyKey &&
+                    current.createdAt == delivery.createdAt,
+            ) { "Reward Delivery ${delivery.id} identity fields cannot be changed." }
+            require(current.status == delivery.status || delivery.updatedAt.isAfter(current.updatedAt)) {
+                "Reward Delivery ${delivery.id} status transitions require a newer update timestamp."
+            }
+        }
+        val previousStatus = current?.status
         connection.prepareStatement(
             """
             INSERT INTO invitecode_reward_deliveries(
@@ -29,6 +44,21 @@ internal object SqliteRewardRecords {
             statement.setString(6, delivery.createdAt.toString())
             statement.setString(7, delivery.updatedAt.toString())
             statement.executeUpdate()
+        }
+        if (previousStatus != delivery.status) {
+            connection.prepareStatement(
+                """
+                INSERT INTO invitecode_reward_delivery_transitions(
+                    delivery_id, previous_status, current_status, occurred_at
+                ) VALUES (?, ?, ?, ?)
+                """.trimIndent(),
+            ).use { statement ->
+                statement.setString(1, delivery.id.toString())
+                statement.setString(2, previousStatus?.name)
+                statement.setString(3, delivery.status.name)
+                statement.setString(4, delivery.updatedAt.toString())
+                statement.executeUpdate()
+            }
         }
     }
 
@@ -52,6 +82,23 @@ internal object SqliteRewardRecords {
         }
 
     fun saveAction(connection: Connection, action: StoredRewardAction) {
+        val current = findAction(connection, action.id)
+        if (current != null) {
+            require(
+                current.rewardDeliveryId == action.rewardDeliveryId &&
+                    current.invitationId == action.invitationId &&
+                    current.recipientId == action.recipientId &&
+                    current.position == action.position &&
+                    current.type == action.type &&
+                    current.payload == action.payload &&
+                    current.idempotencyKey == action.idempotencyKey &&
+                    current.createdAt == action.createdAt,
+            ) { "Reward Action ${action.id} identity fields cannot be changed." }
+            require(current.status == action.status || action.updatedAt.isAfter(current.updatedAt)) {
+                "Reward Action ${action.id} status transitions require a newer update timestamp."
+            }
+        }
+        val previousStatus = current?.status
         connection.prepareStatement(
             """
             INSERT INTO invitecode_reward_actions(
@@ -78,6 +125,22 @@ internal object SqliteRewardRecords {
             statement.setString(12, action.lastError)
             statement.executeUpdate()
         }
+        if (previousStatus != action.status) {
+            connection.prepareStatement(
+                """
+                INSERT INTO invitecode_reward_action_transitions(
+                    action_id, previous_status, current_status, occurred_at, last_error
+                ) VALUES (?, ?, ?, ?, ?)
+                """.trimIndent(),
+            ).use { statement ->
+                statement.setString(1, action.id.toString())
+                statement.setString(2, previousStatus?.name)
+                statement.setString(3, action.status.name)
+                statement.setString(4, action.updatedAt.toString())
+                statement.setString(5, action.lastError)
+                statement.executeUpdate()
+            }
+        }
     }
 
     fun findAction(connection: Connection, actionId: UUID): StoredRewardAction? =
@@ -87,20 +150,114 @@ internal object SqliteRewardRecords {
             statement.setString(1, actionId.toString())
             statement.executeQuery().use { result ->
                 if (!result.next()) return@use null
-                StoredRewardAction(
-                    id = UUID.fromString(result.getString("action_id")),
-                    rewardDeliveryId = UUID.fromString(result.getString("reward_delivery_id")),
-                    invitationId = result.getString("invitation_id")?.let(UUID::fromString),
-                    recipientId = UUID.fromString(result.getString("recipient_id")),
-                    position = result.getInt("position"),
-                    type = result.getString("action_type"),
-                    payload = result.getString("payload"),
-                    status = RewardActionStatus.valueOf(result.getString("status")),
-                    idempotencyKey = result.getString("idempotency_key"),
-                    createdAt = Instant.parse(result.getString("created_at")),
-                    updatedAt = Instant.parse(result.getString("updated_at")),
-                    lastError = result.getString("last_error"),
-                )
+                result.toRewardAction()
             }
         }
+
+    fun findActions(connection: Connection, deliveryId: UUID): List<StoredRewardAction> =
+        connection.prepareStatement(
+            """
+            SELECT * FROM invitecode_reward_actions
+            WHERE reward_delivery_id = ?
+            ORDER BY position, action_id
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, deliveryId.toString())
+            statement.executeQuery().use { result ->
+                buildList {
+                    while (result.next()) add(result.toRewardAction())
+                }
+            }
+        }
+
+    fun findPendingActions(connection: Connection, recipientId: UUID): List<StoredRewardAction> =
+        connection.prepareStatement(
+            """
+            SELECT * FROM invitecode_reward_actions
+            WHERE recipient_id = ? AND status = ?
+            ORDER BY created_at, reward_delivery_id, position, action_id
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, recipientId.toString())
+            statement.setString(2, RewardActionStatus.PENDING.name)
+            statement.executeQuery().use { result ->
+                buildList {
+                    while (result.next()) add(result.toRewardAction())
+                }
+            }
+        }
+
+    fun findActionTransitions(
+        connection: Connection,
+        actionId: UUID,
+    ): List<StoredRewardActionTransition> = connection.prepareStatement(
+        """
+        SELECT transition_id, action_id, previous_status, current_status, occurred_at, last_error
+        FROM invitecode_reward_action_transitions
+        WHERE action_id = ?
+        ORDER BY transition_id
+        """.trimIndent(),
+    ).use { statement ->
+        statement.setString(1, actionId.toString())
+        statement.executeQuery().use { result ->
+            buildList {
+                while (result.next()) {
+                    add(
+                        StoredRewardActionTransition(
+                            sequence = result.getLong("transition_id"),
+                            actionId = UUID.fromString(result.getString("action_id")),
+                            previousStatus = result.getString("previous_status")?.let(RewardActionStatus::valueOf),
+                            currentStatus = RewardActionStatus.valueOf(result.getString("current_status")),
+                            occurredAt = Instant.parse(result.getString("occurred_at")),
+                            lastError = result.getString("last_error"),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    fun findDeliveryTransitions(
+        connection: Connection,
+        deliveryId: UUID,
+    ): List<StoredRewardDeliveryTransition> = connection.prepareStatement(
+        """
+        SELECT transition_id, delivery_id, previous_status, current_status, occurred_at
+        FROM invitecode_reward_delivery_transitions
+        WHERE delivery_id = ?
+        ORDER BY transition_id
+        """.trimIndent(),
+    ).use { statement ->
+        statement.setString(1, deliveryId.toString())
+        statement.executeQuery().use { result ->
+            buildList {
+                while (result.next()) {
+                    add(
+                        StoredRewardDeliveryTransition(
+                            sequence = result.getLong("transition_id"),
+                            deliveryId = UUID.fromString(result.getString("delivery_id")),
+                            previousStatus = result.getString("previous_status")?.let(RewardDeliveryStatus::valueOf),
+                            currentStatus = RewardDeliveryStatus.valueOf(result.getString("current_status")),
+                            occurredAt = Instant.parse(result.getString("occurred_at")),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun java.sql.ResultSet.toRewardAction() = StoredRewardAction(
+        id = UUID.fromString(getString("action_id")),
+        rewardDeliveryId = UUID.fromString(getString("reward_delivery_id")),
+        invitationId = getString("invitation_id")?.let(UUID::fromString),
+        recipientId = UUID.fromString(getString("recipient_id")),
+        position = getInt("position"),
+        type = getString("action_type"),
+        payload = getString("payload"),
+        status = RewardActionStatus.valueOf(getString("status")),
+        idempotencyKey = getString("idempotency_key"),
+        createdAt = Instant.parse(getString("created_at")),
+        updatedAt = Instant.parse(getString("updated_at")),
+        lastError = getString("last_error"),
+    )
 }

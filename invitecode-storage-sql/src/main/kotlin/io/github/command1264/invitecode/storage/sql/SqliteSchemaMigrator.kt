@@ -52,7 +52,7 @@ class SqliteSchemaMigrator(
         }
     }
 
-    private fun migrate(connection: Connection): Int {
+    internal fun migrate(connection: Connection): Int {
         connection.autoCommit = false
         try {
             connection.createStatement().use { statement ->
@@ -102,7 +102,13 @@ class SqliteSchemaMigrator(
             try {
                 connection.rollback()
             } catch (rollbackError: SQLException) {
-                error.addSuppressed(rollbackError)
+                val uncertain = SqliteStorageException(
+                    "SQLite schema migration failed for ${database.toAbsolutePath()} and rollback also failed; " +
+                        "the database state is uncertain. Preserve it and inspect both causes before retrying.",
+                    error,
+                )
+                uncertain.addSuppressed(rollbackError)
+                throw uncertain
             }
             if (error is SqliteStorageException) throw error
             throw SqliteStorageException(
@@ -110,8 +116,6 @@ class SqliteSchemaMigrator(
                     "the transaction was rolled back. Preserve the database and inspect the cause before retrying.",
                 error,
             )
-        } finally {
-            connection.autoCommit = true
         }
     }
 
@@ -245,6 +249,60 @@ class SqliteSchemaMigrator(
                         FOREIGN KEY (invitation_id) REFERENCES invitecode_invitations(invitation_id),
                         FOREIGN KEY (player_id) REFERENCES invitecode_players(player_id)
                     )
+                    """.trimIndent(),
+                ),
+            ),
+            SqliteSchemaMigration(
+                version = 5,
+                description = "Add recoverable and auditable Reward transitions",
+                statements = listOf(
+                    """
+                    CREATE INDEX invitecode_pending_reward_actions_by_recipient
+                    ON invitecode_reward_actions(recipient_id, status, created_at)
+                    WHERE status = 'PENDING'
+                    """.trimIndent(),
+                    """
+                    CREATE TABLE invitecode_reward_delivery_transitions (
+                        transition_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        delivery_id TEXT NOT NULL,
+                        previous_status TEXT NULL,
+                        current_status TEXT NOT NULL,
+                        occurred_at TEXT NOT NULL,
+                        FOREIGN KEY (delivery_id) REFERENCES invitecode_reward_deliveries(delivery_id)
+                    )
+                    """.trimIndent(),
+                    """
+                    INSERT INTO invitecode_reward_delivery_transitions(
+                        delivery_id, previous_status, current_status, occurred_at
+                    )
+                    SELECT delivery_id, NULL, status, updated_at
+                    FROM invitecode_reward_deliveries
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_reward_delivery_transition_history
+                    ON invitecode_reward_delivery_transitions(delivery_id, transition_id)
+                    """.trimIndent(),
+                    """
+                    CREATE TABLE invitecode_reward_action_transitions (
+                        transition_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        action_id TEXT NOT NULL,
+                        previous_status TEXT NULL,
+                        current_status TEXT NOT NULL,
+                        occurred_at TEXT NOT NULL,
+                        last_error TEXT NULL,
+                        FOREIGN KEY (action_id) REFERENCES invitecode_reward_actions(action_id)
+                    )
+                    """.trimIndent(),
+                    """
+                    INSERT INTO invitecode_reward_action_transitions(
+                        action_id, previous_status, current_status, occurred_at, last_error
+                    )
+                    SELECT action_id, NULL, status, updated_at, last_error
+                    FROM invitecode_reward_actions
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_reward_action_transition_history
+                    ON invitecode_reward_action_transitions(action_id, transition_id)
                     """.trimIndent(),
                 ),
             ),

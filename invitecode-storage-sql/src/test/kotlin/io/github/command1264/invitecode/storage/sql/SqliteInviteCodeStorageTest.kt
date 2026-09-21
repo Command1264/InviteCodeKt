@@ -29,6 +29,10 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
 import java.nio.file.Files
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Proxy
+import java.sql.Connection
+import java.sql.SQLException
 import java.time.Instant
 import java.time.Duration
 import java.util.UUID
@@ -151,6 +155,105 @@ class SqliteInviteCodeStorageTest {
                 }
             }
             assertEquals(0, tableCount)
+        }
+    }
+
+    @Test
+    fun `rollback failure leaves auto commit disabled and reports uncertain database state`() {
+        val database = temporaryDirectory.resolve("migration-rollback-failure.db")
+        val delegate = connect(database)
+        val autoCommitValues = mutableListOf<Boolean>()
+        val connection = Proxy.newProxyInstance(
+            Connection::class.java.classLoader,
+            arrayOf(Connection::class.java),
+        ) { _, method, arguments ->
+            when (method.name) {
+                "rollback" -> throw SQLException("simulated rollback failure")
+                "setAutoCommit" -> autoCommitValues += arguments!![0] as Boolean
+            }
+            try {
+                method.invoke(delegate, *(arguments ?: emptyArray()))
+            } catch (error: InvocationTargetException) {
+                throw error.targetException
+            }
+        } as Connection
+        val migrations = listOf(
+            SqliteSchemaMigration(
+                1,
+                "Intentionally fail after changing schema",
+                listOf("CREATE TABLE partial_change(value TEXT)", "INVALID SQL"),
+            ),
+        )
+
+        try {
+            val error = assertThrows<SqliteStorageException> {
+                SqliteSchemaMigrator(database, BlockingOperationGuard { }, migrations).migrate(connection)
+            }
+
+            assertEquals(true, error.message!!.contains("database state is uncertain"))
+            assertEquals(listOf(false), autoCommitValues)
+            assertEquals("simulated rollback failure", error.suppressed.single().message)
+        } finally {
+            delegate.close()
+        }
+    }
+
+    @Test
+    fun `Reward transition migration backfills existing version four records`() {
+        val database = temporaryDirectory.resolve("reward-transition-backfill.db")
+        val guard = BlockingOperationGuard { }
+        val recipientId = UUID.fromString("00000000-0000-0000-0000-0000000000a1")
+        val deliveryId = UUID.fromString("31000000-0000-0000-0000-0000000000a1")
+        val actionId = UUID.fromString("30000000-0000-0000-0000-0000000000a1")
+        SqliteSchemaMigrator(database, guard, SqliteSchemaMigrator.DEFAULT_MIGRATIONS.take(4)).migrate()
+        connect(database).use { connection ->
+            connection.prepareStatement(
+                "INSERT INTO invitecode_players(player_id, first_seen_at) VALUES (?, ?)",
+            ).use { statement ->
+                statement.setString(1, recipientId.toString())
+                statement.setString(2, Instant.EPOCH.toString())
+                statement.executeUpdate()
+            }
+            connection.prepareStatement(
+                """
+                INSERT INTO invitecode_reward_deliveries(
+                    delivery_id, reward_id, status, idempotency_key, created_at, updated_at
+                ) VALUES (?, 'legacy-reward', 'PENDING', 'legacy-delivery', ?, ?)
+                """.trimIndent(),
+            ).use { statement ->
+                statement.setString(1, deliveryId.toString())
+                statement.setString(2, Instant.EPOCH.toString())
+                statement.setString(3, Instant.EPOCH.toString())
+                statement.executeUpdate()
+            }
+            connection.prepareStatement(
+                """
+                INSERT INTO invitecode_reward_actions(
+                    action_id, reward_delivery_id, recipient_id, position, action_type, payload,
+                    status, idempotency_key, created_at, updated_at
+                ) VALUES (?, ?, ?, 0, 'message', 'welcome', 'PENDING', 'legacy-action', ?, ?)
+                """.trimIndent(),
+            ).use { statement ->
+                statement.setString(1, actionId.toString())
+                statement.setString(2, deliveryId.toString())
+                statement.setString(3, recipientId.toString())
+                statement.setString(4, Instant.EPOCH.toString())
+                statement.setString(5, Instant.EPOCH.toString())
+                statement.executeUpdate()
+            }
+        }
+
+        assertEquals(SqliteSchemaMigrator.currentVersion, SqliteSchemaMigrator(database, guard).migrate())
+
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            assertEquals(
+                listOf(RewardDeliveryStatus.PENDING),
+                storage.rewardDeliveryTransitions(deliveryId).map { it.currentStatus },
+            )
+            assertEquals(
+                listOf(RewardActionStatus.PENDING),
+                storage.rewardActionTransitions(actionId).map { it.currentStatus },
+            )
         }
     }
 
@@ -419,7 +522,9 @@ class SqliteInviteCodeStorageTest {
             val qualified = invitation.qualify(audit.occurredAt, "sha256:test")
 
             assertThrows<SqliteStorageException> {
-                storage.saveAuditedInvitationTransition(AuditedInvitationTransition(qualified, audit))
+                storage.saveAuditedInvitationTransition(
+                    AuditedInvitationTransition(invitation, qualified, audit),
+                )
             }
 
             assertEquals(invitation, storage.invitation(invitation.id))
@@ -501,6 +606,118 @@ class SqliteInviteCodeStorageTest {
             assertThrows<SqliteStorageException> { storage.saveAuditedClaimStateTransition(reset) }
 
             assertEquals(firstSeenAt, storage.player(playerId)!!.firstSeenAt)
+        }
+    }
+
+    @Test
+    fun `stale Invitation transition cannot replace a newer permanent state`() {
+        val database = temporaryDirectory.resolve("stale-invitation-transition.db")
+        val guard = BlockingOperationGuard { }
+        val inviterId = UUID.fromString("00000000-0000-0000-0000-000000000081")
+        val replacementId = UUID.fromString("00000000-0000-0000-0000-000000000082")
+        val inviteeId = UUID.fromString("00000000-0000-0000-0000-000000000083")
+        val claimed = Invitation(
+            UUID.fromString("10000000-0000-0000-0000-000000000081"),
+            inviterId,
+            inviteeId,
+            InvitationStatus.CLAIMED,
+            Instant.EPOCH,
+        )
+        val qualified = claimed.adminForceQualify(
+            Instant.parse("2026-09-22T08:00:00Z"),
+            "policy@1",
+            InvitationAdministrationContext(
+                UUID.fromString("40000000-0000-0000-0000-000000000081"),
+                "console",
+                "qualified first",
+                Instant.parse("2026-09-22T08:00:00Z"),
+            ),
+        )
+        val staleTransfer = claimed.adminTransfer(
+            replacementId,
+            InvitationAdministrationContext(
+                UUID.fromString("40000000-0000-0000-0000-000000000082"),
+                "console",
+                "stale transfer",
+                Instant.parse("2026-09-22T08:01:00Z"),
+            ),
+        )
+        SqliteSchemaMigrator(database, guard).migrate()
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            listOf(inviterId, replacementId, inviteeId).forEach {
+                storage.savePlayer(StoredPlayer(it, Instant.EPOCH))
+            }
+            storage.saveInvitation(claimed)
+            storage.saveAuditedInvitationTransition(qualified)
+
+            assertThrows<SqliteStorageException> {
+                storage.saveAuditedInvitationTransition(staleTransfer)
+            }
+
+            assertEquals(qualified.invitation, storage.invitation(claimed.id))
+            assertEquals(null, storage.auditRecord(staleTransfer.auditRecord.id))
+        }
+    }
+
+    @Test
+    fun `pending Reward Actions can be recovered after reopen and transitions remain auditable`() {
+        val database = temporaryDirectory.resolve("pending-reward-recovery.db")
+        val guard = BlockingOperationGuard { }
+        val recipientId = UUID.fromString("00000000-0000-0000-0000-000000000091")
+        val delivery = StoredRewardDelivery(
+            UUID.fromString("31000000-0000-0000-0000-000000000091"),
+            null,
+            "login-reward",
+            RewardDeliveryStatus.PENDING,
+            "login:$recipientId",
+            Instant.EPOCH,
+            Instant.EPOCH,
+        )
+        val action = StoredRewardAction(
+            UUID.fromString("30000000-0000-0000-0000-000000000091"),
+            delivery.id,
+            null,
+            recipientId,
+            0,
+            "player-command",
+            "kit welcome",
+            RewardActionStatus.PENDING,
+            "login:$recipientId:0",
+            Instant.EPOCH,
+            Instant.EPOCH,
+        )
+        SqliteSchemaMigrator(database, guard).migrate()
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            storage.savePlayer(StoredPlayer(recipientId, Instant.EPOCH))
+            storage.saveRewardDelivery(delivery, listOf(action))
+        }
+
+        SqliteInviteCodeStorage.open(database, guard).use { reopened ->
+            assertEquals(listOf(action), reopened.pendingRewardActions(recipientId))
+            assertEquals(listOf(action), reopened.rewardActions(delivery.id))
+
+            val processingAt = Instant.parse("2026-09-22T09:00:00Z")
+            val deliveredAt = processingAt.plusSeconds(1)
+            reopened.saveRewardAction(
+                action.copy(status = RewardActionStatus.PROCESSING, updatedAt = processingAt),
+            )
+            reopened.saveRewardAction(
+                action.copy(status = RewardActionStatus.DELIVERED, updatedAt = deliveredAt),
+            )
+            reopened.saveRewardDelivery(
+                delivery.copy(status = RewardDeliveryStatus.DELIVERED, updatedAt = deliveredAt),
+                listOf(action.copy(status = RewardActionStatus.DELIVERED, updatedAt = deliveredAt)),
+            )
+
+            assertEquals(emptyList<StoredRewardAction>(), reopened.pendingRewardActions(recipientId))
+            assertEquals(
+                listOf(RewardActionStatus.PENDING, RewardActionStatus.PROCESSING, RewardActionStatus.DELIVERED),
+                reopened.rewardActionTransitions(action.id).map { it.currentStatus },
+            )
+            assertEquals(
+                listOf(RewardDeliveryStatus.PENDING, RewardDeliveryStatus.DELIVERED),
+                reopened.rewardDeliveryTransitions(delivery.id).map { it.currentStatus },
+            )
         }
     }
 }

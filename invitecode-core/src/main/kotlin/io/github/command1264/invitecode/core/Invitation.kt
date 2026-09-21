@@ -44,6 +44,7 @@ data class Invitation(
     fun adminUnlink(context: InvitationAdministrationContext): AuditedInvitationTransition {
         check(status != InvitationStatus.UNLINKED) { "Invitation is already unlinked." }
         return AuditedInvitationTransition(
+            previousInvitation = this,
             invitation = copy(status = InvitationStatus.UNLINKED),
             auditRecord = AuditRecord(
                 id = context.auditRecordId,
@@ -65,6 +66,7 @@ data class Invitation(
         }
         require(newInviterId != inviteeId) { "An invitee cannot become their own inviter." }
         return AuditedInvitationTransition(
+            previousInvitation = this,
             invitation = copy(inviterId = newInviterId),
             auditRecord = AuditRecord(
                 id = context.auditRecordId,
@@ -88,6 +90,7 @@ data class Invitation(
     ): AuditedInvitationTransition {
         val qualified = qualify(qualifiedAt, qualificationRevision)
         return AuditedInvitationTransition(
+            previousInvitation = this,
             invitation = qualified,
             auditRecord = AuditRecord(
                 id = context.auditRecordId,

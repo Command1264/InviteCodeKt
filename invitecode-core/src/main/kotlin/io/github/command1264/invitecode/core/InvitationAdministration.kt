@@ -48,15 +48,25 @@ sealed class InvitationAuditDetails {
 }
 
 data class AuditedInvitationTransition(
+    val previousInvitation: Invitation,
     val invitation: Invitation,
     val auditRecord: AuditRecord,
 ) {
     init {
+        require(
+            previousInvitation.id == invitation.id &&
+                previousInvitation.inviteeId == invitation.inviteeId &&
+                previousInvitation.claimedAt == invitation.claimedAt,
+        ) { "Invitation transition must preserve its identity, Invitee, and Claim timestamp." }
         require(auditRecord.invitationId == invitation.id && auditRecord.playerId == null) {
             "Invitation transition Audit Record must target Invitation ${invitation.id}."
         }
         when (auditRecord.action) {
             InvitationAuditAction.UNLINKED -> require(
+                previousInvitation.status != InvitationStatus.UNLINKED &&
+                    previousInvitation.inviterId == invitation.inviterId &&
+                    previousInvitation.qualifiedAt == invitation.qualifiedAt &&
+                    previousInvitation.qualificationRevision == invitation.qualificationRevision &&
                 invitation.status == InvitationStatus.UNLINKED &&
                     auditRecord.details == InvitationAuditDetails.None,
             ) { "Unlink Audit Record must describe an unlinked Invitation without extra details." }
@@ -64,7 +74,9 @@ data class AuditedInvitationTransition(
                 val details = auditRecord.details as? InvitationAuditDetails.Transfer
                     ?: throw IllegalArgumentException("Transfer Audit Record requires transfer details.")
                 require(
+                    previousInvitation.status == InvitationStatus.CLAIMED &&
                     invitation.status == InvitationStatus.CLAIMED &&
+                        details.previousInviterId == previousInvitation.inviterId &&
                         details.newInviterId == invitation.inviterId,
                 ) { "Transfer Audit Record must identify the Invitation's new Inviter." }
             }
@@ -74,7 +86,9 @@ data class AuditedInvitationTransition(
                         "Force Qualification Audit Record requires qualification details.",
                     )
                 require(
+                    previousInvitation.status == InvitationStatus.CLAIMED &&
                     invitation.status == InvitationStatus.QUALIFIED &&
+                        previousInvitation.inviterId == invitation.inviterId &&
                         details.qualificationRevision == invitation.qualificationRevision,
                 ) { "Force Qualification Audit Record must match the qualified Invitation revision." }
             }

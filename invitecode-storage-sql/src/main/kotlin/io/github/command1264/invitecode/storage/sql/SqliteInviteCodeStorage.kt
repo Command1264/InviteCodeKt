@@ -14,7 +14,9 @@ import io.github.command1264.invitecode.core.QualificationFact
 import io.github.command1264.invitecode.core.RetiredInviteCode
 import io.github.command1264.invitecode.core.StoredPlayer
 import io.github.command1264.invitecode.core.StoredRewardAction
+import io.github.command1264.invitecode.core.StoredRewardActionTransition
 import io.github.command1264.invitecode.core.StoredRewardDelivery
+import io.github.command1264.invitecode.core.StoredRewardDeliveryTransition
 import java.nio.file.Path
 import java.sql.Connection
 import java.sql.SQLException
@@ -64,6 +66,18 @@ class SqliteInviteCodeStorage private constructor(
         SqliteRewardRecords.findAction(it, actionId)
     }
 
+    override fun rewardActions(deliveryId: UUID): List<StoredRewardAction> = read {
+        SqliteRewardRecords.findActions(it, deliveryId)
+    }
+
+    override fun pendingRewardActions(recipientId: UUID): List<StoredRewardAction> = read {
+        SqliteRewardRecords.findPendingActions(it, recipientId)
+    }
+
+    override fun rewardActionTransitions(actionId: UUID): List<StoredRewardActionTransition> = read {
+        SqliteRewardRecords.findActionTransitions(it, actionId)
+    }
+
     override fun saveRewardDelivery(
         delivery: StoredRewardDelivery,
         actions: List<StoredRewardAction>,
@@ -82,6 +96,10 @@ class SqliteInviteCodeStorage private constructor(
         SqliteRewardRecords.findDelivery(it, deliveryId)
     }
 
+    override fun rewardDeliveryTransitions(deliveryId: UUID): List<StoredRewardDeliveryTransition> = read {
+        SqliteRewardRecords.findDeliveryTransitions(it, deliveryId)
+    }
+
     override fun saveAuditRecord(record: AuditRecord) {
         write { SqliteAuditRecords.save(it, record) }
     }
@@ -92,7 +110,7 @@ class SqliteInviteCodeStorage private constructor(
 
     override fun saveAuditedInvitationTransition(transition: AuditedInvitationTransition) {
         write { connection ->
-            SqliteInvitationRecords.save(connection, transition.invitation, updateExisting = true)
+            SqliteInvitationRecords.transition(connection, transition)
             SqliteAuditRecords.save(connection, transition.auditRecord)
         }
     }

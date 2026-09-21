@@ -96,7 +96,20 @@ class InvitationAdministrationTest {
         val wrongTarget = valid.auditRecord.copy(invitationId = UUID.randomUUID())
 
         assertThrows<IllegalArgumentException> {
-            AuditedInvitationTransition(valid.invitation, wrongTarget)
+            AuditedInvitationTransition(valid.previousInvitation, valid.invitation, wrongTarget)
+        }
+    }
+
+    @Test
+    fun `audited transfer rejects a mismatched previous inviter`() {
+        val valid = claimedInvitation().adminTransfer(UUID.randomUUID(), context())
+        val details = valid.auditRecord.details as InvitationAuditDetails.Transfer
+        val wrongAudit = valid.auditRecord.copy(
+            details = details.copy(previousInviterId = UUID.randomUUID()),
+        )
+
+        assertThrows<IllegalArgumentException> {
+            AuditedInvitationTransition(valid.previousInvitation, valid.invitation, wrongAudit)
         }
     }
 

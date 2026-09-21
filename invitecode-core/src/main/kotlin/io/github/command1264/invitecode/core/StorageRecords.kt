@@ -75,6 +75,33 @@ data class StoredRewardDelivery(
     }
 }
 
+data class StoredRewardActionTransition(
+    val sequence: Long,
+    val actionId: UUID,
+    val previousStatus: RewardActionStatus?,
+    val currentStatus: RewardActionStatus,
+    val occurredAt: Instant,
+    val lastError: String? = null,
+) {
+    init {
+        require(sequence > 0) { "Reward Action transition sequence must be positive." }
+        require(previousStatus != currentStatus) { "Reward Action transition must change status." }
+    }
+}
+
+data class StoredRewardDeliveryTransition(
+    val sequence: Long,
+    val deliveryId: UUID,
+    val previousStatus: RewardDeliveryStatus?,
+    val currentStatus: RewardDeliveryStatus,
+    val occurredAt: Instant,
+) {
+    init {
+        require(sequence > 0) { "Reward Delivery transition sequence must be positive." }
+        require(previousStatus != currentStatus) { "Reward Delivery transition must change status." }
+    }
+}
+
 /**
  * 持久化領域狀態的同步介面。SQL adapter 會執行 blocking I/O，呼叫端必須將操作排程至
  * server main thread 以外的專用 executor。
@@ -100,9 +127,17 @@ interface InviteCodeStorage : InvitationTransactions, InviteCodeRegistry, AutoCl
 
     fun rewardAction(actionId: UUID): StoredRewardAction?
 
+    fun rewardActions(deliveryId: UUID): List<StoredRewardAction>
+
+    fun pendingRewardActions(recipientId: UUID): List<StoredRewardAction>
+
+    fun rewardActionTransitions(actionId: UUID): List<StoredRewardActionTransition>
+
     fun saveRewardDelivery(delivery: StoredRewardDelivery, actions: List<StoredRewardAction>)
 
     fun rewardDelivery(deliveryId: UUID): StoredRewardDelivery?
+
+    fun rewardDeliveryTransitions(deliveryId: UUID): List<StoredRewardDeliveryTransition>
 
     fun saveAuditRecord(record: AuditRecord)
 

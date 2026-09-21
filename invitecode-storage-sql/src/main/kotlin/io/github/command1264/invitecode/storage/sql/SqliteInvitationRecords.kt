@@ -2,6 +2,7 @@ package io.github.command1264.invitecode.storage.sql
 
 import io.github.command1264.invitecode.api.InvitationStatus
 import io.github.command1264.invitecode.core.AuditRecord
+import io.github.command1264.invitecode.core.AuditedInvitationTransition
 import io.github.command1264.invitecode.core.Invitation
 import io.github.command1264.invitecode.core.InvitationAuditAction
 import io.github.command1264.invitecode.core.InvitationAuditDetails
@@ -13,24 +14,29 @@ import java.util.UUID
 
 internal object SqliteInvitationRecords {
     fun save(connection: Connection, invitation: Invitation, updateExisting: Boolean) {
+        if (updateExisting) {
+            val current = find(connection, invitation.id)
+            if (current != null) {
+                if (current == invitation) return
+                if (
+                    current.status != InvitationStatus.CLAIMED ||
+                    invitation.status != InvitationStatus.QUALIFIED ||
+                    current.id != invitation.id ||
+                    current.inviterId != invitation.inviterId ||
+                    current.inviteeId != invitation.inviteeId ||
+                    current.claimedAt != invitation.claimedAt
+                ) {
+                    throw SqliteStorageException(
+                        "Invitation ${invitation.id} cannot be replaced from ${current.status} " +
+                            "with ${invitation.status}; use an audited administrative transition.",
+                    )
+                }
+                update(connection, invitation)
+                return
+            }
+        }
         val inviterGeneration = SqlitePlayerRecords.eligibilityGeneration(connection, invitation.inviterId)
         val inviteeGeneration = SqlitePlayerRecords.eligibilityGeneration(connection, invitation.inviteeId)
-        val conflictClause = if (updateExisting) {
-            """
-            ON CONFLICT(invitation_id) DO UPDATE SET
-                inviter_id = excluded.inviter_id,
-                inviter_eligibility_generation = CASE
-                    WHEN invitecode_invitations.inviter_id <> excluded.inviter_id
-                    THEN excluded.inviter_eligibility_generation
-                    ELSE invitecode_invitations.inviter_eligibility_generation
-                END,
-                status = excluded.status,
-                qualified_at = excluded.qualified_at,
-                qualification_revision = excluded.qualification_revision
-            """.trimIndent()
-        } else {
-            ""
-        }
         connection.prepareStatement(
             """
             INSERT INTO invitecode_invitations(
@@ -38,7 +44,6 @@ internal object SqliteInvitationRecords {
                 invitee_id, invitee_eligibility_generation, status, claimed_at,
                 qualified_at, qualification_revision
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            $conflictClause
             """.trimIndent(),
         ).use { statement ->
             statement.setString(1, invitation.id.toString())
@@ -51,6 +56,42 @@ internal object SqliteInvitationRecords {
             statement.setString(8, invitation.qualifiedAt?.toString())
             statement.setString(9, invitation.qualificationRevision)
             statement.executeUpdate()
+        }
+    }
+
+    fun transition(connection: Connection, transition: AuditedInvitationTransition) {
+        val current = find(connection, transition.previousInvitation.id)
+        if (current != transition.previousInvitation) {
+            throw SqliteStorageException(
+                "Invitation ${transition.previousInvitation.id} changed before the audited transition; " +
+                    "reload it and retry the administrative operation.",
+            )
+        }
+        update(connection, transition.invitation)
+    }
+
+    private fun update(connection: Connection, invitation: Invitation) {
+        val inviterGeneration = SqlitePlayerRecords.eligibilityGeneration(connection, invitation.inviterId)
+        connection.prepareStatement(
+            """
+            UPDATE invitecode_invitations SET
+                inviter_id = ?,
+                inviter_eligibility_generation = ?,
+                status = ?,
+                qualified_at = ?,
+                qualification_revision = ?
+            WHERE invitation_id = ?
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, invitation.inviterId.toString())
+            statement.setInt(2, inviterGeneration)
+            statement.setString(3, invitation.status.name)
+            statement.setString(4, invitation.qualifiedAt?.toString())
+            statement.setString(5, invitation.qualificationRevision)
+            statement.setString(6, invitation.id.toString())
+            if (statement.executeUpdate() != 1) {
+                throw SqliteStorageException("Invitation ${invitation.id} does not exist.")
+            }
         }
     }
 

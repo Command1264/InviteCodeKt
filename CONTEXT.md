@@ -60,6 +60,10 @@ _避免使用_：Success requirements、completion config
 Qualification Policy 中一項可獨立判定的資格要求，例如遊玩時間、登入天數、權限或外部系統提供的值。
 _避免使用_：Check、requirement plugin
 
+**Qualification Fact**:
+Qualification Condition 在特定時間對一筆 Invitation 產生的可持久化判定事實，記錄 policy、revision、condition 與結果，供 qualification 決策及稽核使用。
+_避免使用_：Condition result、qualification log、check result
+
 **Qualification Revision**:
 Qualification Policy 某份確切內容的不可變識別；同一 policy 名稱在內容變更後會產生新的 revision。
 _避免使用_：Config version、current rules

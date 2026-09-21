@@ -17,3 +17,7 @@ Issue 與規格使用本 repository 的 GitHub Issues 管理。詳見 `docs/agen
 ### 領域文件
 
 本 repository 只有一個 domain context，根目錄使用 `CONTEXT.md`，ADR 位於 `docs/adr/`。詳見 `docs/agents/domain.md`。
+
+### Java 工具鏈
+
+需要執行 Java、Gradle、建置或測試時，先閱讀 `README.md` 的「建置」章節。本專案由 `mise.toml` 管理 Java；本機指令一律透過 `mise exec` 執行，並繼續使用 repository 內的 Gradle Wrapper。

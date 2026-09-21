@@ -20,11 +20,21 @@ InviteCodeKt 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件。�
 
 需求：
 
-- 使用 JDK 8 以上版本執行 repository 內的 Gradle Wrapper；開發環境建議使用 JDK 11
+- 已安裝 [mise](https://mise.jdx.dev/)
 - 第一次解析 dependency 時需要網路連線
 
+專案透過 `mise.toml` 固定使用 Temurin 11。先安裝工具並確認實際 JDK：
+
 ```powershell
-./gradlew check shadowJar
+mise install
+mise exec -- java -version
+mise exec -- .\gradlew.bat check shadowJar
+```
+
+驗證 Java 8 執行環境時，使用專案指定的 Temurin 8 版本覆寫預設 JDK：
+
+```powershell
+mise exec java@temurin-8.0.504+1 -- .\gradlew.bat clean check shadowJar
 ```
 
 可安裝的骨架 JAR 會輸出至：
@@ -33,7 +43,7 @@ InviteCodeKt 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件。�
 invitecode-plugin/build/libs/InviteCodeKt-0.1.0-SNAPSHOT.jar
 ```
 
-建置流程會驗證目前 production class 使用 Java 8 bytecode。未來的新版 adapter 只有在 class 維持隔離，並驗證舊版 JVM 不會載入時，才可使用新版 bytecode。
+所有本機 Java、Gradle 建置與測試指令都必須透過 `mise exec` 執行。Gradle Wrapper 仍由 repository 管理。建置流程會驗證目前 production class 使用 Java 8 bytecode。未來的新版 adapter 只有在 class 維持隔離，並驗證舊版 JVM 不會載入時，才可使用新版 bytecode。
 
 ## 分支
 

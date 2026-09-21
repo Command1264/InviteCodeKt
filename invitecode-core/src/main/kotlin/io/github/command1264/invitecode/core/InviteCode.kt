@@ -4,18 +4,31 @@ class InviteCode private constructor(val normalized: String) {
     val isColorInviteCode: Boolean
         get() = COLOR_CODE.matches(normalized)
 
+    val color: InviteCodeColor?
+        get() = if (isColorInviteCode) {
+            InviteCodeColor.fromRgb(normalized.toInt(radix = 16))
+        } else {
+            null
+        }
+
     fun displayValue(): String = normalized
 
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is InviteCode && normalized == other.normalized)
+
+    override fun hashCode(): Int = normalized.hashCode()
+
+    override fun toString(): String = normalized
+
     companion object {
-        private val SEPARATORS = Regex("[-\\s]")
-        private val VALID_CODE = Regex("[A-Z0-9]{4,32}")
         private val COLOR_CODE = Regex("[0-9A-F]{6}")
 
-        fun parse(raw: String): InviteCode {
-            val normalized = raw.trim().uppercase().replace(SEPARATORS, "")
-            require(VALID_CODE.matches(normalized)) {
-                "Invite Code must contain 4 to 32 ASCII letters or digits."
-            }
+        fun parse(
+            raw: String,
+            format: InviteCodeFormat = InviteCodeFormats.alphanumeric,
+        ): InviteCode {
+            val normalized = format.normalize(raw)
+            format.requireValid(normalized)
             return InviteCode(normalized)
         }
     }

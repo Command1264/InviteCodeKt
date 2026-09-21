@@ -22,6 +22,8 @@ import io.github.command1264.invitecode.core.RewardActionStatus
 import io.github.command1264.invitecode.core.StoredRewardAction
 import io.github.command1264.invitecode.core.StoredRewardDelivery
 import io.github.command1264.invitecode.core.RewardDeliveryStatus
+import io.github.command1264.invitecode.core.RewardAdministrationContext
+import io.github.command1264.invitecode.core.UncertainRewardActionResolution
 import io.github.command1264.invitecode.api.InvitationStatus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -33,6 +35,7 @@ import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Proxy
 import java.sql.Connection
 import java.sql.SQLException
+import java.sql.Statement
 import java.time.Instant
 import java.time.Duration
 import java.util.UUID
@@ -394,6 +397,7 @@ class SqliteInviteCodeStorageTest {
             status = InvitationStatus.QUALIFIED,
             claimedAt = Instant.parse("2026-09-22T01:00:00Z"),
             qualifiedAt = qualifiedAt,
+            qualificationPolicyId = "default",
             qualificationRevision = "sha256:qualification-v1",
         )
         val fact = QualificationFact(
@@ -434,7 +438,7 @@ class SqliteInviteCodeStorageTest {
             reason = "Manual acceptance",
             occurredAt = qualifiedAt,
             invitationId = invitationId,
-            details = InvitationAuditDetails.ForceQualification("sha256:qualification-v1"),
+            details = InvitationAuditDetails.ForceQualification("default", "sha256:qualification-v1"),
         )
         SqliteSchemaMigrator(database, offMainThread).migrate()
         SqliteInviteCodeStorage.open(database, offMainThread).use { storage ->
@@ -511,7 +515,7 @@ class SqliteInviteCodeStorageTest {
             reason = "Test duplicate Audit Record",
             occurredAt = Instant.parse("2026-09-22T05:00:00Z"),
             invitationId = invitation.id,
-            details = InvitationAuditDetails.ForceQualification("sha256:test"),
+            details = InvitationAuditDetails.ForceQualification("admin", "sha256:test"),
         )
         SqliteSchemaMigrator(database, offMainThread).migrate()
         SqliteInviteCodeStorage.open(database, offMainThread).use { storage ->
@@ -519,7 +523,7 @@ class SqliteInviteCodeStorageTest {
             storage.savePlayer(StoredPlayer(inviteeId, Instant.EPOCH))
             storage.saveInvitation(invitation)
             storage.saveAuditRecord(audit)
-            val qualified = invitation.qualify(audit.occurredAt, "sha256:test")
+            val qualified = invitation.qualify(audit.occurredAt, "admin", "sha256:test")
 
             assertThrows<SqliteStorageException> {
                 storage.saveAuditedInvitationTransition(
@@ -625,6 +629,7 @@ class SqliteInviteCodeStorageTest {
         )
         val qualified = claimed.adminForceQualify(
             Instant.parse("2026-09-22T08:00:00Z"),
+            "default",
             "policy@1",
             InvitationAdministrationContext(
                 UUID.fromString("40000000-0000-0000-0000-000000000081"),
@@ -715,9 +720,175 @@ class SqliteInviteCodeStorageTest {
                 reopened.rewardActionTransitions(action.id).map { it.currentStatus },
             )
             assertEquals(
-                listOf(RewardDeliveryStatus.PENDING, RewardDeliveryStatus.DELIVERED),
+                listOf(
+                    RewardDeliveryStatus.PENDING,
+                    RewardDeliveryStatus.PROCESSING,
+                    RewardDeliveryStatus.DELIVERED,
+                ),
                 reopened.rewardDeliveryTransitions(delivery.id).map { it.currentStatus },
             )
+        }
+    }
+
+    @Test
+    fun `interrupted Reward Action becomes uncertain and only audited administration can retry it`() {
+        val database = temporaryDirectory.resolve("reward-recovery.db")
+        val guard = BlockingOperationGuard { }
+        val recipientId = UUID.fromString("00000000-0000-0000-0000-0000000000b1")
+        val delivery = StoredRewardDelivery(
+            UUID.fromString("31000000-0000-0000-0000-0000000000b1"), null, "recovery",
+            RewardDeliveryStatus.PENDING, "recovery-delivery", Instant.EPOCH, Instant.EPOCH,
+        )
+        val pending = StoredRewardAction(
+            UUID.fromString("30000000-0000-0000-0000-0000000000b1"), delivery.id, null,
+            recipientId, 0, "player-command", "kit retry", RewardActionStatus.PENDING,
+            "recovery-action", Instant.EPOCH, Instant.EPOCH,
+        )
+        val processingAt = Instant.parse("2026-09-22T10:00:00Z")
+        val recoveredAt = processingAt.plusSeconds(1)
+        val resolvedAt = recoveredAt.plusSeconds(1)
+        SqliteSchemaMigrator(database, guard).migrate()
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            storage.savePlayer(StoredPlayer(recipientId, Instant.EPOCH))
+            storage.saveRewardDelivery(delivery, listOf(pending))
+            storage.saveRewardAction(pending.copy(status = RewardActionStatus.PROCESSING, updatedAt = processingAt))
+
+            assertEquals(1, storage.recoverInterruptedRewardActions(recoveredAt))
+            val uncertain = storage.rewardAction(pending.id)!!
+            assertEquals(RewardActionStatus.UNCERTAIN, uncertain.status)
+            assertThrows<IllegalArgumentException> {
+                storage.saveRewardAction(
+                    uncertain.copy(status = RewardActionStatus.PENDING, updatedAt = resolvedAt),
+                )
+            }
+
+            val retried = storage.resolveUncertainRewardAction(
+                pending.id,
+                UncertainRewardActionResolution.RETRY,
+                RewardAdministrationContext("console", "verified no command ran", resolvedAt),
+            )
+            assertEquals(RewardActionStatus.PENDING, retried.status)
+            val resolution = storage.rewardActionTransitions(pending.id).last()
+            assertEquals("console", resolution.actor)
+            assertEquals("verified no command ran", resolution.reason)
+
+            val processingAgain = retried.copy(
+                status = RewardActionStatus.PROCESSING,
+                updatedAt = resolvedAt.plusSeconds(1),
+            )
+            storage.saveRewardAction(processingAgain)
+            val delivered = processingAgain.copy(
+                status = RewardActionStatus.DELIVERED,
+                updatedAt = resolvedAt.plusSeconds(2),
+            )
+            storage.saveRewardAction(delivered)
+            assertThrows<IllegalArgumentException> {
+                storage.saveRewardAction(
+                    delivered.copy(status = RewardActionStatus.PENDING, updatedAt = resolvedAt.plusSeconds(3)),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `Reward Delivery rejects a completed state with pending Actions`() {
+        val database = temporaryDirectory.resolve("reward-aggregate-state.db")
+        val guard = BlockingOperationGuard { }
+        val recipientId = UUID.fromString("00000000-0000-0000-0000-0000000000c1")
+        val delivery = StoredRewardDelivery(
+            UUID.fromString("31000000-0000-0000-0000-0000000000c1"), null, "invalid",
+            RewardDeliveryStatus.DELIVERED, "invalid-delivery", Instant.EPOCH, Instant.EPOCH,
+        )
+        val pending = StoredRewardAction(
+            UUID.fromString("30000000-0000-0000-0000-0000000000c1"), delivery.id, null,
+            recipientId, 0, "message", "hello", RewardActionStatus.PENDING,
+            "invalid-action", Instant.EPOCH, Instant.EPOCH,
+        )
+        SqliteSchemaMigrator(database, guard).migrate()
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            storage.savePlayer(StoredPlayer(recipientId, Instant.EPOCH))
+
+            assertThrows<IllegalArgumentException> { storage.saveRewardDelivery(delivery, listOf(pending)) }
+            assertEquals(null, storage.rewardDelivery(delivery.id))
+        }
+    }
+
+    @Test
+    fun `Qualification Fact is immutable but accepts an identical replay`() {
+        val database = temporaryDirectory.resolve("immutable-qualification-fact.db")
+        val guard = BlockingOperationGuard { }
+        val inviterId = UUID.fromString("00000000-0000-0000-0000-0000000000d1")
+        val inviteeId = UUID.fromString("00000000-0000-0000-0000-0000000000d2")
+        val invitation = Invitation(
+            UUID.fromString("10000000-0000-0000-0000-0000000000d1"), inviterId, inviteeId,
+            InvitationStatus.CLAIMED, Instant.EPOCH,
+        )
+        val fact = QualificationFact(
+            UUID.fromString("20000000-0000-0000-0000-0000000000d1"), invitation.id,
+            "default", "revision-1", "play-time", QualificationFactOutcome.SATISFIED, Instant.EPOCH,
+        )
+        SqliteSchemaMigrator(database, guard).migrate()
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            storage.savePlayer(StoredPlayer(inviterId, Instant.EPOCH))
+            storage.savePlayer(StoredPlayer(inviteeId, Instant.EPOCH))
+            storage.saveInvitation(invitation)
+            storage.saveQualificationFact(fact)
+            storage.saveQualificationFact(fact)
+
+            assertThrows<SqliteStorageException> {
+                storage.saveQualificationFact(
+                    fact.copy(outcome = QualificationFactOutcome.UNSATISFIED, recordedAt = Instant.EPOCH.plusSeconds(1)),
+                )
+            }
+            assertEquals(fact, storage.qualificationFact(fact.id))
+        }
+    }
+
+    @Test
+    fun `write rollback failure reports uncertain database state`() {
+        val database = temporaryDirectory.resolve("write-rollback-failure.db")
+        val delegate = connect(database)
+        val connection = Proxy.newProxyInstance(
+            Connection::class.java.classLoader,
+            arrayOf(Connection::class.java),
+        ) { _, method, arguments ->
+            if (method.name == "createStatement") {
+                val statement = method.invoke(delegate, *(arguments ?: emptyArray())) as Statement
+                return@newProxyInstance Proxy.newProxyInstance(
+                    Statement::class.java.classLoader,
+                    arrayOf(Statement::class.java),
+                ) statementProxy@{ _, statementMethod, statementArguments ->
+                    if (
+                        statementMethod.name == "execute" &&
+                        statementArguments?.firstOrNull() == "ROLLBACK"
+                    ) {
+                        throw SQLException("simulated write rollback failure")
+                    }
+                    try {
+                        statementMethod.invoke(statement, *(statementArguments ?: emptyArray()))
+                    } catch (error: InvocationTargetException) {
+                        throw error.targetException
+                    }
+                }
+            }
+            try {
+                method.invoke(delegate, *(arguments ?: emptyArray()))
+            } catch (error: InvocationTargetException) {
+                throw error.targetException
+            }
+        } as Connection
+
+        try {
+            val error = assertThrows<SqliteStorageException> {
+                executeImmediateWrite(connection, database) { active ->
+                    active.createStatement().use { it.execute("CREATE TABLE partial_write(value TEXT)") }
+                    throw SQLException("simulated write failure")
+                }
+            }
+            assertEquals(true, error.message!!.contains("database state is uncertain"))
+            assertEquals("simulated write rollback failure", error.suppressed.single().message)
+        } finally {
+            delegate.close()
         }
     }
 }

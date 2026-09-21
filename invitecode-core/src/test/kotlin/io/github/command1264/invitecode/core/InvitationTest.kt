@@ -16,19 +16,20 @@ class InvitationTest {
         val invitation = claimedInvitation()
         val qualifiedAt = Instant.parse("2026-09-21T00:00:00Z")
 
-        val qualified = invitation.qualify(qualifiedAt, "new-player@abc123")
+        val qualified = invitation.qualify(qualifiedAt, "new-player", "abc123")
 
         assertEquals(InvitationStatus.QUALIFIED, qualified.status)
         assertEquals(qualifiedAt, qualified.qualifiedAt)
-        assertEquals("new-player@abc123", qualified.qualificationRevision)
+        assertEquals("new-player", qualified.qualificationPolicyId)
+        assertEquals("abc123", qualified.qualificationRevision)
         assertThrows<IllegalStateException> {
-            qualified.qualify(qualifiedAt, "new-player@abc123")
+            qualified.qualify(qualifiedAt, "new-player", "abc123")
         }
     }
 
     @Test
     fun `qualified invitation cannot be transferred`() {
-        val qualified = claimedInvitation().qualify(Instant.EPOCH, "policy@1")
+        val qualified = claimedInvitation().qualify(Instant.EPOCH, "policy", "1")
 
         assertThrows<IllegalStateException> {
             qualified.adminTransfer(
@@ -65,7 +66,7 @@ class InvitationTest {
 
     @Test
     fun `administrative unlink preserves completed qualification metadata`() {
-        val qualified = claimedInvitation().qualify(Instant.EPOCH, "policy@1")
+        val qualified = claimedInvitation().qualify(Instant.EPOCH, "policy", "1")
 
         val transition = qualified.adminUnlink(
             InvitationAdministrationContext(
@@ -78,7 +79,8 @@ class InvitationTest {
 
         assertEquals(InvitationStatus.UNLINKED, transition.invitation.status)
         assertEquals(Instant.EPOCH, transition.invitation.qualifiedAt)
-        assertEquals("policy@1", transition.invitation.qualificationRevision)
+        assertEquals("policy", transition.invitation.qualificationPolicyId)
+        assertEquals("1", transition.invitation.qualificationRevision)
     }
 
     private fun claimedInvitation() = Invitation(

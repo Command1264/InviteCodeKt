@@ -1,17 +1,23 @@
 package io.github.command1264.invitecode.storage.sql
 
 import io.github.command1264.invitecode.core.RewardActionStatus
+import io.github.command1264.invitecode.core.RewardAdministrationContext
 import io.github.command1264.invitecode.core.RewardDeliveryStatus
 import io.github.command1264.invitecode.core.StoredRewardAction
 import io.github.command1264.invitecode.core.StoredRewardActionTransition
 import io.github.command1264.invitecode.core.StoredRewardDelivery
 import io.github.command1264.invitecode.core.StoredRewardDeliveryTransition
+import io.github.command1264.invitecode.core.canTransitionTo
 import java.sql.Connection
 import java.time.Instant
 import java.util.UUID
 
 internal object SqliteRewardRecords {
-    fun saveDelivery(connection: Connection, delivery: StoredRewardDelivery) {
+    fun saveDelivery(
+        connection: Connection,
+        delivery: StoredRewardDelivery,
+        administration: RewardAdministrationContext? = null,
+    ) {
         val current = findDelivery(connection, delivery.id)
         if (current != null) {
             require(
@@ -22,6 +28,12 @@ internal object SqliteRewardRecords {
             ) { "Reward Delivery ${delivery.id} identity fields cannot be changed." }
             require(current.status == delivery.status || delivery.updatedAt.isAfter(current.updatedAt)) {
                 "Reward Delivery ${delivery.id} status transitions require a newer update timestamp."
+            }
+            require(
+                current.status == delivery.status ||
+                    current.status.canTransitionTo(delivery.status, administration != null),
+            ) {
+                "Reward Delivery ${delivery.id} cannot transition from ${current.status} to ${delivery.status}."
             }
         }
         val previousStatus = current?.status
@@ -49,14 +61,16 @@ internal object SqliteRewardRecords {
             connection.prepareStatement(
                 """
                 INSERT INTO invitecode_reward_delivery_transitions(
-                    delivery_id, previous_status, current_status, occurred_at
-                ) VALUES (?, ?, ?, ?)
+                    delivery_id, previous_status, current_status, occurred_at, actor, reason
+                ) VALUES (?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
             ).use { statement ->
                 statement.setString(1, delivery.id.toString())
                 statement.setString(2, previousStatus?.name)
                 statement.setString(3, delivery.status.name)
                 statement.setString(4, delivery.updatedAt.toString())
+                statement.setString(5, administration?.actor)
+                statement.setString(6, administration?.reason)
                 statement.executeUpdate()
             }
         }
@@ -81,7 +95,11 @@ internal object SqliteRewardRecords {
             }
         }
 
-    fun saveAction(connection: Connection, action: StoredRewardAction) {
+    fun saveAction(
+        connection: Connection,
+        action: StoredRewardAction,
+        administration: RewardAdministrationContext? = null,
+    ) {
         val current = findAction(connection, action.id)
         if (current != null) {
             require(
@@ -97,6 +115,10 @@ internal object SqliteRewardRecords {
             require(current.status == action.status || action.updatedAt.isAfter(current.updatedAt)) {
                 "Reward Action ${action.id} status transitions require a newer update timestamp."
             }
+            require(
+                current.status == action.status ||
+                    current.status.canTransitionTo(action.status, administration != null),
+            ) { "Reward Action ${action.id} cannot transition from ${current.status} to ${action.status}." }
         }
         val previousStatus = current?.status
         connection.prepareStatement(
@@ -129,8 +151,8 @@ internal object SqliteRewardRecords {
             connection.prepareStatement(
                 """
                 INSERT INTO invitecode_reward_action_transitions(
-                    action_id, previous_status, current_status, occurred_at, last_error
-                ) VALUES (?, ?, ?, ?, ?)
+                    action_id, previous_status, current_status, occurred_at, last_error, actor, reason
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
             ).use { statement ->
                 statement.setString(1, action.id.toString())
@@ -138,6 +160,8 @@ internal object SqliteRewardRecords {
                 statement.setString(3, action.status.name)
                 statement.setString(4, action.updatedAt.toString())
                 statement.setString(5, action.lastError)
+                statement.setString(6, administration?.actor)
+                statement.setString(7, administration?.reason)
                 statement.executeUpdate()
             }
         }
@@ -187,12 +211,25 @@ internal object SqliteRewardRecords {
             }
         }
 
+    fun findActionsByStatus(connection: Connection, status: RewardActionStatus): List<StoredRewardAction> =
+        connection.prepareStatement(
+            "SELECT * FROM invitecode_reward_actions WHERE status = ? ORDER BY action_id",
+        ).use { statement ->
+            statement.setString(1, status.name)
+            statement.executeQuery().use { result ->
+                buildList {
+                    while (result.next()) add(result.toRewardAction())
+                }
+            }
+        }
+
     fun findActionTransitions(
         connection: Connection,
         actionId: UUID,
     ): List<StoredRewardActionTransition> = connection.prepareStatement(
         """
-        SELECT transition_id, action_id, previous_status, current_status, occurred_at, last_error
+        SELECT transition_id, action_id, previous_status, current_status, occurred_at,
+               last_error, actor, reason
         FROM invitecode_reward_action_transitions
         WHERE action_id = ?
         ORDER BY transition_id
@@ -210,6 +247,8 @@ internal object SqliteRewardRecords {
                             currentStatus = RewardActionStatus.valueOf(result.getString("current_status")),
                             occurredAt = Instant.parse(result.getString("occurred_at")),
                             lastError = result.getString("last_error"),
+                            actor = result.getString("actor"),
+                            reason = result.getString("reason"),
                         ),
                     )
                 }
@@ -222,7 +261,7 @@ internal object SqliteRewardRecords {
         deliveryId: UUID,
     ): List<StoredRewardDeliveryTransition> = connection.prepareStatement(
         """
-        SELECT transition_id, delivery_id, previous_status, current_status, occurred_at
+        SELECT transition_id, delivery_id, previous_status, current_status, occurred_at, actor, reason
         FROM invitecode_reward_delivery_transitions
         WHERE delivery_id = ?
         ORDER BY transition_id
@@ -239,6 +278,8 @@ internal object SqliteRewardRecords {
                             previousStatus = result.getString("previous_status")?.let(RewardDeliveryStatus::valueOf),
                             currentStatus = RewardDeliveryStatus.valueOf(result.getString("current_status")),
                             occurredAt = Instant.parse(result.getString("occurred_at")),
+                            actor = result.getString("actor"),
+                            reason = result.getString("reason"),
                         ),
                     )
                 }

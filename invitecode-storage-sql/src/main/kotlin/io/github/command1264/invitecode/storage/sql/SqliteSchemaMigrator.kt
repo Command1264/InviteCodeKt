@@ -169,13 +169,14 @@ class SqliteSchemaMigrator(
                         status TEXT NOT NULL,
                         claimed_at TEXT NOT NULL,
                         qualified_at TEXT NULL,
+                        qualification_policy_id TEXT NULL,
                         qualification_revision TEXT NULL,
                         FOREIGN KEY (inviter_id) REFERENCES invitecode_players(player_id),
                         FOREIGN KEY (invitee_id) REFERENCES invitecode_players(player_id),
                         UNIQUE (invitee_id, invitee_eligibility_generation),
                         CHECK (
-                            (qualified_at IS NULL AND qualification_revision IS NULL) OR
-                            (qualified_at IS NOT NULL AND qualification_revision IS NOT NULL)
+                            (qualified_at IS NULL AND qualification_policy_id IS NULL AND qualification_revision IS NULL) OR
+                            (qualified_at IS NOT NULL AND qualification_policy_id IS NOT NULL AND qualification_revision IS NOT NULL)
                         )
                     )
                     """.trimIndent(),
@@ -245,6 +246,7 @@ class SqliteSchemaMigrator(
                         details_kind TEXT NOT NULL,
                         previous_inviter_id TEXT NULL,
                         new_inviter_id TEXT NULL,
+                        qualification_policy_id TEXT NULL,
                         qualification_revision TEXT NULL,
                         FOREIGN KEY (invitation_id) REFERENCES invitecode_invitations(invitation_id),
                         FOREIGN KEY (player_id) REFERENCES invitecode_players(player_id)
@@ -268,6 +270,8 @@ class SqliteSchemaMigrator(
                         previous_status TEXT NULL,
                         current_status TEXT NOT NULL,
                         occurred_at TEXT NOT NULL,
+                        actor TEXT NULL,
+                        reason TEXT NULL,
                         FOREIGN KEY (delivery_id) REFERENCES invitecode_reward_deliveries(delivery_id)
                     )
                     """.trimIndent(),
@@ -290,6 +294,8 @@ class SqliteSchemaMigrator(
                         current_status TEXT NOT NULL,
                         occurred_at TEXT NOT NULL,
                         last_error TEXT NULL,
+                        actor TEXT NULL,
+                        reason TEXT NULL,
                         FOREIGN KEY (action_id) REFERENCES invitecode_reward_actions(action_id)
                     )
                     """.trimIndent(),

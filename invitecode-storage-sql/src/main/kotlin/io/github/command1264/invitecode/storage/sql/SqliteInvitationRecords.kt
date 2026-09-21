@@ -42,8 +42,8 @@ internal object SqliteInvitationRecords {
             INSERT INTO invitecode_invitations(
                 invitation_id, inviter_id, inviter_eligibility_generation,
                 invitee_id, invitee_eligibility_generation, status, claimed_at,
-                qualified_at, qualification_revision
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                qualified_at, qualification_policy_id, qualification_revision
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent(),
         ).use { statement ->
             statement.setString(1, invitation.id.toString())
@@ -54,7 +54,8 @@ internal object SqliteInvitationRecords {
             statement.setString(6, invitation.status.name)
             statement.setString(7, invitation.claimedAt.toString())
             statement.setString(8, invitation.qualifiedAt?.toString())
-            statement.setString(9, invitation.qualificationRevision)
+            statement.setString(9, invitation.qualificationPolicyId)
+            statement.setString(10, invitation.qualificationRevision)
             statement.executeUpdate()
         }
     }
@@ -79,6 +80,7 @@ internal object SqliteInvitationRecords {
                 inviter_eligibility_generation = ?,
                 status = ?,
                 qualified_at = ?,
+                qualification_policy_id = ?,
                 qualification_revision = ?
             WHERE invitation_id = ?
             """.trimIndent(),
@@ -87,8 +89,9 @@ internal object SqliteInvitationRecords {
             statement.setInt(2, inviterGeneration)
             statement.setString(3, invitation.status.name)
             statement.setString(4, invitation.qualifiedAt?.toString())
-            statement.setString(5, invitation.qualificationRevision)
-            statement.setString(6, invitation.id.toString())
+            statement.setString(5, invitation.qualificationPolicyId)
+            statement.setString(6, invitation.qualificationRevision)
+            statement.setString(7, invitation.id.toString())
             if (statement.executeUpdate() != 1) {
                 throw SqliteStorageException("Invitation ${invitation.id} does not exist.")
             }
@@ -99,7 +102,7 @@ internal object SqliteInvitationRecords {
         connection.prepareStatement(
             """
             SELECT invitation_id, inviter_id, invitee_id, status, claimed_at,
-                   qualified_at, qualification_revision
+                   qualified_at, qualification_policy_id, qualification_revision
             FROM invitecode_invitations
             WHERE invitation_id = ?
             """.trimIndent(),
@@ -114,6 +117,7 @@ internal object SqliteInvitationRecords {
                     status = InvitationStatus.valueOf(result.getString("status")),
                     claimedAt = Instant.parse(result.getString("claimed_at")),
                     qualifiedAt = result.getString("qualified_at")?.let(Instant::parse),
+                    qualificationPolicyId = result.getString("qualification_policy_id"),
                     qualificationRevision = result.getString("qualification_revision"),
                 )
             }
@@ -122,15 +126,17 @@ internal object SqliteInvitationRecords {
 
 internal object SqliteQualificationRecords {
     fun save(connection: Connection, fact: QualificationFact) {
+        val current = find(connection, fact.id)
+        if (current != null) {
+            if (current == fact) return
+            throw SqliteStorageException("Qualification Fact ${fact.id} is immutable and already exists.")
+        }
         connection.prepareStatement(
             """
             INSERT INTO invitecode_qualification_facts(
                 fact_id, invitation_id, policy_id, qualification_revision,
                 condition_id, outcome, recorded_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(fact_id) DO UPDATE SET
-                outcome = excluded.outcome,
-                recorded_at = excluded.recorded_at
             """.trimIndent(),
         ).use { statement ->
             statement.setString(1, fact.id.toString())
@@ -175,8 +181,9 @@ internal object SqliteAuditRecords {
             """
             INSERT INTO invitecode_audit_records(
                 audit_id, action, actor, reason, occurred_at, invitation_id, player_id,
-                details_kind, previous_inviter_id, new_inviter_id, qualification_revision
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                details_kind, previous_inviter_id, new_inviter_id,
+                qualification_policy_id, qualification_revision
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent(),
         ).use { statement ->
             statement.setString(1, record.id.toString())
@@ -189,7 +196,8 @@ internal object SqliteAuditRecords {
             statement.setString(8, details.kind)
             statement.setString(9, details.previousInviterId?.toString())
             statement.setString(10, details.newInviterId?.toString())
-            statement.setString(11, details.qualificationRevision)
+            statement.setString(11, details.qualificationPolicyId)
+            statement.setString(12, details.qualificationRevision)
             statement.executeUpdate()
         }
     }
@@ -211,6 +219,7 @@ internal object SqliteAuditRecords {
                         kind = result.getString("details_kind"),
                         previousInviterId = result.getString("previous_inviter_id"),
                         newInviterId = result.getString("new_inviter_id"),
+                        qualificationPolicyId = result.getString("qualification_policy_id"),
                         qualificationRevision = result.getString("qualification_revision"),
                     ),
                 )
@@ -222,6 +231,7 @@ private data class AuditDetailsColumns(
     val kind: String,
     val previousInviterId: UUID? = null,
     val newInviterId: UUID? = null,
+    val qualificationPolicyId: String? = null,
     val qualificationRevision: String? = null,
 )
 
@@ -235,6 +245,7 @@ private object AuditDetailsCodec {
         )
         is InvitationAuditDetails.ForceQualification -> AuditDetailsColumns(
             kind = "FORCE_QUALIFICATION",
+            qualificationPolicyId = details.qualificationPolicyId,
             qualificationRevision = details.qualificationRevision,
         )
     }
@@ -243,6 +254,7 @@ private object AuditDetailsCodec {
         kind: String,
         previousInviterId: String?,
         newInviterId: String?,
+        qualificationPolicyId: String?,
         qualificationRevision: String?,
     ): InvitationAuditDetails = when (kind) {
         "NONE" -> InvitationAuditDetails.None
@@ -251,6 +263,9 @@ private object AuditDetailsCodec {
             newInviterId = requiredUuid(newInviterId, "new inviter ID"),
         )
         "FORCE_QUALIFICATION" -> InvitationAuditDetails.ForceQualification(
+            requireNotNull(qualificationPolicyId) {
+                "Force Qualification Audit Record is missing its qualification policy ID."
+            },
             requireNotNull(qualificationRevision) {
                 "Force Qualification Audit Record is missing its qualification revision."
             },

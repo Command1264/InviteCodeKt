@@ -82,10 +82,15 @@ data class StoredRewardActionTransition(
     val currentStatus: RewardActionStatus,
     val occurredAt: Instant,
     val lastError: String? = null,
+    val actor: String? = null,
+    val reason: String? = null,
 ) {
     init {
         require(sequence > 0) { "Reward Action transition sequence must be positive." }
         require(previousStatus != currentStatus) { "Reward Action transition must change status." }
+        require((actor == null) == (reason == null)) { "Reward transition actor and reason must appear together." }
+        require(actor == null || actor.isNotBlank()) { "Reward transition actor must not be blank." }
+        require(reason == null || reason.isNotBlank()) { "Reward transition reason must not be blank." }
     }
 }
 
@@ -95,10 +100,15 @@ data class StoredRewardDeliveryTransition(
     val previousStatus: RewardDeliveryStatus?,
     val currentStatus: RewardDeliveryStatus,
     val occurredAt: Instant,
+    val actor: String? = null,
+    val reason: String? = null,
 ) {
     init {
         require(sequence > 0) { "Reward Delivery transition sequence must be positive." }
         require(previousStatus != currentStatus) { "Reward Delivery transition must change status." }
+        require((actor == null) == (reason == null)) { "Reward transition actor and reason must appear together." }
+        require(actor == null || actor.isNotBlank()) { "Reward transition actor must not be blank." }
+        require(reason == null || reason.isNotBlank()) { "Reward transition reason must not be blank." }
     }
 }
 
@@ -132,6 +142,14 @@ interface InviteCodeStorage : InvitationTransactions, InviteCodeRegistry, AutoCl
     fun pendingRewardActions(recipientId: UUID): List<StoredRewardAction>
 
     fun rewardActionTransitions(actionId: UUID): List<StoredRewardActionTransition>
+
+    fun recoverInterruptedRewardActions(recoveredAt: Instant): Int
+
+    fun resolveUncertainRewardAction(
+        actionId: UUID,
+        resolution: UncertainRewardActionResolution,
+        context: RewardAdministrationContext,
+    ): StoredRewardAction
 
     fun saveRewardDelivery(delivery: StoredRewardDelivery, actions: List<StoredRewardAction>)
 

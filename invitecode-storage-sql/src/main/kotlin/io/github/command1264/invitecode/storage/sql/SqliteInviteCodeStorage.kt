@@ -12,11 +12,16 @@ import io.github.command1264.invitecode.core.InvitationTransaction
 import io.github.command1264.invitecode.core.PlayerClaimState
 import io.github.command1264.invitecode.core.QualificationFact
 import io.github.command1264.invitecode.core.RetiredInviteCode
+import io.github.command1264.invitecode.core.RewardActionStatus
+import io.github.command1264.invitecode.core.RewardAdministrationContext
+import io.github.command1264.invitecode.core.RewardDeliveryStatus
 import io.github.command1264.invitecode.core.StoredPlayer
 import io.github.command1264.invitecode.core.StoredRewardAction
 import io.github.command1264.invitecode.core.StoredRewardActionTransition
 import io.github.command1264.invitecode.core.StoredRewardDelivery
 import io.github.command1264.invitecode.core.StoredRewardDeliveryTransition
+import io.github.command1264.invitecode.core.UncertainRewardActionResolution
+import java.time.Instant
 import java.nio.file.Path
 import java.sql.Connection
 import java.sql.SQLException
@@ -59,7 +64,10 @@ class SqliteInviteCodeStorage private constructor(
     }
 
     override fun saveRewardAction(action: StoredRewardAction) {
-        write { SqliteRewardRecords.saveAction(it, action) }
+        write { connection ->
+            SqliteRewardRecords.saveAction(connection, action)
+            updateDeliveryAggregate(connection, action.rewardDeliveryId, action.updatedAt)
+        }
     }
 
     override fun rewardAction(actionId: UUID): StoredRewardAction? = read {
@@ -78,6 +86,48 @@ class SqliteInviteCodeStorage private constructor(
         SqliteRewardRecords.findActionTransitions(it, actionId)
     }
 
+    override fun recoverInterruptedRewardActions(recoveredAt: Instant): Int = write { connection ->
+        val interrupted = SqliteRewardRecords.findActionsByStatus(connection, RewardActionStatus.PROCESSING)
+        interrupted.forEach { action ->
+            SqliteRewardRecords.saveAction(
+                connection,
+                action.copy(
+                    status = RewardActionStatus.UNCERTAIN,
+                    updatedAt = recoveredAt,
+                    lastError = "Interrupted while processing; delivery result is unknown.",
+                ),
+            )
+        }
+        interrupted.map { it.rewardDeliveryId }.toSet().forEach { deliveryId ->
+            updateDeliveryAggregate(connection, deliveryId, recoveredAt)
+        }
+        interrupted.size
+    }
+
+    override fun resolveUncertainRewardAction(
+        actionId: UUID,
+        resolution: UncertainRewardActionResolution,
+        context: RewardAdministrationContext,
+    ): StoredRewardAction = write { connection ->
+        val current = requireNotNull(SqliteRewardRecords.findAction(connection, actionId)) {
+            "Reward Action $actionId does not exist."
+        }
+        require(current.status == RewardActionStatus.UNCERTAIN) {
+            "Only an uncertain Reward Action can be resolved; current status is ${current.status}."
+        }
+        val resolved = current.copy(
+            status = when (resolution) {
+                UncertainRewardActionResolution.RETRY -> RewardActionStatus.PENDING
+                UncertainRewardActionResolution.MARK_DELIVERED -> RewardActionStatus.DELIVERED
+            },
+            updatedAt = context.occurredAt,
+            lastError = null,
+        )
+        SqliteRewardRecords.saveAction(connection, resolved, context)
+        updateDeliveryAggregate(connection, resolved.rewardDeliveryId, context.occurredAt, context)
+        resolved
+    }
+
     override fun saveRewardDelivery(
         delivery: StoredRewardDelivery,
         actions: List<StoredRewardAction>,
@@ -86,7 +136,14 @@ class SqliteInviteCodeStorage private constructor(
         require(actions.all { it.rewardDeliveryId == delivery.id }) {
             "Every Reward Action must belong to Reward Delivery ${delivery.id}."
         }
+        require(delivery.status == aggregateStatus(actions)) {
+            "Reward Delivery ${delivery.id} status ${delivery.status} does not match its Action states."
+        }
         write { connection ->
+            val existingActionIds = SqliteRewardRecords.findActions(connection, delivery.id).map { it.id }.toSet()
+            require(existingActionIds.isEmpty() || existingActionIds == actions.map { it.id }.toSet()) {
+                "Reward Delivery ${delivery.id} must update its complete Reward Action set."
+            }
             SqliteRewardRecords.saveDelivery(connection, delivery)
             actions.forEach { SqliteRewardRecords.saveAction(connection, it) }
         }
@@ -175,22 +232,30 @@ class SqliteInviteCodeStorage private constructor(
         try {
             return connect(database).use { connection ->
                 configure(connection)
-                connection.createStatement().use { it.execute("BEGIN IMMEDIATE") }
-                try {
-                    val result = operation(connection)
-                    connection.createStatement().use { it.execute("COMMIT") }
-                    result
-                } catch (error: Throwable) {
-                    try {
-                        connection.createStatement().use { it.execute("ROLLBACK") }
-                    } catch (rollbackError: Throwable) {
-                        error.addSuppressed(rollbackError)
-                    }
-                    throw error
-                }
+                executeImmediateWrite(connection, database, operation)
             }
         } catch (error: SQLException) {
             throw storageFailure("write", error)
+        }
+    }
+
+    private fun updateDeliveryAggregate(
+        connection: Connection,
+        deliveryId: UUID,
+        updatedAt: Instant,
+        administration: RewardAdministrationContext? = null,
+    ) {
+        val delivery = requireNotNull(SqliteRewardRecords.findDelivery(connection, deliveryId)) {
+            "Reward Delivery $deliveryId does not exist."
+        }
+        val actions = SqliteRewardRecords.findActions(connection, deliveryId)
+        val status = aggregateStatus(actions)
+        if (status != delivery.status) {
+            SqliteRewardRecords.saveDelivery(
+                connection,
+                delivery.copy(status = status, updatedAt = updatedAt),
+                administration,
+            )
         }
     }
 
@@ -201,6 +266,16 @@ class SqliteInviteCodeStorage private constructor(
     )
 
     companion object {
+        private fun aggregateStatus(actions: List<StoredRewardAction>): RewardDeliveryStatus = when {
+            actions.any { it.status == RewardActionStatus.UNCERTAIN } -> RewardDeliveryStatus.UNCERTAIN
+            actions.any { it.status == RewardActionStatus.FAILED } -> RewardDeliveryStatus.FAILED
+            actions.all {
+                it.status == RewardActionStatus.DELIVERED || it.status == RewardActionStatus.EXPIRED
+            } -> RewardDeliveryStatus.DELIVERED
+            actions.any { it.status != RewardActionStatus.PENDING } -> RewardDeliveryStatus.PROCESSING
+            else -> RewardDeliveryStatus.PENDING
+        }
+
         fun open(
             database: Path,
             blockingOperationGuard: BlockingOperationGuard,
@@ -233,5 +308,31 @@ class SqliteInviteCodeStorage private constructor(
                 statement.execute("PRAGMA busy_timeout = 5000")
             }
         }
+    }
+}
+
+internal fun <T> executeImmediateWrite(
+    connection: Connection,
+    database: Path,
+    operation: (Connection) -> T,
+): T {
+    connection.createStatement().use { it.execute("BEGIN IMMEDIATE") }
+    try {
+        val result = operation(connection)
+        connection.createStatement().use { it.execute("COMMIT") }
+        return result
+    } catch (error: Throwable) {
+        try {
+            connection.createStatement().use { it.execute("ROLLBACK") }
+        } catch (rollbackError: Throwable) {
+            val uncertain = SqliteStorageException(
+                "SQLite write failed for ${database.toAbsolutePath()} and rollback also failed; " +
+                    "the database state is uncertain. Preserve it and inspect both causes before retrying.",
+                error,
+            )
+            uncertain.addSuppressed(rollbackError)
+            throw uncertain
+        }
+        throw error
     }
 }

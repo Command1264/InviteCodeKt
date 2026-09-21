@@ -43,8 +43,14 @@ sealed class InvitationAuditDetails {
     ) : InvitationAuditDetails()
 
     data class ForceQualification(
+        val qualificationPolicyId: String,
         val qualificationRevision: String,
-    ) : InvitationAuditDetails()
+    ) : InvitationAuditDetails() {
+        init {
+            require(qualificationPolicyId.isNotBlank()) { "Qualification policy ID must not be blank." }
+            require(qualificationRevision.isNotBlank()) { "Qualification revision must not be blank." }
+        }
+    }
 }
 
 data class AuditedInvitationTransition(
@@ -66,6 +72,7 @@ data class AuditedInvitationTransition(
                 previousInvitation.status != InvitationStatus.UNLINKED &&
                     previousInvitation.inviterId == invitation.inviterId &&
                     previousInvitation.qualifiedAt == invitation.qualifiedAt &&
+                    previousInvitation.qualificationPolicyId == invitation.qualificationPolicyId &&
                     previousInvitation.qualificationRevision == invitation.qualificationRevision &&
                 invitation.status == InvitationStatus.UNLINKED &&
                     auditRecord.details == InvitationAuditDetails.None,
@@ -76,6 +83,7 @@ data class AuditedInvitationTransition(
                 require(
                     previousInvitation.status == InvitationStatus.CLAIMED &&
                     invitation.status == InvitationStatus.CLAIMED &&
+                        previousInvitation.inviterId != invitation.inviterId &&
                         details.previousInviterId == previousInvitation.inviterId &&
                         details.newInviterId == invitation.inviterId,
                 ) { "Transfer Audit Record must identify the Invitation's new Inviter." }
@@ -89,6 +97,7 @@ data class AuditedInvitationTransition(
                     previousInvitation.status == InvitationStatus.CLAIMED &&
                     invitation.status == InvitationStatus.QUALIFIED &&
                         previousInvitation.inviterId == invitation.inviterId &&
+                        details.qualificationPolicyId == invitation.qualificationPolicyId &&
                         details.qualificationRevision == invitation.qualificationRevision,
                 ) { "Force Qualification Audit Record must match the qualified Invitation revision." }
             }

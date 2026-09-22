@@ -17,7 +17,7 @@ fun interface BlockingOperationGuard {
         fun rejectingServerMainThread(isServerMainThread: () -> Boolean): BlockingOperationGuard =
             BlockingOperationGuard {
                 check(!isServerMainThread()) {
-                    "SQLite storage cannot run on the server main thread; " +
+                    "SQL storage cannot run on the server main thread; " +
                         "schedule the operation on a dedicated storage executor."
                 }
             }

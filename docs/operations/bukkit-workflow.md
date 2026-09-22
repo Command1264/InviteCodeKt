@@ -1,6 +1,6 @@
 # Bukkit 操作與維護
 
-本文件說明 InviteCode 在 Spigot／Paper 上的玩家流程、管理指令、SQLite 初始化、維護模式與人工驗收方式。Issue #10 使用 SQLite；選擇 `MYSQL` 或 `JSON` 會明確拒絕啟動，不會自動退回其他儲存方式。
+本文件說明 InviteCode 在 Spigot／Paper 上的玩家流程、管理指令、儲存初始化、維護模式與人工驗收方式。可選擇 `SQLITE` 或 `MYSQL`；`JSON` 尚未實作。MySQL 的設定與復原細節見 [`mysql-storage.md`](./mysql-storage.md)。
 
 ## 首次啟動
 
@@ -9,6 +9,8 @@
 `anti-abuse.key` 是 32 bytes 的隨機二進位 IP 防濫用 HMAC 密鑰，不是 ANSI、UTF-8 或其他文字編碼的文字檔；用文字編輯器開啟時顯示亂碼是正常現象，不得手動編輯。它必須像資料庫一樣備份並限制檔案讀取權限；不得提交 Git、貼到 Issue 或輸出至 log。後續啟動只讀取既有密鑰，不會自行取代。既有資料庫缺少密鑰、密鑰內容無效或 schema 版本不符時，插件會進入維護模式，不會把它當成全新安裝或自動升級。修復密鑰或執行明確 migration 後必須重啟；密鑰變更後，啟動時會清除由其他密鑰產生、已無法比較的舊雜湊。
 
 `/invitecode admin storage migrate SQLITE <reason>` 保留給既有 SQLite schema 升級與人工復原。`doctor` 不會建立資料庫或執行 migration。
+
+選擇 MySQL 時，管理員須先建立空白 database 並設定連線與共用防濫用密鑰的環境變數。插件首次啟動會建立 MySQL schema；既有 schema 不會自動升級。中斷於首次建表的 migration 只有在既有表結構通過檢查後才會續跑。明確遷移指令為 `/invitecode admin storage migrate MYSQL <reason>`。
 
 維護模式只允許 `help`、`admin doctor` 與 `admin storage migrate`。設定錯誤須修正檔案並重新啟動；正常模式可用 `/invitecode reload` 驗證所有 YAML 後原子替換設定快照。`/invitecode admin reload` 保留為相容路徑。
 
@@ -31,7 +33,7 @@ Tab 建議會依發送者身分、權限與當前參數位置篩選。已完成�
 
 聊天輸入會先取消公開聊天，再送入背景流程；原始訊息不會寫入 log。Dialog 提交後沿用同一組格式、資格與限時確認流程；取消按鈕、`/invitecode cancel`、登出或逾時只會清除短期 Session，不會建立或修改 Invitation。輸入、確認、逾時、成功、取消、登出或停用插件後，短期 Session 都會失效。玩家一旦建立 Invite Code、已有 Invitation，或超過 Claim Window，就不能使用他人的 Invite Code。
 
-玩家登入時，插件會以 `anti-abuse.key` 對正規化網路位址執行 HMAC-SHA-256，SQLite 只保存雜湊、密鑰識別碼與觀察／到期時間，絕不保存原始 IP。`anti-abuse.ip-hash-retention` 預設為 30 天；到期資料會在玩家登入時清除。邀請人與受邀人有尚未到期的相同雜湊時，`matching-ip-action` 的行為如下：
+玩家登入時，插件會以 SQLite 的 `anti-abuse.key` 或 MySQL 多實例共用的外部密鑰，對正規化網路位址執行 HMAC-SHA-256。資料庫只保存雜湊、密鑰識別碼與觀察／到期時間，絕不保存原始 IP。`anti-abuse.ip-hash-retention` 預設為 30 天；到期資料會在玩家登入時清除。邀請人與受邀人有尚未到期的相同雜湊時，`matching-ip-action` 的行為如下：
 
 | 值 | 行為 |
 | --- | --- |
@@ -59,13 +61,14 @@ Tab 建議會依發送者身分、權限與當前參數位置篩選。已完成�
 /invitecode admin reward mark-delivered <Reward Action UUID> <reason...>
 /invitecode admin code rotate <玩家> <reason...>
 /invitecode admin storage migrate SQLITE <reason...>
+/invitecode admin storage migrate MYSQL <reason...>
 /invitecode reload
 /invitecode admin doctor
 ```
 
 `/invitecode admin reload` 仍可使用，但說明與 Tab 建議以較直接的 `/invitecode reload` 為主。
 
-Invitation、Eligibility、Code Rotation 與 Storage Migration 會留下 actor、reason 與 Audit Record；Reward 的人工決定會留下 Reward transition。`retry` 與 `mark-delivered` 只接受 `UNCERTAIN` Action。Force Qualification 會在同一 SQLite transaction 保存 Qualification、Audit Record 與完整 Reward plans。
+Invitation、Eligibility、Code Rotation 與 Storage Migration 會留下 actor、reason 與 Audit Record；Reward 的人工決定會留下 Reward transition。`retry` 與 `mark-delivered` 只接受 `UNCERTAIN` Action。Force Qualification 會在同一儲存 transaction 保存 Qualification、Audit Record 與完整 Reward plans。
 
 ## Qualification 與 Reward 復原
 
@@ -73,7 +76,7 @@ Invitation、Eligibility、Code Rotation 與 Storage Migration 會留下 actor�
 
 玩家登入會補發自己的 `PENDING` Reward。玩家離線或 Vault Economy 不可用時維持 `PENDING`。插件啟動會先把上次中斷於 `PROCESSING` 的 Action 轉成 `UNCERTAIN`；這類外部結果不得自動重試，必須由管理員檢查後決定。
 
-背景 executor 執行 SQLite 與 Qualification／Reward orchestration；Bukkit、聊天、指令、訊息與 Vault 操作只在 server main thread 執行。停用時會停止接受新工作並有界等待，不會讓背景執行緒同步等待主執行緒。
+背景 executor 執行 SQLite／MySQL 與 Qualification／Reward orchestration；Bukkit、聊天、指令、訊息與 Vault 操作只在 server main thread 執行。停用時會停止接受新工作並有界等待，不會讓背景執行緒同步等待主執行緒。
 
 ## 人工驗收
 

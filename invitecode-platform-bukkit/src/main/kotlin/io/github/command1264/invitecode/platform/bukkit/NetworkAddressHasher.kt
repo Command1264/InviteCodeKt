@@ -7,6 +7,7 @@ import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermission
 import java.security.SecureRandom
 import java.security.MessageDigest
+import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -48,6 +49,19 @@ class NetworkAddressHasher private constructor(
         private const val SECRET_SIZE = 32
         private const val IPV4_SIZE = 4
         private const val IPV6_SIZE = 16
+
+        fun fromBase64(encoded: String): NetworkAddressHasher {
+            val bytes = try {
+                Base64.getDecoder().decode(encoded)
+            } catch (error: IllegalArgumentException) {
+                throw IllegalArgumentException("Network secret must be Base64 encoded.", error)
+            }
+            return try {
+                NetworkAddressHasher(bytes)
+            } finally {
+                bytes.fill(0)
+            }
+        }
 
         fun loadExisting(path: Path): NetworkAddressHasher {
             require(Files.isRegularFile(path)) {

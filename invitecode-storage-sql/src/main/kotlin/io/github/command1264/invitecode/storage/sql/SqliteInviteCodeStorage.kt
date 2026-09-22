@@ -31,9 +31,12 @@ import java.nio.file.Path
 import java.sql.Connection
 import java.sql.SQLException
 import java.util.UUID
+import javax.sql.DataSource
 
-class SqliteInviteCodeStorage private constructor(
-    private val database: Path,
+/** Shared JDBC operations; backend-specific connection and transaction rules stay at this boundary. */
+internal class JdbcInviteCodeStorage private constructor(
+    private val database: Path?,
+    private val mysqlSource: DataSource?,
     private val blockingOperationGuard: BlockingOperationGuard,
 ) : InviteCodeStorage {
     override fun qualifiedInvitationCount(inviterId: UUID): Int = read {
@@ -373,6 +376,18 @@ class SqliteInviteCodeStorage private constructor(
         operation: (InvitationTransaction) -> T,
     ): T = write { connection ->
         require(playerIds.isNotEmpty()) { "An Invitation transaction requires at least one player." }
+        if (mysqlSource != null) {
+            playerIds.sortedBy(UUID::toString).forEach { playerId ->
+                connection.prepareStatement(
+                    "SELECT player_id FROM invitecode_players WHERE player_id = ? FOR UPDATE",
+                ).use { statement ->
+                    statement.setString(1, playerId.toString())
+                    statement.executeQuery().use { result ->
+                        check(result.next()) { "Player $playerId must exist before Claim." }
+                    }
+                }
+            }
+        }
         operation(object : InvitationTransaction {
             override fun activeInviter(inviteCode: InviteCode): UUID? =
                 SqliteInviteCodeRecords.findActive(connection, inviteCode)?.inviterId
@@ -402,8 +417,8 @@ class SqliteInviteCodeStorage private constructor(
     private fun <T> read(operation: (Connection) -> T): T {
         blockingOperationGuard.checkAllowed()
         try {
-            return connect(database).use { connection ->
-                configure(connection)
+            return connection().use { connection ->
+                if (mysqlSource == null) configure(connection)
                 operation(connection)
             }
         } catch (error: SQLException) {
@@ -413,13 +428,43 @@ class SqliteInviteCodeStorage private constructor(
 
     private fun <T> write(operation: (Connection) -> T): T {
         blockingOperationGuard.checkAllowed()
-        try {
-            return connect(database).use { connection ->
-                configure(connection)
-                executeImmediateWrite(connection, database, operation)
+        var retries = 0
+        while (true) {
+            try {
+                return connection().use { connection ->
+                    if (mysqlSource == null) {
+                        configure(connection)
+                        executeImmediateWrite(connection, requireNotNull(database), operation)
+                    } else executeMysqlWrite(connection, operation)
+                }
+            } catch (error: SQLException) {
+                if (mysqlSource != null && retries < 2 && (error.errorCode == 1213 || error.sqlState == "40001")) {
+                    retries++
+                    continue
+                }
+                throw storageFailure("write", error)
             }
-        } catch (error: SQLException) {
-            throw storageFailure("write", error)
+        }
+    }
+
+    private fun connection(): Connection = mysqlSource?.connection ?: connect(requireNotNull(database))
+
+    private fun <T> executeMysqlWrite(connection: Connection, operation: (Connection) -> T): T {
+        connection.transactionIsolation = Connection.TRANSACTION_READ_COMMITTED
+        connection.autoCommit = false
+        try {
+            val result = operation(connection)
+            connection.commit()
+            return result
+        } catch (error: Throwable) {
+            try {
+                connection.rollback()
+            } catch (rollbackError: Throwable) {
+                throw MysqlStorageException(
+                    "MySQL write and rollback both failed; state is uncertain. Stop writes and inspect the database.",
+                )
+            }
+            throw error
         }
     }
 
@@ -443,11 +488,15 @@ class SqliteInviteCodeStorage private constructor(
         }
     }
 
-    private fun storageFailure(operation: String, cause: SQLException) = SqliteStorageException(
-        "SQLite $operation failed for ${database.toAbsolutePath()}; " +
-            "the storage operation was rejected and no fallback backend was used.",
-        cause,
-    )
+    private fun storageFailure(operation: String, cause: SQLException): IllegalStateException =
+        if (mysqlSource != null) MysqlStorageException(
+            "MySQL $operation failed (SQLState ${cause.sqlState ?: "unknown"}, code ${cause.errorCode}); " +
+                "check database availability, schema and pool capacity. The operation was rejected.",
+        ) else SqliteStorageException(
+            "SQLite $operation failed for ${requireNotNull(database).toAbsolutePath()}; " +
+                "the storage operation was rejected and no fallback backend was used.",
+            cause,
+        )
 
     companion object {
         private fun aggregateStatus(actions: List<StoredRewardAction>): RewardDeliveryStatus = when {
@@ -460,10 +509,10 @@ class SqliteInviteCodeStorage private constructor(
             else -> RewardDeliveryStatus.PENDING
         }
 
-        fun open(
+        fun openSqlite(
             database: Path,
             blockingOperationGuard: BlockingOperationGuard,
-        ): SqliteInviteCodeStorage {
+        ): JdbcInviteCodeStorage {
             blockingOperationGuard.checkAllowed()
             connect(database).use { connection ->
                 configure(connection)
@@ -483,7 +532,15 @@ class SqliteInviteCodeStorage private constructor(
                     )
                 }
             }
-            return SqliteInviteCodeStorage(database, blockingOperationGuard)
+            return JdbcInviteCodeStorage(database, null, blockingOperationGuard)
+        }
+
+        fun openMysql(dataSource: DataSource, guard: BlockingOperationGuard): JdbcInviteCodeStorage {
+            guard.checkAllowed()
+            dataSource.connection.use { connection ->
+                MysqlSchemaMigrator.requireCurrent(connection)
+            }
+            return JdbcInviteCodeStorage(null, dataSource, guard)
         }
 
         private fun configure(connection: Connection) {
@@ -492,6 +549,17 @@ class SqliteInviteCodeStorage private constructor(
                 statement.execute("PRAGMA busy_timeout = 5000")
             }
         }
+    }
+}
+
+class SqliteInviteCodeStorage private constructor(
+    private val delegate: JdbcInviteCodeStorage,
+) : InviteCodeStorage by delegate {
+    override fun close() = delegate.close()
+
+    companion object {
+        fun open(database: Path, guard: BlockingOperationGuard): SqliteInviteCodeStorage =
+            SqliteInviteCodeStorage(JdbcInviteCodeStorage.openSqlite(database, guard))
     }
 }
 

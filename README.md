@@ -3,7 +3,7 @@
 InviteCodeKt 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件。目標是以單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並透過隔離的 adapter 載入新版能力。
 
 > [!IMPORTANT]
-> 這個 repository 目前是 `0.1.0-SNAPSHOT`。平台無關的 Invitation 核心狀態機、Invite Code lifecycle 與 SQLite adapter 已實作；qualification、reward 與 Minecraft 平台工作流程尚未完成串接。
+> 這個 repository 目前是 `0.1.0-SNAPSHOT`。平台無關的 Invitation 核心狀態機、Invite Code lifecycle、SQLite adapter 與 Qualification Policy 已實作；reward 與 Minecraft 平台工作流程尚未完成串接。
 
 ## 專案目標
 
@@ -61,6 +61,14 @@ invitecode-plugin/build/libs/InviteCodeKt-0.1.0-SNAPSHOT.jar
 - storage 錯誤會拒絕當次操作，不會自動切換成 memory、JSON 或其他 backend。
 
 目前 SQLite persistence 已有暫存資料庫 contract tests；插件啟動、設定載入與 executor 串接會在 Bukkit 工作流程 Issue 完成。
+
+## Qualification Policy
+
+`QualificationPolicy` 使用 OR group 包含 AND condition；每次解析都會依正規化內容產生不可變的 SHA-256 revision。`QualificationEvaluator` 對 condition 依序短路求值，provider 缺失或執行失敗時安全地產生 `UNKNOWN`／設定的 `UNSATISFIED`，不會因此讓 Invitation qualified。
+
+內建 provider 涵蓋遊玩時間、Claim 後經過時間、不同登入日數、管理員核准、permission 與 Placeholder 比較。Permission 與 Placeholder 值由平台 adapter 注入，核心不直接依賴 Bukkit 或 PlaceholderAPI。Qualification 通過時，Qualified Invitation 與造成通過的 facts 透過 storage transaction 原子保存；一般 reevaluation 不會反轉既有 qualification。
+
+設定格式、condition 參數與外部 provider 契約請參閱 [`docs/configuration/qualifications.md`](./docs/configuration/qualifications.md)。實際讀取 `qualifications.yml`、收集 Bukkit／Placeholder 值及 executor 排程會在 Bukkit 工作流程 Issue 串接。
 
 ## 分支
 

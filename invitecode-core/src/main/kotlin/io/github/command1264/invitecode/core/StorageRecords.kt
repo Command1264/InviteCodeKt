@@ -116,7 +116,19 @@ data class StoredRewardDeliveryTransition(
  * 持久化領域狀態的同步介面。SQL adapter 會執行 blocking I/O，呼叫端必須將操作排程至
  * server main thread 以外的專用 executor。
  */
-interface InviteCodeStorage : InvitationTransactions, InviteCodeRegistry, AutoCloseable {
+interface QualificationRecords {
+    fun invitation(invitationId: UUID): Invitation?
+
+    fun saveQualifiedInvitation(invitation: Invitation, facts: List<QualificationFact>)
+
+    fun saveQualificationFacts(facts: List<QualificationFact>)
+}
+
+interface InviteCodeStorage :
+    InvitationTransactions,
+    InviteCodeRegistry,
+    QualificationRecords,
+    AutoCloseable {
     fun savePlayer(player: StoredPlayer)
 
     fun player(playerId: UUID): StoredPlayer?
@@ -126,10 +138,6 @@ interface InviteCodeStorage : InvitationTransactions, InviteCodeRegistry, AutoCl
     fun isInviteCodeReserved(code: InviteCode): Boolean
 
     fun saveInvitation(invitation: Invitation)
-
-    fun saveQualifiedInvitation(invitation: Invitation, facts: List<QualificationFact>)
-
-    fun invitation(invitationId: UUID): Invitation?
 
     fun saveQualificationFact(fact: QualificationFact)
 

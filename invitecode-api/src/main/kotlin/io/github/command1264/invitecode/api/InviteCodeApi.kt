@@ -8,6 +8,12 @@ interface InviteCodeApi {
     fun getClaimEligibility(playerId: UUID): CompletionStage<ClaimEligibilitySnapshot>
 
     fun getInvitation(invitationId: UUID): CompletionStage<InvitationSnapshot?>
+
+    fun registerQualificationConditionProvider(
+        provider: QualificationConditionProvider,
+    ): QualificationProviderRegistration
+
+    fun requestQualificationEvaluation(invitationId: UUID): CompletionStage<QualificationEvaluationSnapshot>
 }
 
 data class ClaimEligibilitySnapshot(
@@ -31,3 +37,11 @@ enum class InvitationStatus {
     QUALIFIED,
     UNLINKED,
 }
+
+data class QualificationEvaluationSnapshot(
+    val invitationId: UUID,
+    val status: InvitationStatus,
+    val policyId: String?,
+    val qualificationRevision: String?,
+    val evaluatedAt: Instant,
+)

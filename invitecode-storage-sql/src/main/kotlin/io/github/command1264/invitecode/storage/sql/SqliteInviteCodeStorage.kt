@@ -31,6 +31,10 @@ class SqliteInviteCodeStorage private constructor(
     private val database: Path,
     private val blockingOperationGuard: BlockingOperationGuard,
 ) : InviteCodeStorage {
+    override fun qualifiedInvitationCount(inviterId: UUID): Int = read {
+        SqliteInvitationRecords.countQualifiedForInviter(it, inviterId)
+    }
+
     override fun savePlayer(player: StoredPlayer) {
         write { SqlitePlayerRecords.save(it, player) }
     }

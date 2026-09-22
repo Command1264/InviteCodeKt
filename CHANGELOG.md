@@ -12,3 +12,4 @@
 - 最小 Bukkit 插件 metadata 與設定範例。
 - SQLite persistence adapter、明確 schema migration、原子 Claim／Reward Delivery、可稽核且具復原流程的 Reward 狀態歷史，以及跨重啟 repository contract tests。
 - 可設定的 Qualification Policy、內建與外部 condition provider、短路求值、不可逆 qualification，以及 Qualification Fact 的 SQLite transaction。
+- Qualification 與 Inviter milestone 獎勵規劃、穩定冪等鍵、先保存後執行的 Reward Action 狀態流程、離線補發邊界、失敗復原與 Vault Economy adapter。

@@ -468,6 +468,55 @@ class SqliteInviteCodeStorageTest {
     }
 
     @Test
+    fun `qualified Invitation count excludes claimed Invitations`() {
+        val database = temporaryDirectory.resolve("qualified-invitation-count.db")
+        val guard = BlockingOperationGuard { }
+        val inviterId = UUID.fromString("00000000-0000-0000-0000-000000000071")
+        val qualifiedInviteeId = UUID.fromString("00000000-0000-0000-0000-000000000072")
+        val claimedInviteeId = UUID.fromString("00000000-0000-0000-0000-000000000073")
+        val qualified = Invitation(
+            UUID.fromString("10000000-0000-0000-0000-000000000071"),
+            inviterId,
+            qualifiedInviteeId,
+            InvitationStatus.CLAIMED,
+            Instant.EPOCH,
+        ).qualify(Instant.EPOCH.plusSeconds(1), "default", "revision-1")
+        val claimed = Invitation(
+            UUID.fromString("10000000-0000-0000-0000-000000000072"),
+            inviterId,
+            claimedInviteeId,
+            InvitationStatus.CLAIMED,
+            Instant.EPOCH,
+        )
+        val fact = QualificationFact(
+            UUID.fromString("20000000-0000-0000-0000-000000000071"),
+            qualified.id,
+            "default",
+            "revision-1",
+            "play-time",
+            QualificationFactOutcome.SATISFIED,
+            Instant.EPOCH.plusSeconds(1),
+        )
+
+        SqliteSchemaMigrator(database, guard).migrate()
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            listOf(inviterId, qualifiedInviteeId, claimedInviteeId).forEach {
+                storage.savePlayer(StoredPlayer(it, Instant.EPOCH))
+            }
+            storage.saveInvitation(qualified.copy(
+                status = InvitationStatus.CLAIMED,
+                qualifiedAt = null,
+                qualificationPolicyId = null,
+                qualificationRevision = null,
+            ))
+            storage.saveInvitation(claimed)
+            storage.saveQualifiedInvitation(qualified, listOf(fact))
+
+            assertEquals(1, storage.qualifiedInvitationCount(inviterId))
+        }
+    }
+
+    @Test
     fun `Reward Delivery and all actions roll back together`() {
         val database = temporaryDirectory.resolve("reward-rollback.db")
         val offMainThread = BlockingOperationGuard { }
@@ -815,6 +864,46 @@ class SqliteInviteCodeStorageTest {
                     delivered.copy(status = RewardActionStatus.PENDING, updatedAt = resolvedAt.plusSeconds(3)),
                 )
             }
+        }
+    }
+
+    @Test
+    fun `Reward Action can return to pending when recipient disconnects before the effect`() {
+        val database = temporaryDirectory.resolve("reward-deferred-after-processing.db")
+        val guard = BlockingOperationGuard { }
+        val recipientId = UUID.fromString("00000000-0000-0000-0000-0000000000b2")
+        val delivery = StoredRewardDelivery(
+            UUID.fromString("31000000-0000-0000-0000-0000000000b2"), null, "deferred",
+            RewardDeliveryStatus.PENDING, "deferred-delivery", Instant.EPOCH, Instant.EPOCH,
+        )
+        val pending = StoredRewardAction(
+            UUID.fromString("30000000-0000-0000-0000-0000000000b2"), delivery.id, null,
+            recipientId, 0, "player-command", "kit starter", RewardActionStatus.PENDING,
+            "deferred-action", Instant.EPOCH, Instant.EPOCH,
+        )
+        val processingAt = Instant.parse("2026-09-22T10:00:00Z")
+        val deferredAt = processingAt.plusNanos(1)
+
+        SqliteSchemaMigrator(database, guard).migrate()
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            storage.savePlayer(StoredPlayer(recipientId, Instant.EPOCH))
+            storage.saveRewardDelivery(delivery, listOf(pending))
+            storage.saveRewardAction(pending.copy(
+                status = RewardActionStatus.PROCESSING,
+                updatedAt = processingAt,
+            ))
+            storage.saveRewardAction(pending.copy(updatedAt = deferredAt))
+
+            assertEquals(RewardActionStatus.PENDING, storage.rewardAction(pending.id)!!.status)
+            assertEquals(RewardDeliveryStatus.PENDING, storage.rewardDelivery(delivery.id)!!.status)
+            assertEquals(
+                listOf(
+                    RewardActionStatus.PENDING,
+                    RewardActionStatus.PROCESSING,
+                    RewardActionStatus.PENDING,
+                ),
+                storage.rewardActionTransitions(pending.id).map { it.currentStatus },
+            )
         }
     }
 

@@ -129,6 +129,18 @@ internal object SqliteInvitationRecords {
                 )
             }
         }
+
+    fun countQualifiedForInviter(connection: Connection, inviterId: UUID): Int =
+        connection.prepareStatement(
+            "SELECT COUNT(*) FROM invitecode_invitations WHERE inviter_id = ? AND status = ?",
+        ).use { statement ->
+            statement.setString(1, inviterId.toString())
+            statement.setString(2, InvitationStatus.QUALIFIED.name)
+            statement.executeQuery().use { result ->
+                check(result.next()) { "Qualified Invitation count query returned no row." }
+                result.getInt(1)
+            }
+        }
 }
 
 internal object SqliteQualificationRecords {

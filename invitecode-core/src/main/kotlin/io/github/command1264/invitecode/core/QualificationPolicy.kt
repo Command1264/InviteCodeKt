@@ -67,8 +67,10 @@ object QualificationConfigurationParser {
         require(value.keys == setOf("config-version", "policies")) {
             "Qualification configuration must contain only 'config-version' and 'policies'."
         }
-        val version = (value["config-version"] as? Number)?.toInt()
-            ?: throw IllegalArgumentException("Qualification configuration requires numeric 'config-version'.")
+        val version = (value["config-version"] as? Number)?.toString()?.toIntOrNull()
+            ?: throw IllegalArgumentException(
+                "Qualification configuration requires numeric integer 'config-version'.",
+            )
         require(version == CURRENT_VERSION) {
             "Qualification config-version $version is unsupported; expected $CURRENT_VERSION."
         }

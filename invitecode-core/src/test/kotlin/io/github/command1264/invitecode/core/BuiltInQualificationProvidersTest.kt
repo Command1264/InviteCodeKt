@@ -96,6 +96,19 @@ class BuiltInQualificationProvidersTest {
         assertEquals(QualificationFactOutcome.UNKNOWN, result.facts.single().outcome)
     }
 
+    @Test
+    fun `negative duration threshold is invalid and fails closed`() {
+        val registry = QualificationProviderRegistry(BuiltInQualificationProviders.create())
+        val policy = parsePolicy(
+            condition("elapsed", "ELAPSED_TIME", "at-least" to "P-1D"),
+        )
+
+        val result = QualificationEvaluator(registry).evaluate(invitation, policy, context())
+
+        assertEquals(false, result.qualified)
+        assertEquals(QualificationFactOutcome.UNKNOWN, result.facts.single().outcome)
+    }
+
     private fun parsePolicy(vararg conditions: Map<String, Any?>): QualificationPolicy =
         QualificationPolicyParser.parse(
             "new-player",

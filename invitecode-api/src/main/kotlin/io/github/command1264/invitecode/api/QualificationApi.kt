@@ -39,4 +39,3 @@ interface QualificationConditionProvider {
 interface QualificationProviderRegistration : AutoCloseable {
     override fun close()
 }
-

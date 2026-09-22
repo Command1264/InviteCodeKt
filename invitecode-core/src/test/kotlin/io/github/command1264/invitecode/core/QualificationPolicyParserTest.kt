@@ -85,4 +85,24 @@ class QualificationPolicyParserTest {
 
         assertTrue(error.message!!.contains("config-version 2"))
     }
+
+    @Test
+    fun `rejects fractional configuration versions instead of truncating them`() {
+        val error = assertThrows<IllegalArgumentException> {
+            QualificationConfigurationParser.parse(
+                mapOf(
+                    "config-version" to 1.5,
+                    "policies" to mapOf(
+                        "new-player" to mapOf(
+                            "any-of" to listOf(
+                                mapOf("all-of" to listOf(mapOf("type" to "ADMIN_APPROVAL"))),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        assertTrue(error.message!!.contains("numeric integer"))
+    }
 }

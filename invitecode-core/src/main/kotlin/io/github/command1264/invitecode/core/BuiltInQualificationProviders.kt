@@ -105,11 +105,13 @@ object BuiltInQualificationProviders {
     private fun Map<String, String>.requiredDuration(name: String): Duration {
         val value = required(name)
         if (value.startsWith("P", ignoreCase = true)) {
-            return try {
+            val duration = try {
                 Duration.parse(value.uppercase(Locale.ROOT))
             } catch (error: Exception) {
                 throw IllegalArgumentException("Qualification duration '$value' is invalid.", error)
             }
+            require(!duration.isNegative) { "Qualification duration '$value' must not be negative." }
+            return duration
         }
         val match = COMPACT_DURATION.matchEntire(value.lowercase(Locale.ROOT))
             ?: throw IllegalArgumentException(

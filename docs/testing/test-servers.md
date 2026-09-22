@@ -72,3 +72,9 @@ pwsh -NoProfile -File .\scripts\test-servers\start.ps1 -Profile paper-latest
 6. 驗證離線 Reward 補發與 restart recovery；需要外部整合的 profile 再加入 Vault／PlaceholderAPI。
 
 各次測試應記錄 `workspace.json`、受測 commit、JAR SHA-256、操作結果與 `logs/latest.log`。實際相容性證據尚未取得前，不得只因實例能建立就宣稱該版本受到支援。
+
+## 自動檢查與最終真人驗收
+
+日常開發與各功能階段先由 Agent 執行不需要玩家判斷的檢查，包括 Gradle 測試、JAR 結構與 Java 8 bytecode、伺服器啟動與正常停機、log 錯誤掃描、UTF-8 解碼、SQLite／防濫用密鑰初始化，以及適用時的重啟持久化。這些結果須綁定受測 commit 與 JAR SHA-256。
+
+需要真人觀察或實際玩家操作的項目集中到插件功能接近完成、準備發行候選版本時執行一次完整驗收，包括指令與 Tab completion、聊天及 Dialog 輸入、顏色與語系顯示、Claim／Confirmation／Status／Stats，以及實際獎勵體驗。延後的真人項目維持「待最終真人驗收」，不得因自動 smoke 通過而標記為已通過，也不阻擋仍在開發中的本機 checkpoint。

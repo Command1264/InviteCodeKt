@@ -5,7 +5,9 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.testing.Test
 import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 import java.util.zip.ZipFile
 
 plugins {
@@ -58,14 +60,23 @@ abstract class VerifyPluginJar : DefaultTask() {
                 if (!entry.name.endsWith(".class")) continue
 
                 zip.getInputStream(entry).use { input ->
-                    val header = ByteArray(8)
-                    check(input.read(header) == header.size) {
+                    val bytes = input.readBytes()
+                    check(bytes.size >= 8) {
                         "Unable to read class header for ${entry.name}"
                     }
-                    val major = ((header[6].toInt() and 0xff) shl 8) or
-                        (header[7].toInt() and 0xff)
+                    val major = ((bytes[6].toInt() and 0xff) shl 8) or
+                        (bytes[7].toInt() and 0xff)
                     check(major <= 52) {
                         "${entry.name} targets class-file major $major; Java 8 requires 52 or lower"
+                    }
+                    if (!entry.name.startsWith(
+                            "io/github/command1264/invitecode/plugin/VaultEconomyRewardGateway",
+                        )
+                    ) {
+                        val constants = String(bytes, StandardCharsets.ISO_8859_1)
+                        check(!constants.contains("net/milkbowl/vault/")) {
+                            "${entry.name} links the optional Vault API outside its isolated adapter"
+                        }
                     }
                 }
             }
@@ -103,6 +114,13 @@ val shadowJar = tasks.named<ShadowJar>("shadowJar") {
     archiveClassifier.set("")
     exclude("module-info.class", "META-INF/versions/**")
     mergeServiceFiles()
+}
+
+tasks.withType<Test>().configureEach {
+    dependsOn(shadowJar)
+    doFirst {
+        systemProperty("invitecode.shadowJar", shadowJar.get().archiveFile.get().asFile.absolutePath)
+    }
 }
 
 tasks.build {

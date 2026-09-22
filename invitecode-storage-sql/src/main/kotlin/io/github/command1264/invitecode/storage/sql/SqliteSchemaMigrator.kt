@@ -3,8 +3,11 @@ package io.github.command1264.invitecode.storage.sql
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
-import java.sql.DriverManager
+import java.sql.Driver
 import java.sql.SQLException
+import java.net.URL
+import java.net.URLClassLoader
+import java.util.Properties
 
 /** 在任何 SQLite I/O 前確認目前 thread 允許執行 blocking operation。 */
 fun interface BlockingOperationGuard {
@@ -405,8 +408,47 @@ class SqliteSchemaMigrator(
     }
 }
 
-internal fun connect(database: Path): Connection =
-    DriverManager.getConnection("jdbc:sqlite:${database.toAbsolutePath()}")
+private class BundledSqliteClassLoader(
+    location: URL,
+    parent: ClassLoader,
+) : URLClassLoader(arrayOf(location), parent) {
+    override fun getResource(name: String): URL? =
+        if (name.startsWith("org/sqlite/")) findResource(name) ?: super.getResource(name)
+        else super.getResource(name)
+
+    override fun loadClass(name: String, resolve: Boolean): Class<*> {
+        if (!name.startsWith("org.sqlite.")) return super.loadClass(name, resolve)
+        synchronized(getClassLoadingLock(name)) {
+            val loaded = findLoadedClass(name) ?: findClass(name)
+            if (resolve) resolveClass(loaded)
+            return loaded
+        }
+    }
+}
+
+private val sqliteDriver: Driver by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    val owner = SqliteSchemaMigrator::class.java
+    val location = requireNotNull(owner.protectionDomain.codeSource?.location) {
+        "Unable to locate the InviteCode code source for the bundled SQLite driver."
+    }
+    try {
+        BundledSqliteClassLoader(location, owner.classLoader)
+            .loadClass("org.sqlite.JDBC")
+            .getDeclaredConstructor()
+            .newInstance() as Driver
+    } catch (missingBundledDriver: ClassNotFoundException) {
+        // Module tests run from class directories, where Gradle supplies SQLite on the parent classpath.
+        Class.forName("org.sqlite.JDBC", true, owner.classLoader)
+            .getDeclaredConstructor()
+            .newInstance() as Driver
+    }
+}
+
+internal fun connect(database: Path): Connection {
+    val url = "jdbc:sqlite:${database.toAbsolutePath()}"
+    return sqliteDriver.connect(url, Properties())
+        ?: throw SQLException("The bundled SQLite driver did not accept $url")
+}
 
 internal fun readSchemaVersion(connection: Connection): Int =
     connection.createStatement().use { statement ->

@@ -17,6 +17,7 @@ class VaultEconomyRewardGateway private constructor(
     }
 
     companion object {
+        @JvmStatic
         fun find(server: Server): VaultEconomyRewardGateway? {
             if (!server.pluginManager.isPluginEnabled("Vault")) return null
             val provider = server.servicesManager.getRegistration(Economy::class.java)?.provider ?: return null

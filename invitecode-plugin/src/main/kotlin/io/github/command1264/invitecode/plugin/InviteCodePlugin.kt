@@ -60,6 +60,7 @@ class InviteCodePlugin : JavaPlugin() {
             sessions,
             externalQualificationProviders,
             networkHasher,
+            economyGateway = { OptionalVaultIntegration.find(server, logger) },
         )
         this.playerWorkflows = playerWorkflows
         server.servicesManager.register(
@@ -294,7 +295,7 @@ class InviteCodePlugin : JavaPlugin() {
         val executor = operations
         val store = storage.get()
         val placeholder = server.pluginManager.getPlugin("PlaceholderAPI")?.isEnabled == true
-        val vault = server.servicesManager.getRegistration(net.milkbowl.vault.economy.Economy::class.java) != null
+        val vault = OptionalVaultIntegration.find(server, logger) != null
         sendLocalized(
             sender,
             "admin.doctor-runtime",

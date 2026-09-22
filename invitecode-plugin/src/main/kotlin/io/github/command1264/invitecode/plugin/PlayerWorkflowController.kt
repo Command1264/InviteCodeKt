@@ -40,7 +40,6 @@ import io.github.command1264.invitecode.platform.bukkit.parser
 import io.github.command1264.invitecode.platform.bukkit.ParsedInviteCodeCommand
 import io.github.command1264.invitecode.platform.bukkit.RewardMessageResolver
 import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
-import net.milkbowl.vault.economy.Economy
 import org.bukkit.ChatColor
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
@@ -67,6 +66,7 @@ class PlayerWorkflowController(
     private val sessions: ClaimInteractionSessions,
     private val externalQualificationProviders: QualificationProviderRegistry,
     private val networkHasher: AtomicReference<NetworkAddressHasher?>,
+    private val economyGateway: () -> EconomyRewardGateway? = { null },
     private val now: () -> Instant = Instant::now,
 ) : Listener {
     fun requestQualificationEvaluation(invitationId: UUID): CompletionStage<QualificationEvaluationSnapshot> {
@@ -574,19 +574,13 @@ class PlayerWorkflowController(
         if (tasks.isEmpty()) return
         val store = storage.get() ?: return
         val messages = configuration.current().value.messages
-        val economy = plugin.server.servicesManager.getRegistration(Economy::class.java)?.provider
         val environment = BukkitRewardExecutionEnvironment(
             plugin.server,
             RewardMessageResolver { playerId, localeKey ->
                 val locale = plugin.server.getPlayer(playerId)?.let(BukkitLocaleCompatibility::locale)
                 messages.resolve(locale, localeKey)
             },
-            economy?.let { provider ->
-                EconomyRewardGateway { playerId, amount ->
-                    provider.depositPlayer(plugin.server.getOfflinePlayer(playerId), amount.toDouble())
-                        .transactionSuccess()
-                }
-            },
+            economyGateway(),
         )
         val workflow = AsyncRewardDeliveryWorkflow(
             operations,

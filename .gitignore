@@ -4,6 +4,7 @@
 *.iml
 out/
 .run/
+.test-server/
 *.log
 *.db
 *.db-shm

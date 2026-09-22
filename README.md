@@ -82,6 +82,10 @@ Qualification Reward 與 Inviter Milestone Reward 會先以穩定冪等鍵保存
 - `develop`：日常整合分支
 - task branch：使用獨立 Worktree，目標分支為 `develop`
 
+## 真實伺服器測試
+
+專案的真實 Spigot／Paper／Folia 測試矩陣位於 [`test-servers/matrix.json`](./test-servers/matrix.json)，並使用專案外的共用 TestLab 建立隔離實例。操作方式與 EULA 邊界請參閱 [`docs/testing/test-servers.md`](./docs/testing/test-servers.md)。
+
 ## 目前狀態
 
 實作工作記錄於本 repository 的 GitHub Issues。不規劃相容或匯入舊版 InviteCode 的資料與設定。

@@ -43,6 +43,7 @@ fun RewardActionStatus.canTransitionTo(next: RewardActionStatus, administrative:
             RewardActionStatus.EXPIRED,
         )
         RewardActionStatus.PROCESSING -> next in setOf(
+            RewardActionStatus.PENDING,
             RewardActionStatus.DELIVERED,
             RewardActionStatus.FAILED,
             RewardActionStatus.UNCERTAIN,
@@ -67,6 +68,7 @@ fun RewardDeliveryStatus.canTransitionTo(
         RewardDeliveryStatus.UNCERTAIN,
     )
     RewardDeliveryStatus.PROCESSING -> next in setOf(
+        RewardDeliveryStatus.PENDING,
         RewardDeliveryStatus.DELIVERED,
         RewardDeliveryStatus.FAILED,
         RewardDeliveryStatus.UNCERTAIN,

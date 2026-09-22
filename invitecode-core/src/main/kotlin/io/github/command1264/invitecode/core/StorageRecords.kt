@@ -124,10 +124,35 @@ interface QualificationRecords {
     fun saveQualificationFacts(facts: List<QualificationFact>)
 }
 
+interface RewardRecords {
+    fun qualifiedInvitationCount(inviterId: UUID): Int
+
+    fun saveRewardAction(action: StoredRewardAction)
+
+    fun rewardAction(actionId: UUID): StoredRewardAction?
+
+    fun rewardActions(deliveryId: UUID): List<StoredRewardAction>
+
+    fun pendingRewardActions(recipientId: UUID): List<StoredRewardAction>
+
+    fun recoverInterruptedRewardActions(recoveredAt: Instant): Int
+
+    fun resolveUncertainRewardAction(
+        actionId: UUID,
+        resolution: UncertainRewardActionResolution,
+        context: RewardAdministrationContext,
+    ): StoredRewardAction
+
+    fun saveRewardDelivery(delivery: StoredRewardDelivery, actions: List<StoredRewardAction>)
+
+    fun rewardDelivery(deliveryId: UUID): StoredRewardDelivery?
+}
+
 interface InviteCodeStorage :
     InvitationTransactions,
     InviteCodeRegistry,
     QualificationRecords,
+    RewardRecords,
     AutoCloseable {
     fun savePlayer(player: StoredPlayer)
 
@@ -143,27 +168,7 @@ interface InviteCodeStorage :
 
     fun qualificationFact(factId: UUID): QualificationFact?
 
-    fun saveRewardAction(action: StoredRewardAction)
-
-    fun rewardAction(actionId: UUID): StoredRewardAction?
-
-    fun rewardActions(deliveryId: UUID): List<StoredRewardAction>
-
-    fun pendingRewardActions(recipientId: UUID): List<StoredRewardAction>
-
     fun rewardActionTransitions(actionId: UUID): List<StoredRewardActionTransition>
-
-    fun recoverInterruptedRewardActions(recoveredAt: Instant): Int
-
-    fun resolveUncertainRewardAction(
-        actionId: UUID,
-        resolution: UncertainRewardActionResolution,
-        context: RewardAdministrationContext,
-    ): StoredRewardAction
-
-    fun saveRewardDelivery(delivery: StoredRewardDelivery, actions: List<StoredRewardAction>)
-
-    fun rewardDelivery(deliveryId: UUID): StoredRewardDelivery?
 
     fun rewardDeliveryTransitions(deliveryId: UUID): List<StoredRewardDeliveryTransition>
 

@@ -43,7 +43,7 @@ class InvitationAdministrationTest {
         assertEquals(inviterId, details.previousInviterId)
         assertEquals(newInviterId, details.newInviterId)
 
-        val qualified = invitation.qualify(occurredAt, "policy@1")
+        val qualified = invitation.qualify(occurredAt, "policy", "1")
         assertThrows<IllegalStateException> {
             qualified.adminTransfer(newInviterId, context())
         }
@@ -53,12 +53,14 @@ class InvitationAdministrationTest {
     fun `force qualification is permanent and records the policy revision`() {
         val transition = claimedInvitation().adminForceQualify(
             qualifiedAt = occurredAt,
+            qualificationPolicyId = "admin",
             qualificationRevision = "admin@1",
             context = context(),
         )
 
         assertEquals(InvitationStatus.QUALIFIED, transition.invitation.status)
         assertEquals(occurredAt, transition.invitation.qualifiedAt)
+        assertEquals("admin", transition.invitation.qualificationPolicyId)
         assertEquals("admin@1", transition.invitation.qualificationRevision)
         assertEquals(InvitationAuditAction.FORCE_QUALIFIED, transition.auditRecord.action)
         val details = assertInstanceOf(
@@ -68,7 +70,14 @@ class InvitationAdministrationTest {
         assertEquals("admin@1", details.qualificationRevision)
 
         assertThrows<IllegalStateException> {
-            transition.invitation.adminForceQualify(occurredAt, "admin@2", context())
+            transition.invitation.adminForceQualify(occurredAt, "admin", "admin@2", context())
+        }
+    }
+
+    @Test
+    fun `administrative transfer rejects the current inviter`() {
+        assertThrows<IllegalArgumentException> {
+            claimedInvitation().adminTransfer(inviterId, context())
         }
     }
 
@@ -88,6 +97,39 @@ class InvitationAdministrationTest {
         assertEquals(false, transition.state.hasInvitation)
         assertEquals(InvitationAuditAction.ELIGIBILITY_RESET, transition.auditRecord.action)
         assertEquals(inviteeId, transition.auditRecord.playerId)
+    }
+
+    @Test
+    fun `audited invitation transition rejects a mismatched target`() {
+        val valid = claimedInvitation().adminUnlink(context())
+        val wrongTarget = valid.auditRecord.copy(invitationId = UUID.randomUUID())
+
+        assertThrows<IllegalArgumentException> {
+            AuditedInvitationTransition(valid.previousInvitation, valid.invitation, wrongTarget)
+        }
+    }
+
+    @Test
+    fun `audited transfer rejects a mismatched previous inviter`() {
+        val valid = claimedInvitation().adminTransfer(UUID.randomUUID(), context())
+        val details = valid.auditRecord.details as InvitationAuditDetails.Transfer
+        val wrongAudit = valid.auditRecord.copy(
+            details = details.copy(previousInviterId = UUID.randomUUID()),
+        )
+
+        assertThrows<IllegalArgumentException> {
+            AuditedInvitationTransition(valid.previousInvitation, valid.invitation, wrongAudit)
+        }
+    }
+
+    @Test
+    fun `audited eligibility reset rejects a mismatched player`() {
+        val valid = PlayerClaimState(inviteeId, Instant.EPOCH, true, true)
+            .adminResetEligibility(context())
+
+        assertThrows<IllegalArgumentException> {
+            AuditedClaimStateTransition(valid.state.copy(playerId = UUID.randomUUID()), valid.auditRecord)
+        }
     }
 
     private fun context() = InvitationAdministrationContext(

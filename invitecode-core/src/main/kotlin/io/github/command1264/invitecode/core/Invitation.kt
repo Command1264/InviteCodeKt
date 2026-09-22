@@ -11,12 +11,19 @@ data class Invitation(
     val status: InvitationStatus,
     val claimedAt: Instant,
     val qualifiedAt: Instant? = null,
+    val qualificationPolicyId: String? = null,
     val qualificationRevision: String? = null,
 ) {
     init {
         require(inviterId != inviteeId) { "An inviter cannot invite themselves." }
-        require((qualifiedAt == null) == (qualificationRevision == null)) {
-            "Qualification timestamp and revision must either both be present or both be absent."
+        require(
+            listOf(qualifiedAt, qualificationPolicyId, qualificationRevision).all { it == null } ||
+                listOf(qualifiedAt, qualificationPolicyId, qualificationRevision).all { it != null },
+        ) {
+            "Qualification timestamp, policy ID, and revision must either all be present or all be absent."
+        }
+        require(qualificationPolicyId == null || qualificationPolicyId.isNotBlank()) {
+            "Qualification policy ID must not be blank."
         }
         require(qualificationRevision == null || qualificationRevision.isNotBlank()) {
             "Qualification revision must not be blank."
@@ -29,14 +36,16 @@ data class Invitation(
         }
     }
 
-    fun qualify(at: Instant, revision: String): Invitation {
+    fun qualify(at: Instant, policyId: String, revision: String): Invitation {
         check(status == InvitationStatus.CLAIMED) {
             "Only a claimed invitation can become qualified; current status is $status."
         }
+        require(policyId.isNotBlank()) { "Qualification policy ID must not be blank." }
         require(revision.isNotBlank()) { "Qualification revision must not be blank." }
         return copy(
             status = InvitationStatus.QUALIFIED,
             qualifiedAt = at,
+            qualificationPolicyId = policyId,
             qualificationRevision = revision,
         )
     }
@@ -44,6 +53,7 @@ data class Invitation(
     fun adminUnlink(context: InvitationAdministrationContext): AuditedInvitationTransition {
         check(status != InvitationStatus.UNLINKED) { "Invitation is already unlinked." }
         return AuditedInvitationTransition(
+            previousInvitation = this,
             invitation = copy(status = InvitationStatus.UNLINKED),
             auditRecord = AuditRecord(
                 id = context.auditRecordId,
@@ -64,7 +74,9 @@ data class Invitation(
             "Only a claimed invitation can be transferred; current status is $status."
         }
         require(newInviterId != inviteeId) { "An invitee cannot become their own inviter." }
+        require(newInviterId != inviterId) { "Transfer requires a different Inviter." }
         return AuditedInvitationTransition(
+            previousInvitation = this,
             invitation = copy(inviterId = newInviterId),
             auditRecord = AuditRecord(
                 id = context.auditRecordId,
@@ -83,11 +95,13 @@ data class Invitation(
 
     fun adminForceQualify(
         qualifiedAt: Instant,
+        qualificationPolicyId: String,
         qualificationRevision: String,
         context: InvitationAdministrationContext,
     ): AuditedInvitationTransition {
-        val qualified = qualify(qualifiedAt, qualificationRevision)
+        val qualified = qualify(qualifiedAt, qualificationPolicyId, qualificationRevision)
         return AuditedInvitationTransition(
+            previousInvitation = this,
             invitation = qualified,
             auditRecord = AuditRecord(
                 id = context.auditRecordId,
@@ -96,7 +110,10 @@ data class Invitation(
                 reason = context.reason,
                 occurredAt = context.occurredAt,
                 invitationId = id,
-                details = InvitationAuditDetails.ForceQualification(qualificationRevision),
+                details = InvitationAuditDetails.ForceQualification(
+                    qualificationPolicyId,
+                    qualificationRevision,
+                ),
             ),
         )
     }

@@ -3,7 +3,7 @@
 InviteCodeKt 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件。目標是以單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並透過隔離的 adapter 載入新版能力。
 
 > [!IMPORTANT]
-> 這個 repository 目前是 `0.1.0-SNAPSHOT`。平台無關的 Invitation 核心狀態機，以及 Invite Code 的產生、驗證、顏色資訊與 rotation lifecycle 已實作；qualification、storage、reward 與 Minecraft 平台工作流程尚未完成串接。
+> 這個 repository 目前是 `0.1.0-SNAPSHOT`。平台無關的 Invitation 核心狀態機、Invite Code lifecycle 與 SQLite adapter 已實作；qualification、reward 與 Minecraft 平台工作流程尚未完成串接。
 
 ## 專案目標
 
@@ -46,6 +46,21 @@ invitecode-plugin/build/libs/InviteCodeKt-0.1.0-SNAPSHOT.jar
 ```
 
 所有本機 Java、Gradle 建置與測試指令都必須透過 `mise exec` 執行。Gradle Wrapper 仍由 repository 管理。建置流程會驗證目前 production class 使用 Java 8 bytecode。未來的新版 adapter 只有在 class 維持隔離，並驗證舊版 JVM 不會載入時，才可使用新版 bytecode。
+
+## SQLite schema 與 thread 規則
+
+`invitecode-storage-sql` 使用 `org.xerial:sqlite-jdbc:3.53.4.0`，driver 與主要平台的原生程式庫會封裝進單一插件 JAR。SQLite adapter 提供下列保證：
+
+- schema 只會由 `SqliteSchemaMigrator` 依版本順序明確遷移；開啟 storage 不會暗中修改 schema。
+- migration 在 transaction 內執行；失敗時回復原 schema version，並保留既有資料庫供檢查與重試；rollback 本身失敗時會回報狀態不確定，且不再切回 auto-commit。
+- Claim 使用 SQLite write transaction，且資料庫以 unique constraint 保證一名 Invitee 在每次 Claim Eligibility 世代最多只有一筆 Invitation；可稽核的 Eligibility Reset 會開始新世代並保留歷史資料。
+- Reward Delivery 與其完整 Reward Action 集合只能從 `PENDING` 開始，並以單一 transaction 建立或更新；狀態不一致或任一 Action 寫入失敗時整批回復。Delivery 與 Action 的狀態轉換會在同一 transaction 追加不可覆寫的歷史，Pending Action 可依收件玩家於重新登入或重啟後找回。
+- Reward Action 使用明確狀態轉換；重啟時會將中斷於 `PROCESSING` 的 Action 原子轉為 `UNCERTAIN`，之後只有記錄 actor 與 reason 的管理操作可決定重試或視為已交付。
+- 初始 Invitation 只能以 `CLAIMED` 保存；一般 qualification 必須將 Qualified Invitation 與相符的 Qualification Facts 原子保存，管理員變更則使用可稽核轉換。Qualified Invitation 會同時保存穩定的 Qualification Policy ID 與 revision；Qualification Fact 為不可變稽核事實，只接受內容完全相同的冪等重送。
+- 所有 SQLite 入口都要求 `BlockingOperationGuard`；Minecraft adapter 必須用它拒絕 server main thread，並在專用 executor 呼叫同步 storage interface。
+- storage 錯誤會拒絕當次操作，不會自動切換成 memory、JSON 或其他 backend。
+
+目前 SQLite persistence 已有暫存資料庫 contract tests；插件啟動、設定載入與 executor 串接會在 Bukkit 工作流程 Issue 完成。
 
 ## 分支
 

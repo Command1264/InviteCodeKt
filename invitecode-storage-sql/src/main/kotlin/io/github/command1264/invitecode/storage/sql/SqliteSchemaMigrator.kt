@@ -3,8 +3,11 @@ package io.github.command1264.invitecode.storage.sql
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
-import java.sql.DriverManager
+import java.sql.Driver
 import java.sql.SQLException
+import java.net.URL
+import java.net.URLClassLoader
+import java.util.Properties
 
 /** 在任何 SQLite I/O 前確認目前 thread 允許執行 blocking operation。 */
 fun interface BlockingOperationGuard {
@@ -76,7 +79,7 @@ class SqliteSchemaMigrator(
             if (current > ordered.size) {
                 throw SqliteStorageException(
                     "SQLite schema version $current is newer than supported version ${ordered.size}; " +
-                        "upgrade InviteCodeKt before opening ${database.toAbsolutePath()}.",
+                        "upgrade InviteCode before opening ${database.toAbsolutePath()}.",
                 )
             }
             ordered.filter { it.version > current }.forEach { migration ->
@@ -312,6 +315,92 @@ class SqliteSchemaMigrator(
                     """.trimIndent(),
                 ),
             ),
+            SqliteSchemaMigration(
+                version = 6,
+                description = "Add Bukkit workflow query indexes",
+                statements = listOf(
+                    """
+                    CREATE INDEX invitecode_query_players_by_name
+                    ON invitecode_players(last_known_name COLLATE NOCASE, player_id)
+                    WHERE last_known_name IS NOT NULL
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_query_codes_active_reverse
+                    ON invitecode_codes(code, inviter_id)
+                    WHERE retired_at IS NULL
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_query_invitations_by_invitee
+                    ON invitecode_invitations(invitee_id, claimed_at DESC, invitation_id DESC)
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_query_invitations_by_inviter
+                    ON invitecode_invitations(inviter_id, claimed_at DESC, invitation_id DESC, status)
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_query_qualification_facts
+                    ON invitecode_qualification_facts(invitation_id, recorded_at, fact_id)
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_query_audit_by_invitation
+                    ON invitecode_audit_records(invitation_id, occurred_at DESC, audit_id DESC)
+                    WHERE invitation_id IS NOT NULL
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_query_audit_by_player
+                    ON invitecode_audit_records(player_id, occurred_at DESC, audit_id DESC)
+                    WHERE player_id IS NOT NULL
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_query_reward_deliveries_by_invitation
+                    ON invitecode_reward_deliveries(invitation_id, created_at DESC, delivery_id DESC)
+                    WHERE invitation_id IS NOT NULL
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_query_reward_actions_by_status
+                    ON invitecode_reward_actions(status)
+                    """.trimIndent(),
+                ),
+            ),
+            SqliteSchemaMigration(
+                version = 7,
+                description = "Persist unique player login days for Qualification",
+                statements = listOf(
+                    """
+                    CREATE TABLE invitecode_player_login_days (
+                        player_id TEXT NOT NULL,
+                        login_date TEXT NOT NULL,
+                        PRIMARY KEY (player_id, login_date),
+                        FOREIGN KEY (player_id) REFERENCES invitecode_players(player_id)
+                    )
+                    """.trimIndent(),
+                ),
+            ),
+            SqliteSchemaMigration(
+                version = 8,
+                description = "Persist expiring keyed network hashes for Claim anti-abuse",
+                statements = listOf(
+                    """
+                    CREATE TABLE invitecode_player_network_hashes (
+                        player_id TEXT NOT NULL,
+                        key_id TEXT NOT NULL CHECK (length(key_id) = 64),
+                        network_hash TEXT NOT NULL CHECK (length(network_hash) = 64),
+                        observed_at TEXT NOT NULL,
+                        expires_at TEXT NOT NULL,
+                        PRIMARY KEY (player_id, key_id, network_hash),
+                        FOREIGN KEY (player_id) REFERENCES invitecode_players(player_id)
+                    )
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_network_hash_expiry
+                    ON invitecode_player_network_hashes(expires_at)
+                    """.trimIndent(),
+                    """
+                    CREATE INDEX invitecode_network_hash_match
+                    ON invitecode_player_network_hashes(key_id, network_hash, player_id, expires_at)
+                    """.trimIndent(),
+                ),
+            ),
         )
 
         val currentVersion: Int
@@ -319,8 +408,47 @@ class SqliteSchemaMigrator(
     }
 }
 
-internal fun connect(database: Path): Connection =
-    DriverManager.getConnection("jdbc:sqlite:${database.toAbsolutePath()}")
+private class BundledSqliteClassLoader(
+    location: URL,
+    parent: ClassLoader,
+) : URLClassLoader(arrayOf(location), parent) {
+    override fun getResource(name: String): URL? =
+        if (name.startsWith("org/sqlite/")) findResource(name) ?: super.getResource(name)
+        else super.getResource(name)
+
+    override fun loadClass(name: String, resolve: Boolean): Class<*> {
+        if (!name.startsWith("org.sqlite.")) return super.loadClass(name, resolve)
+        synchronized(getClassLoadingLock(name)) {
+            val loaded = findLoadedClass(name) ?: findClass(name)
+            if (resolve) resolveClass(loaded)
+            return loaded
+        }
+    }
+}
+
+private val sqliteDriver: Driver by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    val owner = SqliteSchemaMigrator::class.java
+    val location = requireNotNull(owner.protectionDomain.codeSource?.location) {
+        "Unable to locate the InviteCode code source for the bundled SQLite driver."
+    }
+    try {
+        BundledSqliteClassLoader(location, owner.classLoader)
+            .loadClass("org.sqlite.JDBC")
+            .getDeclaredConstructor()
+            .newInstance() as Driver
+    } catch (missingBundledDriver: ClassNotFoundException) {
+        // Module tests run from class directories, where Gradle supplies SQLite on the parent classpath.
+        Class.forName("org.sqlite.JDBC", true, owner.classLoader)
+            .getDeclaredConstructor()
+            .newInstance() as Driver
+    }
+}
+
+internal fun connect(database: Path): Connection {
+    val url = "jdbc:sqlite:${database.toAbsolutePath()}"
+    return sqliteDriver.connect(url, Properties())
+        ?: throw SQLException("The bundled SQLite driver did not accept $url")
+}
 
 internal fun readSchemaVersion(connection: Connection): Int =
     connection.createStatement().use { statement ->

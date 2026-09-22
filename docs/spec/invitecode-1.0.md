@@ -1,15 +1,15 @@
-# InviteCodeKt 1.0 設計規格
+# InviteCode 1.0 設計規格
 
 ## 產品邊界
 
-InviteCodeKt 在一名 Inviter 與一名 Invitee 之間建立一筆持久的 Invitation，依可設定的 policy 判定該 Invitation 是否符合資格，並交付可稽核的獎勵。這是新的產品線：舊版原始碼、設定與 `playerData.json` 只作為參考，不提供相容層或 importer。
+InviteCode 在一名 Inviter 與一名 Invitee 之間建立一筆持久的 Invitation，依可設定的 policy 判定該 Invitation 是否符合資格，並交付可稽核的獎勵。這是新的產品線：舊版原始碼、設定與 `playerData.json` 只作為參考，不提供相容層或 importer。
 
 ## Invitation 生命週期
 
 - 每位玩家都擁有自動產生的 Invite Code，但只有另一名玩家 Claim 該邀請碼後，擁有者才成為 Inviter。
 - 一名 Invitee 最多只能有一名 Inviter；一名 Inviter 可以有多名 Invitee。
 - 玩家只有在沒有 Invitation、尚未成為 Inviter，且仍在 Claim Window 內時才可 Claim。
-- First Seen At 是 InviteCodeKt 首次觀察到該玩家的時間；Claim Window 預設為 24 小時。
+- First Seen At 是 InviteCode 首次觀察到該玩家的時間；Claim Window 預設為 24 小時。
 - Claim 必須經過 30 秒內完成的確認，確認畫面顯示目前的 Inviter 名稱與邀請碼。
 - Claimed Invitation 只能成為 Qualified Invitation 一次；Qualification 為永久狀態。
 - 一般玩家不能撤銷 Invitation。可稽核的管理操作支援 Unlink、Eligibility Reset、未 qualified Invitation 的 Transfer，以及 Force Qualification。
@@ -46,7 +46,9 @@ InviteCodeKt 在一名 Inviter 與一名 Invitee 之間建立一筆持久的 Inv
 
 - SQLite 與 MySQL 是 production backend；MySQL 必須在多個 plugin instance 同時操作時仍維持正確性。
 - JSON 用於小型安裝環境、測試與有版本的資料交換。
+- 全新 backend 在首次啟動時自動建立 schema、metadata 與所需 secret，不要求管理員先執行初始化指令。
 - 切換 backend 時必須執行明確的 migration，包含 preflight、暫停寫入、verification 與 cutover。
+- 已存在 backend 的 schema 升級不得在一般啟動時自動執行。
 - Storage 發生錯誤時採拒絕操作的安全失敗模式；插件不得退回 memory 或其他 backend。
 - IP 防濫用機制保存 keyed hash 30 天，不保存原始位址。
 - Anonymization 移除名稱、IP hash 與顯示資料，同時保留歷史一致性。
@@ -76,4 +78,4 @@ InviteCodeKt 在一名 Inviter 與一名 Invitee 之間建立一筆持久的 Inv
 - 原生 permission grant Reward Action
 - NMS integration
 - Metrics 或自動更新
-- 啟動時自動執行 storage migration
+- 啟動時自動升級既有 storage schema 或搬移 backend 資料

@@ -67,6 +67,6 @@ Action 執行流程如下：
 
 ## 執行緒邊界
 
-`RewardDeliveryProcessor` 會呼叫同步 storage interface，必須在專用 storage executor 執行，不可在 Minecraft server main thread 執行。Bukkit environment 只把需要 Bukkit API 的在線狀態、訊息、指令與 Vault 操作切回 server main thread。
+`AsyncRewardDeliveryWorkflow` 會把同步 storage transition 排入專用 executor，將在線狀態、訊息、指令與 Vault 外部效果以 continuation 切回 server main thread，再回到 executor 保存結果。任何背景執行緒都不會同步等待 server main thread。
 
-目前核心規劃、狀態處理、SQLite persistence 與 Bukkit／Vault adapter 已具備；實際載入 `rewards.yml`、玩家上線補發、啟動復原及管理指令會由 Bukkit 工作流程 Issue 串接。
+目前核心規劃、狀態處理、SQLite persistence、Bukkit／Vault adapter、`rewards.yml` 載入、玩家上線補發、啟動復原及管理指令均已串接。

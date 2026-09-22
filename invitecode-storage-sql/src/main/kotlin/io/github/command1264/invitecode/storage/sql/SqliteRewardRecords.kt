@@ -2,6 +2,7 @@ package io.github.command1264.invitecode.storage.sql
 
 import io.github.command1264.invitecode.core.RewardActionStatus
 import io.github.command1264.invitecode.core.RewardAdministrationContext
+import io.github.command1264.invitecode.core.RewardBacklogCounts
 import io.github.command1264.invitecode.core.RewardDeliveryStatus
 import io.github.command1264.invitecode.core.StoredRewardAction
 import io.github.command1264.invitecode.core.StoredRewardActionTransition
@@ -87,14 +88,43 @@ internal object SqliteRewardRecords {
             statement.setString(1, deliveryId.toString())
             statement.executeQuery().use { result ->
                 if (!result.next()) return@use null
-                StoredRewardDelivery(
-                    id = UUID.fromString(result.getString("delivery_id")),
-                    invitationId = result.getString("invitation_id")?.let(UUID::fromString),
-                    rewardId = result.getString("reward_id"),
-                    status = RewardDeliveryStatus.valueOf(result.getString("status")),
-                    idempotencyKey = result.getString("idempotency_key"),
-                    createdAt = Instant.parse(result.getString("created_at")),
-                    updatedAt = Instant.parse(result.getString("updated_at")),
+                result.toRewardDelivery()
+            }
+        }
+
+    fun findDeliveriesByInvitation(connection: Connection, invitationId: UUID): List<StoredRewardDelivery> =
+        connection.prepareStatement(
+            """
+            SELECT * FROM invitecode_reward_deliveries
+            WHERE invitation_id = ?
+            ORDER BY created_at DESC, delivery_id DESC
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, invitationId.toString())
+            statement.executeQuery().use { result ->
+                buildList { while (result.next()) add(result.toRewardDelivery()) }
+            }
+        }
+
+    fun backlogCounts(connection: Connection): RewardBacklogCounts =
+        connection.prepareStatement(
+            """
+            SELECT
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS pending_count,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS processing_count,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS uncertain_count
+            FROM invitecode_reward_actions
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, RewardActionStatus.PENDING.name)
+            statement.setString(2, RewardActionStatus.PROCESSING.name)
+            statement.setString(3, RewardActionStatus.UNCERTAIN.name)
+            statement.executeQuery().use { result ->
+                check(result.next()) { "Reward backlog count query returned no row." }
+                RewardBacklogCounts(
+                    pending = result.getInt("pending_count"),
+                    processing = result.getInt("processing_count"),
+                    uncertain = result.getInt("uncertain_count"),
                 )
             }
         }
@@ -308,5 +338,15 @@ internal object SqliteRewardRecords {
         createdAt = Instant.parse(getString("created_at")),
         updatedAt = Instant.parse(getString("updated_at")),
         lastError = getString("last_error"),
+    )
+
+    private fun java.sql.ResultSet.toRewardDelivery() = StoredRewardDelivery(
+        id = UUID.fromString(getString("delivery_id")),
+        invitationId = getString("invitation_id")?.let(UUID::fromString),
+        rewardId = getString("reward_id"),
+        status = RewardDeliveryStatus.valueOf(getString("status")),
+        idempotencyKey = getString("idempotency_key"),
+        createdAt = Instant.parse(getString("created_at")),
+        updatedAt = Instant.parse(getString("updated_at")),
     )
 }

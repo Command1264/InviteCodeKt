@@ -42,6 +42,64 @@ class InvitationClaimServiceTest {
     }
 
     @Test
+    fun `confirmation cannot claim after Invite Code rotates`() {
+        val transactions = InMemoryInvitationTransactions(
+            firstSeenAtByPlayer = mapOf(inviteeId to firstSeenAt, inviterId to firstSeenAt),
+        )
+        val service = InvitationClaimService(
+            transactions = transactions,
+            eligibilityPolicy = ClaimEligibilityPolicy(Duration.ofHours(24)),
+            invitationIdGenerator = { invitationId },
+        )
+        val confirmation = confirmedClaim(inviteeId, inviterId)
+        transactions.activeCodes[confirmation.inviteCode] = inviterId
+        transactions.activeCodes.clear()
+
+        val result = service.claim(confirmation)
+
+        assertInstanceOf(InvitationClaimResult.InviteCodeUnavailable::class.java, result)
+    }
+
+    @Test
+    fun `matching retained network hash can deny a claim`() {
+        val transactions = InMemoryInvitationTransactions(
+            firstSeenAtByPlayer = mapOf(inviteeId to firstSeenAt, inviterId to firstSeenAt),
+            matchingNetworkPlayers = setOf(inviteeId, inviterId),
+        )
+        val service = InvitationClaimService(
+            transactions,
+            ClaimEligibilityPolicy(Duration.ofHours(24)),
+            { invitationId },
+            MatchingNetworkAction.DENY,
+        )
+
+        val result = service.claim(confirmedClaim(inviteeId, inviterId))
+
+        assertInstanceOf(InvitationClaimResult.MatchingNetworkDenied::class.java, result)
+    }
+
+    @Test
+    fun `matching retained network hash can warn while allowing a claim`() {
+        val transactions = InMemoryInvitationTransactions(
+            firstSeenAtByPlayer = mapOf(inviteeId to firstSeenAt, inviterId to firstSeenAt),
+            matchingNetworkPlayers = setOf(inviteeId, inviterId),
+        )
+        val service = InvitationClaimService(
+            transactions,
+            ClaimEligibilityPolicy(Duration.ofHours(24)),
+            { invitationId },
+            MatchingNetworkAction.WARN,
+        )
+
+        val result = assertInstanceOf(
+            InvitationClaimResult.Claimed::class.java,
+            service.claim(confirmedClaim(inviteeId, inviterId)),
+        )
+
+        assertEquals(true, result.matchingNetworkHash)
+    }
+
+    @Test
     fun `one inviter can receive invitations from multiple invitees`() {
         val secondInviteeId = UUID.fromString("00000000-0000-0000-0000-000000000003")
         val service = service(
@@ -124,16 +182,22 @@ class InvitationClaimServiceTest {
     private fun confirmedClaim(inviteeId: UUID, inviterId: UUID) = ConfirmedClaim(
         inviteeId = inviteeId,
         inviterId = inviterId,
-        inviteCode = InviteCode.parse("A25981"),
+        inviteCode = InviteCode.parse(inviterId.toString().takeLast(6)),
         confirmedAt = firstSeenAt.plusSeconds(60),
     )
 }
 
 private class InMemoryInvitationTransactions(
     private val firstSeenAtByPlayer: Map<UUID, Instant>,
+    private val matchingNetworkPlayers: Set<UUID> = emptySet(),
 ) : InvitationTransactions {
     private val locks = ConcurrentHashMap<UUID, ReentrantLock>()
     private val invitations = CopyOnWriteArrayList<Invitation>()
+    val activeCodes = ConcurrentHashMap<InviteCode, UUID>().apply {
+        firstSeenAtByPlayer.keys.forEach { playerId ->
+            put(InviteCode.parse(playerId.toString().takeLast(6)), playerId)
+        }
+    }
 
     override fun <T> atomically(
         playerIds: Set<UUID>,
@@ -145,12 +209,20 @@ private class InMemoryInvitationTransactions(
         acquired.forEach(ReentrantLock::lock)
         try {
             return operation(object : InvitationTransaction {
+                override fun activeInviter(inviteCode: InviteCode): UUID? = activeCodes[inviteCode]
+
                 override fun claimState(playerId: UUID): PlayerClaimState = PlayerClaimState(
                     playerId = playerId,
                     firstSeenAt = requireNotNull(firstSeenAtByPlayer[playerId]),
                     isInviter = invitations.any { it.inviterId == playerId },
                     hasInvitation = invitations.any { it.inviteeId == playerId },
                 )
+
+                override fun hasMatchingNetworkHash(
+                    firstPlayerId: UUID,
+                    secondPlayerId: UUID,
+                    evaluatedAt: Instant,
+                ): Boolean = firstPlayerId in matchingNetworkPlayers && secondPlayerId in matchingNetworkPlayers
 
                 override fun add(invitation: Invitation) {
                     invitations += invitation

@@ -1,6 +1,6 @@
 # 安全政策
 
-InviteCodeKt 尚未發布穩定版本。
+InviteCode 尚未發布穩定版本。
 
 疑似漏洞請私下回報 repository owner。請勿在公開 issue 中附上資料庫憑證、原始 IP 位址、IP hash、玩家資料匯出內容或可利用漏洞的細節。
 

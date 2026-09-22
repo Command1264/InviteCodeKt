@@ -9,12 +9,16 @@ import io.github.command1264.invitecode.core.InviteCodeStorage
 import io.github.command1264.invitecode.core.InviteCodeTransaction
 import io.github.command1264.invitecode.core.Invitation
 import io.github.command1264.invitecode.core.InvitationTransaction
+import io.github.command1264.invitecode.core.InviterInvitationStats
 import io.github.command1264.invitecode.core.PlayerClaimState
+import io.github.command1264.invitecode.core.PlayerNetworkHash
 import io.github.command1264.invitecode.core.QualificationFact
 import io.github.command1264.invitecode.core.RetiredInviteCode
 import io.github.command1264.invitecode.core.RewardActionStatus
 import io.github.command1264.invitecode.core.RewardAdministrationContext
+import io.github.command1264.invitecode.core.RewardBacklogCounts
 import io.github.command1264.invitecode.core.RewardDeliveryStatus
+import io.github.command1264.invitecode.core.RewardDeliveryPlan
 import io.github.command1264.invitecode.core.StoredPlayer
 import io.github.command1264.invitecode.core.StoredRewardAction
 import io.github.command1264.invitecode.core.StoredRewardActionTransition
@@ -22,6 +26,7 @@ import io.github.command1264.invitecode.core.StoredRewardDelivery
 import io.github.command1264.invitecode.core.StoredRewardDeliveryTransition
 import io.github.command1264.invitecode.core.UncertainRewardActionResolution
 import java.time.Instant
+import java.time.LocalDate
 import java.nio.file.Path
 import java.sql.Connection
 import java.sql.SQLException
@@ -39,12 +44,46 @@ class SqliteInviteCodeStorage private constructor(
         write { SqlitePlayerRecords.save(it, player) }
     }
 
+    override fun recordLoginDay(playerId: UUID, loginDate: LocalDate) {
+        write { SqlitePlayerRecords.recordLoginDay(it, playerId, loginDate) }
+    }
+
+    override fun loginDays(playerId: UUID): Int = read {
+        SqlitePlayerRecords.loginDays(it, playerId)
+    }
+
+    override fun recordNetworkHash(record: PlayerNetworkHash) {
+        write { SqliteNetworkHashRecords.save(it, record) }
+    }
+
+    override fun purgeExpiredNetworkHashes(expiredAt: Instant): Int = write {
+        SqliteNetworkHashRecords.purgeExpired(it, expiredAt)
+    }
+
+    override fun purgeNetworkHashesWithDifferentKey(keyId: String): Int {
+        require(Regex("[0-9a-f]{64}").matches(keyId)) { "Network hash key ID is invalid." }
+        return write { SqliteNetworkHashRecords.purgeDifferentKey(it, keyId) }
+    }
+
     override fun player(playerId: UUID): StoredPlayer? = read {
         SqlitePlayerRecords.find(it, playerId)
     }
 
+    override fun playersByLastKnownName(lastKnownName: String): List<StoredPlayer> {
+        require(lastKnownName.isNotBlank()) { "Last known player name must not be blank." }
+        return read { SqlitePlayerRecords.findByLastKnownName(it, lastKnownName) }
+    }
+
+    override fun claimState(playerId: UUID): PlayerClaimState = read {
+        SqlitePlayerRecords.claimState(it, playerId)
+    }
+
     override fun activeInviteCode(inviterId: UUID): ActiveInviteCode? = read {
         SqliteInviteCodeRecords.findActive(it, inviterId)
+    }
+
+    override fun activeInviteCode(inviteCode: InviteCode): ActiveInviteCode? = read {
+        SqliteInviteCodeRecords.findActive(it, inviteCode)
     }
 
     override fun isInviteCodeReserved(code: InviteCode): Boolean = read {
@@ -59,6 +98,18 @@ class SqliteInviteCodeStorage private constructor(
         SqliteInvitationRecords.find(it, invitationId)
     }
 
+    override fun invitationsByInvitee(inviteeId: UUID): List<Invitation> = read {
+        SqliteInvitationRecords.findByInvitee(it, inviteeId)
+    }
+
+    override fun invitationsByInviter(inviterId: UUID): List<Invitation> = read {
+        SqliteInvitationRecords.findByInviter(it, inviterId)
+    }
+
+    override fun inviterInvitationStats(inviterId: UUID): InviterInvitationStats = read {
+        SqliteInvitationRecords.statsForInviter(it, inviterId)
+    }
+
     override fun saveQualifiedInvitation(invitation: Invitation, facts: List<QualificationFact>) {
         require(facts.isNotEmpty()) { "Qualification requires at least one persisted Qualification Fact." }
         require(
@@ -71,6 +122,37 @@ class SqliteInviteCodeStorage private constructor(
         write { connection ->
             SqliteInvitationRecords.qualify(connection, invitation)
             facts.forEach { SqliteQualificationRecords.save(connection, it) }
+        }
+    }
+
+    override fun saveQualifiedInvitationWithRewards(
+        invitation: Invitation,
+        facts: List<QualificationFact>,
+        rewardPlans: List<RewardDeliveryPlan>,
+    ) {
+        require(facts.isNotEmpty()) { "Qualification requires at least one persisted Qualification Fact." }
+        require(
+            facts.all {
+                it.invitationId == invitation.id &&
+                    it.policyId == invitation.qualificationPolicyId &&
+                    it.qualificationRevision == invitation.qualificationRevision
+            },
+        ) {
+            "Every Qualification Fact must match Invitation ${invitation.id} and its policy revision."
+        }
+        require(rewardPlans.flatMap { it.actions }.all { it.status == RewardActionStatus.PENDING }) {
+            "New Reward Actions must start in PENDING state."
+        }
+        require(rewardPlans.all { it.delivery.status == RewardDeliveryStatus.PENDING }) {
+            "New Reward Deliveries must start in PENDING state."
+        }
+        write { connection ->
+            SqliteInvitationRecords.qualify(connection, invitation)
+            facts.forEach { SqliteQualificationRecords.save(connection, it) }
+            rewardPlans.forEach { plan ->
+                SqliteRewardRecords.saveDelivery(connection, plan.delivery)
+                plan.actions.forEach { SqliteRewardRecords.saveAction(connection, it) }
+            }
         }
     }
 
@@ -90,6 +172,10 @@ class SqliteInviteCodeStorage private constructor(
 
     override fun qualificationFact(factId: UUID): QualificationFact? = read {
         SqliteQualificationRecords.find(it, factId)
+    }
+
+    override fun qualificationFacts(invitationId: UUID): List<QualificationFact> = read {
+        SqliteQualificationRecords.findByInvitation(it, invitationId)
     }
 
     override fun saveRewardAction(action: StoredRewardAction) {
@@ -200,6 +286,14 @@ class SqliteInviteCodeStorage private constructor(
         SqliteRewardRecords.findDelivery(it, deliveryId)
     }
 
+    override fun rewardDeliveries(invitationId: UUID): List<StoredRewardDelivery> = read {
+        SqliteRewardRecords.findDeliveriesByInvitation(it, invitationId)
+    }
+
+    override fun rewardBacklogCounts(): RewardBacklogCounts = read {
+        SqliteRewardRecords.backlogCounts(it)
+    }
+
     override fun rewardDeliveryTransitions(deliveryId: UUID): List<StoredRewardDeliveryTransition> = read {
         SqliteRewardRecords.findDeliveryTransitions(it, deliveryId)
     }
@@ -212,10 +306,35 @@ class SqliteInviteCodeStorage private constructor(
         SqliteAuditRecords.find(it, recordId)
     }
 
+    override fun auditHistoryByInvitation(invitationId: UUID, limit: Int): List<AuditRecord> = read {
+        SqliteAuditRecords.findByInvitation(it, invitationId, limit)
+    }
+
+    override fun auditHistoryByPlayer(playerId: UUID, limit: Int): List<AuditRecord> = read {
+        SqliteAuditRecords.findByPlayer(it, playerId, limit)
+    }
+
     override fun saveAuditedInvitationTransition(transition: AuditedInvitationTransition) {
         write { connection ->
             SqliteInvitationRecords.transition(connection, transition)
             SqliteAuditRecords.save(connection, transition.auditRecord)
+        }
+    }
+
+    override fun saveForcedQualificationWithRewards(
+        transition: AuditedInvitationTransition,
+        rewardPlans: List<RewardDeliveryPlan>,
+    ) {
+        require(transition.auditRecord.action == io.github.command1264.invitecode.core.InvitationAuditAction.FORCE_QUALIFIED) {
+            "Forced Qualification persistence requires a FORCE_QUALIFIED audit transition."
+        }
+        write { connection ->
+            SqliteInvitationRecords.transition(connection, transition)
+            SqliteAuditRecords.save(connection, transition.auditRecord)
+            rewardPlans.forEach { plan ->
+                SqliteRewardRecords.saveDelivery(connection, plan.delivery)
+                plan.actions.forEach { SqliteRewardRecords.saveAction(connection, it) }
+            }
         }
     }
 
@@ -242,6 +361,10 @@ class SqliteInviteCodeStorage private constructor(
                 SqliteInviteCodeRecords.retire(connection, previous)
                 SqliteInviteCodeRecords.activate(connection, current)
             }
+
+            override fun saveAuditRecord(record: AuditRecord) {
+                SqliteAuditRecords.save(connection, record)
+            }
         })
     }
 
@@ -251,8 +374,22 @@ class SqliteInviteCodeStorage private constructor(
     ): T = write { connection ->
         require(playerIds.isNotEmpty()) { "An Invitation transaction requires at least one player." }
         operation(object : InvitationTransaction {
+            override fun activeInviter(inviteCode: InviteCode): UUID? =
+                SqliteInviteCodeRecords.findActive(connection, inviteCode)?.inviterId
+
             override fun claimState(playerId: UUID): PlayerClaimState =
                 SqlitePlayerRecords.claimState(connection, playerId)
+
+            override fun hasMatchingNetworkHash(
+                firstPlayerId: UUID,
+                secondPlayerId: UUID,
+                evaluatedAt: Instant,
+            ): Boolean = SqliteNetworkHashRecords.matches(
+                connection,
+                firstPlayerId,
+                secondPlayerId,
+                evaluatedAt,
+            )
 
             override fun add(invitation: Invitation) {
                 SqliteInvitationRecords.save(connection, invitation, updateExisting = false)

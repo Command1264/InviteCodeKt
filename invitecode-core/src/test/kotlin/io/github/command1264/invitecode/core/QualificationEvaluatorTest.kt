@@ -81,6 +81,28 @@ class QualificationEvaluatorTest {
         registry.register(provider("custom") { QualificationConditionOutcome.UNSATISFIED })
     }
 
+    @Test
+    fun `local built-ins take precedence and unknown types fall back to external providers`() {
+        val external = QualificationProviderRegistry(
+            listOf(provider("CUSTOM") { QualificationConditionOutcome.SATISFIED }),
+        )
+        val local = QualificationProviderRegistry(
+            listOf(provider("LOCAL") { QualificationConditionOutcome.SATISFIED }),
+            fallback = external,
+        )
+        val policy = policy(
+            group(condition("local", "LOCAL"), condition("external", "CUSTOM")),
+        )
+
+        val result = QualificationEvaluator(local).evaluate(claimedInvitation(), policy, context())
+
+        assertTrue(result.qualified)
+        assertEquals(
+            listOf(QualificationFactOutcome.SATISFIED, QualificationFactOutcome.SATISFIED),
+            result.facts.map { it.outcome },
+        )
+    }
+
     private fun provider(
         type: String,
         result: () -> QualificationConditionOutcome,

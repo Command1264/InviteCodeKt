@@ -49,6 +49,8 @@ Permission、Placeholder 或外部 provider 不存在時，condition 預設產�
 
 外部插件透過 `InviteCodeApi.registerQualificationConditionProvider` 註冊 `QualificationConditionProvider`。`type` 不分大小寫且同一時間只能有一個 provider；停用插件時必須關閉回傳的 `QualificationProviderRegistration`。外部插件可透過 `requestQualificationEvaluation` 要求重新評估指定 Invitation。
 
+Bukkit 插件可由 `Bukkit.getServicesManager().load(InviteCodeApi.class)` 取得執行中的 API。API 查詢與重新評估回傳 `CompletionStage`，不得在 server main thread 阻塞等待結果；插件停用或 SQLite 不可用時會以 exceptional completion 回報。
+
 Provider 的 `evaluate` 必須快速、不可阻塞，並依傳入 context 與唯讀參數回傳 `SATISFIED`、`UNSATISFIED` 或 `UNKNOWN`。需要 Bukkit 主執行緒的資料應先由平台工作流程建立快照，再交給 qualification executor；provider 不得自行執行資料庫或網路 I/O。
 
 ## 保存與重新評估

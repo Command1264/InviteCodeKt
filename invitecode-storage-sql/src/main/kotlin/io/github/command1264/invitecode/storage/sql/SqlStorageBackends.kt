@@ -9,5 +9,5 @@ object SqliteStorageBackend : StorageBackendDescriptor {
 
 object MysqlStorageBackend : StorageBackendDescriptor {
     override val id: String = "mysql"
-    override val productionReady: Boolean = true
+    override val productionReady: Boolean = false
 }

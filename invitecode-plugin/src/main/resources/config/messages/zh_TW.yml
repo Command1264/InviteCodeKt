@@ -1,0 +1,73 @@
+messages-version: 1
+runtime:
+  usage: "用法錯誤。請使用 /{label} help 查看可用指令。"
+  no-permission: "你沒有執行此指令的權限。"
+  player-only: "此指令只能由玩家執行。"
+  unavailable: "InviteCode 目前無法執行此操作：{detail}"
+  help-header: "InviteCode 可用指令："
+command:
+  code:
+    value: "你的邀請碼是 {code}"
+  claim:
+    command-only: "請使用 /invitecode claim <邀請碼>。"
+    chat-started: "請在 {seconds} 秒內於聊天輸入邀請碼；內容不會公開。"
+    chat-timeout: "邀請碼聊天輸入已逾時，請重新執行 /invitecode claim。"
+    invalid-code: "邀請碼格式無效，請檢查後再試一次。"
+    unavailable: "此邀請碼不存在、已輪替或已失效。"
+    self: "你不能使用自己的邀請碼。"
+    confirmation: "邀請人為 {inviter}，邀請碼為 {code}。請在 {seconds} 秒內使用 /invitecode confirm 確認，或使用 /invitecode cancel 取消。"
+    confirmation-timeout: "邀請確認已逾時，請重新輸入邀請碼。"
+    no-confirmation: "沒有可確認的邀請，或確認已逾時。"
+    claimed: "邀請關係已建立。"
+    matching-network-warning: "系統偵測到你與邀請人近期使用相同網路；本次登記已允許，但可能交由管理員檢查。"
+    matching-network-denied: "系統偵測到你與邀請人近期使用相同網路，因此拒絕本次登記。"
+    ineligible: "目前無法使用邀請碼，原因：{reasons}。"
+    reason:
+      already_inviter: "你已成為邀請人"
+      already_invitee: "你已有邀請關係"
+      claim_window_expired: "可登記期間已結束"
+    cancelled: "已取消目前的邀請碼輸入或確認。"
+    nothing-to-cancel: "目前沒有可取消的邀請碼輸入或確認。"
+  status:
+    summary: "邀請狀態：可使用邀請碼={eligible}、Invitation={invitation}、待補發獎勵={pending_rewards}。"
+  stats:
+    summary: "你的邀請統計：等待資格={claimed}、已達資格={qualified}。"
+  error: "操作失敗，請查看伺服器紀錄或聯絡管理員。"
+  stopping: "InviteCode 正在停止，暫時不接受新操作。"
+value:
+  'yes': "是"
+  'no': "否"
+  invitation:
+    none: "無"
+    claimed: "等待資格"
+    qualified: "已達資格"
+    unlinked: "已解除連結"
+admin:
+  invitation-unlinked: "Invitation {invitation} 已解除連結。"
+  invitation-transferred: "Invitation {invitation} 已轉移至 {inviter}。"
+  invitation-force-qualified: "Invitation {invitation} 已強制達成資格，並建立 {rewards} 筆 Reward Delivery。"
+  eligibility-reset: "玩家 {player} 的 Claim Eligibility 已重設。"
+  reward-resolved: "Reward Action {action} 已處理為 {status}。"
+  code-rotated: "玩家 {player} 的邀請碼已從 {previous} 輪替為 {current}。"
+  error: "管理操作失敗，請查看伺服器紀錄。"
+  stopping: "InviteCode 正在停止，無法接受管理操作。"
+  reload-stopping: "InviteCode 正在停止，無法重新載入設定。"
+  reload-success: "InviteCode 設定已完整驗證並套用。"
+  reload-storage-restart: "storage.yml 的變更尚未套用；請完成明確 cutover 並重新啟動。"
+  reload-failed: "設定驗證失敗，仍保留上一份有效設定；請查看伺服器紀錄。"
+  storage-unsupported: "目前版本只支援遷移 SQLITE 儲存。"
+  storage-config-unavailable: "設定尚未成功載入，無法判定 SQLite 位置。"
+  storage-stopping: "InviteCode 正在停止，無法執行 migration。"
+  storage-success: "SQLite schema migration 已完成，目前版本為 {version}。"
+  storage-failed: "SQLite schema migration 失敗，請查看伺服器紀錄。"
+  doctor-runtime: "Runtime={phase}，設定世代={generation}，executor={executor}。"
+  doctor-integrations: "Integration：PlaceholderAPI={placeholder}，Vault Economy={vault}。"
+  doctor-maintenance: "維護原因：{reason}"
+  doctor-storage-offline: "SQLite=未連線；doctor 未建立或修改資料庫。"
+  doctor-storage: "SQLite schema={schema}；Reward backlog：PENDING={pending}，PROCESSING={processing}，UNCERTAIN={uncertain}。"
+  doctor-storage-failed: "SQLite 健康檢查失敗，請查看伺服器紀錄。"
+  doctor-executor-stopping: "Executor 正在停止，無法完成 Reward backlog 查詢。"
+invite:
+  qualified:
+    inviter: "你的邀請已達成資格。"
+    invitee: "你已達成邀請資格。"

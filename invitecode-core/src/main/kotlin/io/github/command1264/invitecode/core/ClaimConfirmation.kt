@@ -31,7 +31,7 @@ class ClaimConfirmation private constructor(
     val inviterName: String,
     val inviteCode: InviteCode,
     val presentedAt: Instant,
-    private val expiresAt: Instant,
+    val expiresAt: Instant,
 ) {
     fun confirm(confirmingPlayerId: UUID, confirmedAt: Instant): ConfirmedClaim {
         if (confirmingPlayerId != inviteeId) {

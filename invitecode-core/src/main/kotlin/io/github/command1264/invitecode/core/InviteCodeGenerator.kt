@@ -33,6 +33,28 @@ class ColorInviteCodeGenerator(
     }
 }
 
+class CrockfordInviteCodeGenerator(
+    private val length: Int = 8,
+    private val randomBytes: RandomBytes = SecureRandomBytes(),
+) : InviteCodeGenerator {
+    init {
+        require(length in 4..32) { "Crockford Base32 Invite Code length must be between 4 and 32." }
+    }
+
+    override fun generate(): InviteCode {
+        val bytes = ByteArray(length)
+        randomBytes.nextBytes(bytes)
+        val value = buildString(length) {
+            bytes.forEach { byte -> append(ALPHABET[(byte.toInt() and 0xFF) % ALPHABET.length]) }
+        }
+        return InviteCode.parse(value, InviteCodeFormats.crockfordBase32(length))
+    }
+
+    private companion object {
+        const val ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+    }
+}
+
 private class SecureRandomBytes(
     private val secureRandom: SecureRandom = SecureRandom(),
 ) : RandomBytes {

@@ -47,6 +47,8 @@ interface InviteCodeTransaction {
         previous: RetiredInviteCode,
         current: ActiveInviteCode,
     )
+
+    fun saveAuditRecord(record: AuditRecord)
 }
 
 class InviteCodeCollisionException(
@@ -80,7 +82,23 @@ class InviteCodeLifecycleService(
         inviterId: UUID,
         rotatedAt: Instant,
     ): InviteCodeRotation = retryCollisions {
-        tryRotate(inviterId, rotatedAt)
+        tryRotate(inviterId, rotatedAt, null)
+    }
+
+    fun rotate(
+        inviterId: UUID,
+        rotatedAt: Instant,
+        auditRecord: AuditRecord,
+    ): InviteCodeRotation {
+        require(
+            auditRecord.action == InvitationAuditAction.CODE_ROTATED &&
+                auditRecord.playerId == inviterId &&
+                auditRecord.invitationId == null &&
+                auditRecord.occurredAt == rotatedAt,
+        ) { "Invite Code rotation audit must identify the Inviter and rotation time." }
+        return retryCollisions {
+            tryRotate(inviterId, rotatedAt, auditRecord)
+        }
     }
 
     private fun tryAssign(
@@ -104,6 +122,7 @@ class InviteCodeLifecycleService(
     private fun tryRotate(
         inviterId: UUID,
         rotatedAt: Instant,
+        auditRecord: AuditRecord?,
     ): CollisionAttempt<InviteCodeRotation> = registry.atomically { transaction ->
         val existing = transaction.activeCode(inviterId)
             ?: throw ActiveInviteCodeNotFoundException(inviterId)
@@ -124,6 +143,7 @@ class InviteCodeLifecycleService(
             activatedAt = rotatedAt,
         )
         transaction.replace(previous, current)
+        auditRecord?.let(transaction::saveAuditRecord)
         CollisionAttempt.Success(InviteCodeRotation(previous, current))
     }
 

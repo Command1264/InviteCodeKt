@@ -1,6 +1,7 @@
 package io.github.command1264.invitecode.core
 
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 data class StoredPlayer(
@@ -12,6 +13,24 @@ data class StoredPlayer(
         require(lastKnownName == null || lastKnownName.isNotBlank()) {
             "Last known player name must not be blank."
         }
+    }
+}
+
+data class PlayerNetworkHash(
+    val playerId: UUID,
+    val keyId: String,
+    val hash: String,
+    val observedAt: Instant,
+    val expiresAt: Instant,
+) {
+    init {
+        require(HASH_PATTERN.matches(keyId)) { "Network hash key ID must be a lowercase SHA-256 hex digest." }
+        require(HASH_PATTERN.matches(hash)) { "Player network hash must be a lowercase SHA-256 hex digest." }
+        require(expiresAt.isAfter(observedAt)) { "Player network hash expiry must be after observation." }
+    }
+
+    companion object {
+        private val HASH_PATTERN = Regex("[0-9a-f]{64}")
     }
 }
 
@@ -112,6 +131,30 @@ data class StoredRewardDeliveryTransition(
     }
 }
 
+data class InviterInvitationStats(
+    val claimed: Int,
+    val qualified: Int,
+) {
+    init {
+        require(claimed >= 0) { "Claimed Invitation count must not be negative." }
+        require(qualified >= 0) { "Qualified Invitation count must not be negative." }
+    }
+}
+
+data class RewardBacklogCounts(
+    val pending: Int,
+    val processing: Int,
+    val uncertain: Int,
+) {
+    init {
+        require(pending >= 0) { "Pending Reward Action count must not be negative." }
+        require(processing >= 0) { "Processing Reward Action count must not be negative." }
+        require(uncertain >= 0) { "Uncertain Reward Action count must not be negative." }
+    }
+}
+
+const val MAX_AUDIT_HISTORY_LIMIT: Int = 100
+
 /**
  * 持久化領域狀態的同步介面。SQL adapter 會執行 blocking I/O，呼叫端必須將操作排程至
  * server main thread 以外的專用 executor。
@@ -148,15 +191,74 @@ interface RewardRecords {
     fun rewardDelivery(deliveryId: UUID): StoredRewardDelivery?
 }
 
+interface QualificationRewardRecords : QualificationRecords, RewardRecords {
+    /** Persists the first successful Qualification and every resulting Reward plan in one transaction. */
+    fun saveQualifiedInvitationWithRewards(
+        invitation: Invitation,
+        facts: List<QualificationFact>,
+        rewardPlans: List<RewardDeliveryPlan>,
+    )
+}
+
+interface PlayerLookup {
+    fun player(playerId: UUID): StoredPlayer?
+
+    /**
+     * Returns at most two case-insensitive exact matches. Two results are sufficient to reject an
+     * ambiguous player reference; callers must not assume a last known name is unique.
+     */
+    fun playersByLastKnownName(lastKnownName: String): List<StoredPlayer>
+}
+
+interface InviteCodeQueries {
+    fun claimState(playerId: UUID): PlayerClaimState
+
+    /** Returns the matching Invite Code only while it is active. */
+    fun activeInviteCode(inviteCode: InviteCode): ActiveInviteCode?
+
+    /** Returns every eligibility generation, newest Claim first with Invitation ID as the tie-breaker. */
+    fun invitationsByInvitee(inviteeId: UUID): List<Invitation>
+
+    /** Returns all Invitations currently attributed to the Inviter, newest first with ID as the tie-breaker. */
+    fun invitationsByInviter(inviterId: UUID): List<Invitation>
+
+    /** Counts current CLAIMED and QUALIFIED states separately; UNLINKED Invitations are excluded. */
+    fun inviterInvitationStats(inviterId: UUID): InviterInvitationStats
+
+    /** Returns facts in recording order, with fact ID as the tie-breaker. */
+    fun qualificationFacts(invitationId: UUID): List<QualificationFact>
+
+    /** Returns newest records first, with Audit Record ID as the tie-breaker. */
+    fun auditHistoryByInvitation(invitationId: UUID, limit: Int): List<AuditRecord>
+
+    /** Returns newest records first, with Audit Record ID as the tie-breaker. */
+    fun auditHistoryByPlayer(playerId: UUID, limit: Int): List<AuditRecord>
+
+    /** Returns newest deliveries first, with Reward Delivery ID as the tie-breaker. */
+    fun rewardDeliveries(invitationId: UUID): List<StoredRewardDelivery>
+
+    /** Counts global Reward Actions that still need delivery or operator attention. */
+    fun rewardBacklogCounts(): RewardBacklogCounts
+}
+
 interface InviteCodeStorage :
     InvitationTransactions,
     InviteCodeRegistry,
-    QualificationRecords,
-    RewardRecords,
+    QualificationRewardRecords,
+    PlayerLookup,
+    InviteCodeQueries,
     AutoCloseable {
     fun savePlayer(player: StoredPlayer)
 
-    fun player(playerId: UUID): StoredPlayer?
+    fun recordLoginDay(playerId: UUID, loginDate: LocalDate)
+
+    fun loginDays(playerId: UUID): Int
+
+    fun recordNetworkHash(record: PlayerNetworkHash)
+
+    fun purgeExpiredNetworkHashes(expiredAt: Instant): Int
+
+    fun purgeNetworkHashesWithDifferentKey(keyId: String): Int
 
     fun activeInviteCode(inviterId: UUID): ActiveInviteCode?
 
@@ -177,6 +279,11 @@ interface InviteCodeStorage :
     fun auditRecord(recordId: UUID): AuditRecord?
 
     fun saveAuditedInvitationTransition(transition: AuditedInvitationTransition)
+
+    fun saveForcedQualificationWithRewards(
+        transition: AuditedInvitationTransition,
+        rewardPlans: List<RewardDeliveryPlan>,
+    )
 
     fun saveAuditedClaimStateTransition(transition: AuditedClaimStateTransition)
 }

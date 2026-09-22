@@ -32,7 +32,7 @@ class InviteCode private constructor(val normalized: String) {
             return InviteCode(normalized)
         }
 
-        /** Restores a canonical value previously accepted and stored by InviteCodeKt. */
+        /** Restores a canonical value previously accepted and stored by InviteCode. */
         fun fromNormalized(normalized: String): InviteCode {
             require(normalized.isNotBlank() && normalized == normalized.trim()) {
                 "Stored Invite Code must be a non-blank canonical value."

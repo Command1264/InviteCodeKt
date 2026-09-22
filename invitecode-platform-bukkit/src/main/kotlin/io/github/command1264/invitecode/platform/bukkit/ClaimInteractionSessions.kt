@@ -17,6 +17,12 @@ class ClaimInteractionSessions(
     }
 
     @Synchronized
+    fun startDialogInput(playerId: UUID, timeout: Duration) {
+        require(!timeout.isZero && !timeout.isNegative) { "Dialog input timeout must be greater than zero." }
+        sessions[playerId] = Session.DialogInput(now().plus(timeout))
+    }
+
+    @Synchronized
     fun startConfirmation(confirmation: ClaimConfirmation) {
         sessions[confirmation.inviteeId] = Session.Confirmation(confirmation)
     }
@@ -40,6 +46,14 @@ class ClaimInteractionSessions(
     }
 
     @Synchronized
+    fun consumeDialogInput(playerId: UUID, value: String): String? {
+        val session = sessions[playerId] as? Session.DialogInput ?: return null
+        sessions.remove(playerId)
+        if (now().isAfter(session.expiresAt)) return null
+        return value.trim()
+    }
+
+    @Synchronized
     fun consumeConfirmation(playerId: UUID): ClaimConfirmation? {
         val session = sessions[playerId] as? Session.Confirmation ?: return null
         sessions.remove(playerId)
@@ -53,6 +67,14 @@ class ClaimInteractionSessions(
     @Synchronized
     fun expireChatInput(playerId: UUID): Boolean {
         val session = sessions[playerId] as? Session.ChatInput ?: return false
+        if (!now().isAfter(session.expiresAt)) return false
+        sessions.remove(playerId)
+        return true
+    }
+
+    @Synchronized
+    fun expireDialogInput(playerId: UUID): Boolean {
+        val session = sessions[playerId] as? Session.DialogInput ?: return false
         if (!now().isAfter(session.expiresAt)) return false
         sessions.remove(playerId)
         return true
@@ -77,6 +99,7 @@ class ClaimInteractionSessions(
 
     private sealed class Session {
         data class ChatInput(val expiresAt: Instant) : Session()
+        data class DialogInput(val expiresAt: Instant) : Session()
         data class Confirmation(val value: ClaimConfirmation) : Session()
     }
 }

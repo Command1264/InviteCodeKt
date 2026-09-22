@@ -82,6 +82,21 @@ class ClaimInteractionSessionsTest {
     }
 
     @Test
+    fun `dialog input is private one shot and expires`() {
+        var now = Instant.EPOCH
+        val sessions = ClaimInteractionSessions { now }
+
+        sessions.startDialogInput(playerId, Duration.ofSeconds(60))
+        assertEquals("A1B2C3", sessions.consumeDialogInput(playerId, "  A1B2C3  "))
+        assertNull(sessions.consumeDialogInput(playerId, "second"))
+
+        sessions.startDialogInput(playerId, Duration.ofSeconds(60))
+        now = now.plusSeconds(61)
+        assertTrue(sessions.expireDialogInput(playerId))
+        assertFalse(sessions.expireDialogInput(playerId))
+    }
+
+    @Test
     fun `cancel and disconnect clear every session`() {
         val sessions = ClaimInteractionSessions { Instant.EPOCH }
         sessions.startChatInput(playerId, Duration.ofSeconds(60))

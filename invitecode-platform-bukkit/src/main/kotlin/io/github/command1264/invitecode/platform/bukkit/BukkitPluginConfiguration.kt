@@ -83,9 +83,6 @@ object BukkitPluginConfigurationParser {
         requireKeys(antiAbuse, ANTI_ABUSE_KEYS, "anti-abuse")
 
         val inputMode = claim.requiredEnum<InputMode>("input-mode", "claim")
-        require(inputMode != InputMode.DIALOG) {
-            "DIALOG input is owned by the modern adapter; use AUTO, CHAT, or COMMAND_ONLY here."
-        }
         return BukkitPluginConfiguration(
             version = version,
             language = LanguageConfiguration(

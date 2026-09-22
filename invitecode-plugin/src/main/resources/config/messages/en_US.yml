@@ -1,0 +1,73 @@
+messages-version: 1
+runtime:
+  usage: "Invalid usage. Use /{label} help to see available commands."
+  no-permission: "You do not have permission to run this command."
+  player-only: "Only a player can run this command."
+  unavailable: "InviteCode cannot run this operation right now: {detail}"
+  help-header: "Available InviteCode commands:"
+command:
+  code:
+    value: "Your Invite Code is {code}"
+  claim:
+    command-only: "Use /invitecode claim <code>."
+    chat-started: "Enter the Invite Code in chat within {seconds} seconds. It will not be published."
+    chat-timeout: "Invite Code chat input expired. Run /invitecode claim again."
+    invalid-code: "The Invite Code format is invalid. Check it and try again."
+    unavailable: "That Invite Code does not exist, was rotated, or is no longer active."
+    self: "You cannot use your own Invite Code."
+    confirmation: "Inviter: {inviter}; Invite Code: {code}. Use /invitecode confirm within {seconds} seconds, or /invitecode cancel."
+    confirmation-timeout: "The Claim Confirmation expired. Enter the Invite Code again."
+    no-confirmation: "There is no Claim to confirm, or it has expired."
+    claimed: "The Invitation has been created."
+    matching-network-warning: "You and the inviter recently used the same network. This Claim was allowed but may be reviewed by an administrator."
+    matching-network-denied: "You and the inviter recently used the same network, so this Claim was denied."
+    ineligible: "You cannot use an Invite Code right now. Reasons: {reasons}."
+    reason:
+      already_inviter: "you are already an Inviter"
+      already_invitee: "you already have an Invitation"
+      claim_window_expired: "the Claim Window has expired"
+    cancelled: "The current Invite Code input or confirmation was cancelled."
+    nothing-to-cancel: "There is no Invite Code input or confirmation to cancel."
+  status:
+    summary: "Invitation status: eligible={eligible}, Invitation={invitation}, pending Rewards={pending_rewards}."
+  stats:
+    summary: "Your Invitation stats: awaiting qualification={claimed}, qualified={qualified}."
+  error: "The operation failed. Check the server log or contact an administrator."
+  stopping: "InviteCode is stopping and cannot accept new operations."
+value:
+  'yes': "yes"
+  'no': "no"
+  invitation:
+    none: "none"
+    claimed: "awaiting qualification"
+    qualified: "qualified"
+    unlinked: "unlinked"
+admin:
+  invitation-unlinked: "Invitation {invitation} was unlinked."
+  invitation-transferred: "Invitation {invitation} was transferred to {inviter}."
+  invitation-force-qualified: "Invitation {invitation} was force-qualified and {rewards} Reward Deliveries were created."
+  eligibility-reset: "Claim Eligibility was reset for player {player}."
+  reward-resolved: "Reward Action {action} was resolved as {status}."
+  code-rotated: "Player {player}'s Invite Code was rotated from {previous} to {current}."
+  error: "The administrative operation failed. Check the server log."
+  stopping: "InviteCode is stopping and cannot accept administrative operations."
+  reload-stopping: "InviteCode is stopping and cannot reload configuration."
+  reload-success: "InviteCode validated and applied the complete configuration snapshot."
+  reload-storage-restart: "storage.yml changes were not applied. Complete an explicit cutover and restart."
+  reload-failed: "Configuration validation failed. The previous snapshot remains active; check the server log."
+  storage-unsupported: "This version can migrate only SQLITE storage."
+  storage-config-unavailable: "Configuration is not loaded, so the SQLite path is unavailable."
+  storage-stopping: "InviteCode is stopping and cannot run the migration."
+  storage-success: "SQLite schema migration completed at version {version}."
+  storage-failed: "SQLite schema migration failed. Check the server log."
+  doctor-runtime: "Runtime={phase}, configuration generation={generation}, executor={executor}."
+  doctor-integrations: "Integrations: PlaceholderAPI={placeholder}, Vault Economy={vault}."
+  doctor-maintenance: "Maintenance reason: {reason}"
+  doctor-storage-offline: "SQLite is offline. Doctor did not create or modify the database."
+  doctor-storage: "SQLite schema={schema}; Reward backlog: PENDING={pending}, PROCESSING={processing}, UNCERTAIN={uncertain}."
+  doctor-storage-failed: "The SQLite health check failed. Check the server log."
+  doctor-executor-stopping: "The executor is stopping and cannot query the Reward backlog."
+invite:
+  qualified:
+    inviter: "Your invitation has qualified."
+    invitee: "You have qualified as an invitee."

@@ -160,6 +160,7 @@ private class InMemoryInviteCodeRegistry(
     private val byInviter = initialCodes.associateByTo(mutableMapOf()) { it.inviterId }
     private val activeInviterByCode = initialCodes.associateTo(mutableMapOf()) { it.code to it.inviterId }
     private val reservedCodes = initialCodes.mapTo(mutableSetOf()) { it.code }
+    private val auditRecords = mutableListOf<AuditRecord>()
 
     override fun <T> atomically(operation: (InviteCodeTransaction) -> T): T = synchronized(this) {
         operation(object : InviteCodeTransaction {
@@ -186,6 +187,10 @@ private class InMemoryInviteCodeRegistry(
                 activeInviterByCode.remove(previous.code)
                 activeInviterByCode[current.code] = current.inviterId
                 reservedCodes += current.code
+            }
+
+            override fun saveAuditRecord(record: AuditRecord) {
+                auditRecords += record
             }
         })
     }

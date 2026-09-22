@@ -21,6 +21,8 @@ enum class InvitationAuditAction {
     TRANSFERRED,
     FORCE_QUALIFIED,
     ELIGIBILITY_RESET,
+    CODE_ROTATED,
+    STORAGE_MIGRATED,
 }
 
 data class AuditRecord(
@@ -103,6 +105,10 @@ data class AuditedInvitationTransition(
             }
             InvitationAuditAction.ELIGIBILITY_RESET -> throw IllegalArgumentException(
                 "Eligibility Reset cannot audit an Invitation transition.",
+            )
+            InvitationAuditAction.CODE_ROTATED,
+            InvitationAuditAction.STORAGE_MIGRATED -> throw IllegalArgumentException(
+                "${auditRecord.action} cannot audit an Invitation transition.",
             )
         }
     }

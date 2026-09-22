@@ -6,6 +6,8 @@ import io.github.command1264.invitecode.core.AuditedInvitationTransition
 import io.github.command1264.invitecode.core.Invitation
 import io.github.command1264.invitecode.core.InvitationAuditAction
 import io.github.command1264.invitecode.core.InvitationAuditDetails
+import io.github.command1264.invitecode.core.InviterInvitationStats
+import io.github.command1264.invitecode.core.MAX_AUDIT_HISTORY_LIMIT
 import io.github.command1264.invitecode.core.QualificationFact
 import io.github.command1264.invitecode.core.QualificationFactOutcome
 import java.sql.Connection
@@ -117,16 +119,48 @@ internal object SqliteInvitationRecords {
             statement.setString(1, invitationId.toString())
             statement.executeQuery().use { result ->
                 if (!result.next()) return@use null
-                Invitation(
-                    id = UUID.fromString(result.getString("invitation_id")),
-                    inviterId = UUID.fromString(result.getString("inviter_id")),
-                    inviteeId = UUID.fromString(result.getString("invitee_id")),
-                    status = InvitationStatus.valueOf(result.getString("status")),
-                    claimedAt = Instant.parse(result.getString("claimed_at")),
-                    qualifiedAt = result.getString("qualified_at")?.let(Instant::parse),
-                    qualificationPolicyId = result.getString("qualification_policy_id"),
-                    qualificationRevision = result.getString("qualification_revision"),
-                )
+                result.toInvitation()
+            }
+        }
+
+    fun findByInvitee(connection: Connection, inviteeId: UUID): List<Invitation> =
+        findByPlayerColumn(connection, "invitee_id", inviteeId)
+
+    fun findByInviter(connection: Connection, inviterId: UUID): List<Invitation> =
+        findByPlayerColumn(connection, "inviter_id", inviterId)
+
+    private fun findByPlayerColumn(connection: Connection, column: String, playerId: UUID): List<Invitation> =
+        connection.prepareStatement(
+            """
+            SELECT invitation_id, inviter_id, invitee_id, status, claimed_at,
+                   qualified_at, qualification_policy_id, qualification_revision
+            FROM invitecode_invitations
+            WHERE $column = ?
+            ORDER BY claimed_at DESC, invitation_id DESC
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, playerId.toString())
+            statement.executeQuery().use { result ->
+                buildList { while (result.next()) add(result.toInvitation()) }
+            }
+        }
+
+    fun statsForInviter(connection: Connection, inviterId: UUID): InviterInvitationStats =
+        connection.prepareStatement(
+            """
+            SELECT
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS claimed_count,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS qualified_count
+            FROM invitecode_invitations
+            WHERE inviter_id = ?
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, InvitationStatus.CLAIMED.name)
+            statement.setString(2, InvitationStatus.QUALIFIED.name)
+            statement.setString(3, inviterId.toString())
+            statement.executeQuery().use { result ->
+                check(result.next()) { "Inviter Invitation stats query returned no row." }
+                InviterInvitationStats(result.getInt("claimed_count"), result.getInt("qualified_count"))
             }
         }
 
@@ -141,6 +175,17 @@ internal object SqliteInvitationRecords {
                 result.getInt(1)
             }
         }
+
+    private fun java.sql.ResultSet.toInvitation() = Invitation(
+        id = UUID.fromString(getString("invitation_id")),
+        inviterId = UUID.fromString(getString("inviter_id")),
+        inviteeId = UUID.fromString(getString("invitee_id")),
+        status = InvitationStatus.valueOf(getString("status")),
+        claimedAt = Instant.parse(getString("claimed_at")),
+        qualifiedAt = getString("qualified_at")?.let(Instant::parse),
+        qualificationPolicyId = getString("qualification_policy_id"),
+        qualificationRevision = getString("qualification_revision"),
+    )
 }
 
 internal object SqliteQualificationRecords {
@@ -191,6 +236,36 @@ internal object SqliteQualificationRecords {
                 )
             }
         }
+
+    fun findByInvitation(connection: Connection, invitationId: UUID): List<QualificationFact> =
+        connection.prepareStatement(
+            """
+            SELECT fact_id, invitation_id, policy_id, qualification_revision,
+                   condition_id, outcome, recorded_at
+            FROM invitecode_qualification_facts
+            WHERE invitation_id = ?
+            ORDER BY recorded_at, fact_id
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, invitationId.toString())
+            statement.executeQuery().use { result ->
+                buildList {
+                    while (result.next()) {
+                        add(
+                            QualificationFact(
+                                id = UUID.fromString(result.getString("fact_id")),
+                                invitationId = UUID.fromString(result.getString("invitation_id")),
+                                policyId = result.getString("policy_id"),
+                                qualificationRevision = result.getString("qualification_revision"),
+                                conditionId = result.getString("condition_id"),
+                                outcome = QualificationFactOutcome.valueOf(result.getString("outcome")),
+                                recordedAt = Instant.parse(result.getString("recorded_at")),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
 }
 
 internal object SqliteAuditRecords {
@@ -226,24 +301,53 @@ internal object SqliteAuditRecords {
             statement.setString(1, recordId.toString())
             statement.executeQuery().use { result ->
                 if (!result.next()) return@use null
-                AuditRecord(
-                    id = UUID.fromString(result.getString("audit_id")),
-                    action = InvitationAuditAction.valueOf(result.getString("action")),
-                    actor = result.getString("actor"),
-                    reason = result.getString("reason"),
-                    occurredAt = Instant.parse(result.getString("occurred_at")),
-                    invitationId = result.getString("invitation_id")?.let(UUID::fromString),
-                    playerId = result.getString("player_id")?.let(UUID::fromString),
-                    details = AuditDetailsCodec.decode(
-                        kind = result.getString("details_kind"),
-                        previousInviterId = result.getString("previous_inviter_id"),
-                        newInviterId = result.getString("new_inviter_id"),
-                        qualificationPolicyId = result.getString("qualification_policy_id"),
-                        qualificationRevision = result.getString("qualification_revision"),
-                    ),
-                )
+                result.toAuditRecord()
             }
         }
+
+    fun findByInvitation(connection: Connection, invitationId: UUID, limit: Int): List<AuditRecord> =
+        findHistory(connection, "invitation_id", invitationId, limit)
+
+    fun findByPlayer(connection: Connection, playerId: UUID, limit: Int): List<AuditRecord> =
+        findHistory(connection, "player_id", playerId, limit)
+
+    private fun findHistory(
+        connection: Connection,
+        column: String,
+        targetId: UUID,
+        limit: Int,
+    ): List<AuditRecord> {
+        require(limit in 1..MAX_AUDIT_HISTORY_LIMIT) {
+            "Audit history limit must be between 1 and $MAX_AUDIT_HISTORY_LIMIT."
+        }
+        return connection.prepareStatement(
+            "SELECT * FROM invitecode_audit_records WHERE $column = ? " +
+                "ORDER BY occurred_at DESC, audit_id DESC LIMIT ?",
+        ).use { statement ->
+            statement.setString(1, targetId.toString())
+            statement.setInt(2, limit)
+            statement.executeQuery().use { result ->
+                buildList { while (result.next()) add(result.toAuditRecord()) }
+            }
+        }
+    }
+
+    private fun java.sql.ResultSet.toAuditRecord() = AuditRecord(
+        id = UUID.fromString(getString("audit_id")),
+        action = InvitationAuditAction.valueOf(getString("action")),
+        actor = getString("actor"),
+        reason = getString("reason"),
+        occurredAt = Instant.parse(getString("occurred_at")),
+        invitationId = getString("invitation_id")?.let(UUID::fromString),
+        playerId = getString("player_id")?.let(UUID::fromString),
+        details = AuditDetailsCodec.decode(
+            kind = getString("details_kind"),
+            previousInviterId = getString("previous_inviter_id"),
+            newInviterId = getString("new_inviter_id"),
+            qualificationPolicyId = getString("qualification_policy_id"),
+            qualificationRevision = getString("qualification_revision"),
+        ),
+    )
 }
 
 private data class AuditDetailsColumns(

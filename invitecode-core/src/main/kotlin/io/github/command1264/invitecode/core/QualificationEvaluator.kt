@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class QualificationProviderRegistry(
     providers: Iterable<QualificationConditionProvider> = emptyList(),
+    private val fallback: QualificationProviderRegistry? = null,
 ) {
     private val providersByType = ConcurrentHashMap<String, QualificationConditionProvider>()
 
@@ -35,10 +36,13 @@ class QualificationProviderRegistry(
         context: QualificationConditionContext,
     ): QualificationConditionOutcome {
         val provider = providersByType[normalizeType(condition.type)]
-            ?: return when (condition.onUnavailable) {
+        if (provider == null) {
+            fallback?.let { return it.evaluate(condition, context) }
+            return when (condition.onUnavailable) {
                 MissingQualificationProviderOutcome.UNKNOWN -> QualificationConditionOutcome.UNKNOWN
                 MissingQualificationProviderOutcome.UNSATISFIED -> QualificationConditionOutcome.UNSATISFIED
             }
+        }
         return try {
             provider.evaluate(context, condition.parameters)
         } catch (error: Exception) {

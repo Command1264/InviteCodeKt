@@ -1,6 +1,6 @@
 # 領域文件
 
-InviteCodeKt 是單一 domain context 的 repository。
+InviteCodeKt 是開發 InviteCode 產品的單一 domain context repository。
 
 修改領域行為前：
 

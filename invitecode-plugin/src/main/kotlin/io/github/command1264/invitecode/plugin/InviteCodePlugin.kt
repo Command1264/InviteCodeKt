@@ -18,6 +18,8 @@ import io.github.command1264.invitecode.platform.bukkit.PluginRuntimeState
 import io.github.command1264.invitecode.platform.bukkit.RuntimePhase
 import io.github.command1264.invitecode.platform.bukkit.RuntimeConfigurationReload
 import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
+import io.github.command1264.invitecode.platform.modern.ModernPlatformCapabilities
+import io.github.command1264.invitecode.platform.modern.ModernPlatformIntegration
 import io.github.command1264.invitecode.storage.sql.BlockingOperationGuard
 import io.github.command1264.invitecode.storage.sql.SqliteInviteCodeStorage
 import io.github.command1264.invitecode.storage.sql.SqliteSchemaMigrator
@@ -44,6 +46,7 @@ class InviteCodePlugin : JavaPlugin() {
     private var operations: AsyncOperationExecutor? = null
     private var playerWorkflows: PlayerWorkflowController? = null
     private var qualificationTask: BukkitTask? = null
+    private var modernIntegration: ModernPlatformIntegration? = null
 
     override fun onEnable() {
         saveBundledResources()
@@ -51,6 +54,8 @@ class InviteCodePlugin : JavaPlugin() {
             server.scheduler.runTask(this, Runnable(operation))
         }
         operations = executor
+        val modern = ModernPlatformCapabilities.initialize(this)
+        modernIntegration = modern
         val externalQualificationProviders = QualificationProviderRegistry()
         val playerWorkflows = PlayerWorkflowController(
             this,
@@ -60,6 +65,9 @@ class InviteCodePlugin : JavaPlugin() {
             sessions,
             externalQualificationProviders,
             networkHasher,
+            modern.capabilities,
+            modern.dialogInput,
+            modern.displayFormatter,
             economyGateway = { OptionalVaultIntegration.find(server, logger) },
         )
         this.playerWorkflows = playerWorkflows
@@ -112,6 +120,8 @@ class InviteCodePlugin : JavaPlugin() {
         qualificationTask?.cancel()
         qualificationTask = null
         sessions.clear()
+        modernIntegration?.dialogInput?.close()
+        modernIntegration = null
         server.servicesManager.unregisterAll(this)
         operations?.close(Duration.ofSeconds(2))
         operations = null
@@ -296,6 +306,7 @@ class InviteCodePlugin : JavaPlugin() {
         val store = storage.get()
         val placeholder = server.pluginManager.getPlugin("PlaceholderAPI")?.isEnabled == true
         val vault = OptionalVaultIntegration.find(server, logger) != null
+        val capabilities = modernIntegration?.capabilities
         sendLocalized(
             sender,
             "admin.doctor-runtime",
@@ -308,7 +319,12 @@ class InviteCodePlugin : JavaPlugin() {
         sendLocalized(
             sender,
             "admin.doctor-integrations",
-            mapOf("placeholder" to placeholder.toString(), "vault" to vault.toString()),
+            mapOf(
+                "placeholder" to placeholder.toString(),
+                "vault" to vault.toString(),
+                "dialog" to (capabilities?.dialogProvider ?: "NONE"),
+                "rgb" to (capabilities?.rgbText ?: false).toString(),
+            ),
         )
         runtime.maintenanceReason?.let {
             sendLocalized(sender, "admin.doctor-maintenance", mapOf("reason" to it))

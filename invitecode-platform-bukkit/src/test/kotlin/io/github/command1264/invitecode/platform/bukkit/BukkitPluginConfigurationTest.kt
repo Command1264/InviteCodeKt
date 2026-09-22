@@ -35,12 +35,12 @@ class BukkitPluginConfigurationTest {
     }
 
     @Test
-    fun `rejects Dialog mode until the modern adapter owns it`() {
+    fun `accepts Dialog mode and lets runtime capabilities choose its fallback`() {
         val claim = (validConfiguration().getValue("claim") as Map<String, Any?>).toMutableMap()
         claim["input-mode"] = "DIALOG"
         val root = validConfiguration().toMutableMap().apply { put("claim", claim) }
 
-        assertThrows<IllegalArgumentException> { BukkitPluginConfigurationParser.parse(root) }
+        assertEquals(InputMode.DIALOG, BukkitPluginConfigurationParser.parse(root).claim.inputMode)
     }
 
     private fun validConfiguration(): Map<String, Any?> = mapOf(

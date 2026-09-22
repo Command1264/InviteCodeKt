@@ -32,15 +32,19 @@ import io.github.command1264.invitecode.platform.bukkit.EconomyRewardGateway
 import io.github.command1264.invitecode.platform.bukkit.AsyncOperationExecutor
 import io.github.command1264.invitecode.platform.bukkit.AtomicRuntimeSnapshot
 import io.github.command1264.invitecode.platform.bukkit.ClaimInteractionSessions
-import io.github.command1264.invitecode.platform.bukkit.InputMode
+import io.github.command1264.invitecode.platform.bukkit.ClaimInputChannel
+import io.github.command1264.invitecode.platform.bukkit.InviteCodeDisplayFormatter
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeRuntimeConfiguration
+import io.github.command1264.invitecode.platform.bukkit.NativeDialogInput
+import io.github.command1264.invitecode.platform.bukkit.NativeDialogRequest
+import io.github.command1264.invitecode.platform.bukkit.PlatformCapabilities
 import io.github.command1264.invitecode.platform.bukkit.generator
 import io.github.command1264.invitecode.platform.bukkit.parser
 import io.github.command1264.invitecode.platform.bukkit.ParsedInviteCodeCommand
 import io.github.command1264.invitecode.platform.bukkit.RewardMessageResolver
 import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
-import org.bukkit.ChatColor
+import io.github.command1264.invitecode.platform.bukkit.resolve
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -66,6 +70,9 @@ class PlayerWorkflowController(
     private val sessions: ClaimInteractionSessions,
     private val externalQualificationProviders: QualificationProviderRegistry,
     private val networkHasher: AtomicReference<NetworkAddressHasher?>,
+    private val capabilities: PlatformCapabilities,
+    private val nativeDialogInput: NativeDialogInput,
+    private val displayFormatter: InviteCodeDisplayFormatter,
     private val economyGateway: () -> EconomyRewardGateway? = { null },
     private val now: () -> Instant = Instant::now,
 ) : Listener {
@@ -182,6 +189,7 @@ class PlayerWorkflowController(
     @EventHandler
     fun onQuit(event: PlayerQuitEvent) {
         sessions.disconnect(event.player.uniqueId)
+        nativeDialogInput.disconnect(event.player.uniqueId)
     }
 
     private fun showCode(player: Player) {
@@ -205,19 +213,66 @@ class PlayerWorkflowController(
             beginClaim(player, code)
             return
         }
-        val claim = configuration.current().value.general.claim
-        if (claim.inputMode == InputMode.COMMAND_ONLY) {
-            send(playerId, "command.claim.command-only")
-            return
+        val runtime = configuration.current().value
+        val claim = runtime.general.claim
+        when (claim.inputMode.resolve(capabilities)) {
+            ClaimInputChannel.COMMAND_ONLY -> send(playerId, "command.claim.command-only")
+            ClaimInputChannel.DIALOG -> {
+                if (!startDialogInput(player, runtime)) startChatInput(playerId, claim.chatInputTimeout)
+            }
+            ClaimInputChannel.CHAT -> startChatInput(playerId, claim.chatInputTimeout)
         }
-        sessions.startChatInput(playerId, claim.chatInputTimeout)
-        scheduleTimeout(claim.chatInputTimeout) {
+    }
+
+    private fun startDialogInput(player: Player, runtime: InviteCodeRuntimeConfiguration): Boolean {
+        val playerId = player.uniqueId
+        val timeout = runtime.general.claim.chatInputTimeout
+        sessions.startDialogInput(playerId, timeout)
+        val locale = BukkitLocaleCompatibility.locale(player)
+        val messages = runtime.messages
+        val shown = nativeDialogInput.show(
+            player,
+            NativeDialogRequest(
+                title = messages.resolve(locale, "command.claim.dialog-title"),
+                label = messages.resolve(locale, "command.claim.dialog-label"),
+                confirm = messages.resolve(locale, "command.claim.dialog-confirm"),
+                cancel = messages.resolve(locale, "command.claim.dialog-cancel"),
+                maximumLength = 64,
+            ),
+            onSubmit = { rawCode ->
+                plugin.server.scheduler.runTask(plugin, Runnable {
+                    val current = plugin.server.getPlayer(playerId) ?: return@Runnable
+                    sessions.consumeDialogInput(playerId, rawCode)?.let { beginClaim(current, it) }
+                })
+            },
+            onCancel = {
+                plugin.server.scheduler.runTask(plugin, Runnable {
+                    if (sessions.cancel(playerId)) send(playerId, "command.claim.cancelled")
+                })
+            },
+        )
+        if (!shown) {
+            sessions.cancel(playerId)
+            return false
+        }
+        scheduleTimeout(timeout) {
+            if (sessions.expireDialogInput(playerId)) {
+                plugin.server.getPlayer(playerId)?.let(nativeDialogInput::cancel)
+                send(playerId, "command.claim.dialog-timeout")
+            }
+        }
+        return true
+    }
+
+    private fun startChatInput(playerId: UUID, timeout: Duration) {
+        sessions.startChatInput(playerId, timeout)
+        scheduleTimeout(timeout) {
             if (sessions.expireChatInput(playerId)) send(playerId, "command.claim.chat-timeout")
         }
         send(
             playerId,
             "command.claim.chat-started",
-            mapOf("seconds" to claim.chatInputTimeout.seconds.toString()),
+            mapOf("seconds" to timeout.seconds.toString()),
         )
     }
 
@@ -330,6 +385,7 @@ class PlayerWorkflowController(
     }
 
     private fun cancel(player: Player) {
+        nativeDialogInput.cancel(player)
         send(
             player.uniqueId,
             if (sessions.cancel(player.uniqueId)) "command.claim.cancelled" else "command.claim.nothing-to-cancel",
@@ -632,8 +688,7 @@ class PlayerWorkflowController(
     }
 
     private fun display(code: InviteCode): String {
-        val legacy = code.color?.nearestLegacyColor() ?: return code.displayValue()
-        return "${ChatColor.COLOR_CHAR}${legacy.code}${code.displayValue()}${ChatColor.RESET}"
+        return displayFormatter.display(code)
     }
 
     private fun scheduleTimeout(duration: Duration, operation: () -> Unit) {

@@ -3,7 +3,7 @@
 InviteCode 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件；`InviteCodeKt` 是 repository 名稱，`Kt` 只表示實作使用 Kotlin。目標是以單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並透過隔離的 adapter 載入新版能力。
 
 > [!IMPORTANT]
-> 這個 repository 目前是 `0.1.0-SNAPSHOT`。舊版相容的 Bukkit 指令、聊天輸入、SQLite lifecycle、Qualification 與可復原 Reward Delivery 已完成串接；新版原生 Dialog 與跨版本真實伺服器矩陣仍由後續 Issue 驗收。
+> 這個 repository 目前是 `0.1.0-SNAPSHOT`。舊版相容的 Bukkit 指令、聊天輸入、SQLite lifecycle、Qualification、可復原 Reward Delivery 與新版原生 Dialog adapter 已完成串接；跨版本自動化 smoke 已建立，玩家實際操作與畫面呈現仍留待發行前真人驗收。
 
 ## 專案目標
 

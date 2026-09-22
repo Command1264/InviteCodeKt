@@ -7,10 +7,25 @@ enum class InputMode {
     COMMAND_ONLY,
 }
 
-interface PlatformCapabilities {
-    val nativeDialogInput: Boolean
+enum class ClaimInputChannel {
+    DIALOG,
+    CHAT,
+    COMMAND_ONLY,
 }
 
-object LegacyPlatformCapabilities : PlatformCapabilities {
-    override val nativeDialogInput: Boolean = false
+data class PlatformCapabilities(
+    val nativeDialogInput: Boolean,
+    val rgbText: Boolean,
+    val dialogProvider: String = "NONE",
+)
+
+fun InputMode.resolve(capabilities: PlatformCapabilities): ClaimInputChannel = when (this) {
+    InputMode.COMMAND_ONLY -> ClaimInputChannel.COMMAND_ONLY
+    InputMode.CHAT -> ClaimInputChannel.CHAT
+    InputMode.AUTO,
+    InputMode.DIALOG -> if (capabilities.nativeDialogInput) {
+        ClaimInputChannel.DIALOG
+    } else {
+        ClaimInputChannel.CHAT
+    }
 }

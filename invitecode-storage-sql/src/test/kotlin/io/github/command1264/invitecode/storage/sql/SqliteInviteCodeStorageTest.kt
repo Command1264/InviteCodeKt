@@ -26,6 +26,7 @@ import io.github.command1264.invitecode.core.RewardAdministrationContext
 import io.github.command1264.invitecode.core.UncertainRewardActionResolution
 import io.github.command1264.invitecode.api.InvitationStatus
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
@@ -922,6 +923,45 @@ class SqliteInviteCodeStorageTest {
                 )
             }
             assertEquals(fact, storage.qualificationFact(fact.id))
+        }
+    }
+
+    @Test
+    fun `Qualification Fact batch rolls back when any fact conflicts`() {
+        val database = temporaryDirectory.resolve("qualification-fact-batch-rollback.db")
+        val guard = BlockingOperationGuard { }
+        val inviterId = UUID.fromString("00000000-0000-0000-0000-0000000000e1")
+        val inviteeId = UUID.fromString("00000000-0000-0000-0000-0000000000e2")
+        val invitation = Invitation(
+            UUID.fromString("10000000-0000-0000-0000-0000000000e1"), inviterId, inviteeId,
+            InvitationStatus.CLAIMED, Instant.EPOCH,
+        )
+        val existing = QualificationFact(
+            UUID.fromString("20000000-0000-0000-0000-0000000000e1"), invitation.id,
+            "default", "revision-1", "existing", QualificationFactOutcome.SATISFIED, Instant.EPOCH,
+        )
+        val firstInBatch = QualificationFact(
+            UUID.fromString("20000000-0000-0000-0000-0000000000e2"), invitation.id,
+            "default", "revision-1", "new", QualificationFactOutcome.SATISFIED, Instant.EPOCH,
+        )
+        SqliteSchemaMigrator(database, guard).migrate()
+        SqliteInviteCodeStorage.open(database, guard).use { storage ->
+            storage.savePlayer(StoredPlayer(inviterId, Instant.EPOCH))
+            storage.savePlayer(StoredPlayer(inviteeId, Instant.EPOCH))
+            storage.saveInvitation(invitation)
+            storage.saveQualificationFact(existing)
+
+            assertThrows<SqliteStorageException> {
+                storage.saveQualificationFacts(
+                    listOf(
+                        firstInBatch,
+                        existing.copy(outcome = QualificationFactOutcome.UNSATISFIED),
+                    ),
+                )
+            }
+
+            assertNull(storage.qualificationFact(firstInBatch.id))
+            assertEquals(existing, storage.qualificationFact(existing.id))
         }
     }
 

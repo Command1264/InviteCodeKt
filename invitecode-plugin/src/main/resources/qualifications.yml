@@ -4,7 +4,9 @@ policies:
   new-player:
     any-of:
       - all-of:
-          - type: PLAY_TIME
+          - id: initial-play-time
+            type: PLAY_TIME
             at-least: 30m
-          - type: LOGIN_DAYS
+          - id: initial-login-days
+            type: LOGIN_DAYS
             at-least: 2

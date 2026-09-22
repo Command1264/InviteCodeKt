@@ -74,6 +74,16 @@ class SqliteInviteCodeStorage private constructor(
         write { SqliteQualificationRecords.save(it, fact) }
     }
 
+    override fun saveQualificationFacts(facts: List<QualificationFact>) {
+        require(facts.isNotEmpty()) { "Qualification evaluation requires at least one fact." }
+        require(
+            facts.map { Triple(it.invitationId, it.policyId, it.qualificationRevision) }.distinct().size == 1,
+        ) { "Qualification Facts in one evaluation must share Invitation, policy ID, and revision." }
+        write { connection ->
+            facts.forEach { SqliteQualificationRecords.save(connection, it) }
+        }
+    }
+
     override fun qualificationFact(factId: UUID): QualificationFact? = read {
         SqliteQualificationRecords.find(it, factId)
     }

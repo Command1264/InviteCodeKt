@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "project": "InviteCode",
+  "profiles": [
+    {
+      "id": "spigot-1.8.8",
+      "port": 51888,
+      "purpose": "最低支援邊界",
+      "requiredForRelease": true
+    },
+    {
+      "id": "spigot-1.12.2",
+      "port": 51222,
+      "purpose": "舊版 Bukkit API 中間邊界",
+      "requiredForRelease": true
+    },
+    {
+      "id": "spigot-1.16.5",
+      "port": 51650,
+      "purpose": "Java 8 世代中間版本",
+      "requiredForRelease": true
+    },
+    {
+      "id": "spigot-latest",
+      "port": 52620,
+      "purpose": "最新 Spigot 邊界",
+      "requiredForRelease": true
+    },
+    {
+      "id": "paper-1.20.6",
+      "port": 62060,
+      "purpose": "新版 Paper 舊映射邊界",
+      "requiredForRelease": true
+    },
+    {
+      "id": "paper-1.21.8",
+      "port": 62180,
+      "purpose": "原生 Dialog 能力邊界",
+      "requiredForRelease": true
+    },
+    {
+      "id": "paper-latest",
+      "port": 62620,
+      "purpose": "最新穩定 Paper",
+      "requiredForRelease": true
+    },
+    {
+      "id": "folia-latest",
+      "port": 63620,
+      "purpose": "實驗性 Folia smoke",
+      "requiredForRelease": false
+    }
+  ]
+}

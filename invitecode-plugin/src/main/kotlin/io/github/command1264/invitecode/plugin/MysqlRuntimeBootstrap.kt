@@ -27,7 +27,9 @@ internal class MysqlRuntimeBootstrap(
 ) {
     fun initializeOrOpen(): MysqlBootstrapResult {
         guard.checkAllowed()
-        val password = resolve(config.passwordReference, "mysql.password")
+        val password = if (config.passwordSetting.startsWith("${'$'}{")) {
+            resolve(config.passwordSetting, "mysql.password")
+        } else config.passwordSetting
         val secret = resolve(config.networkSecretReference, "mysql.network-secret")
         val hasher = NetworkAddressHasher.fromBase64(secret)
         var storage: MysqlInviteCodeStorage? = null

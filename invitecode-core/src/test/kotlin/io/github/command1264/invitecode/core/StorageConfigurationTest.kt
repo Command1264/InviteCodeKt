@@ -14,7 +14,7 @@ class StorageConfigurationTest {
         assertEquals("invitecode.db", configuration.sqlite.file)
         assertEquals(3306, configuration.mysql.port)
         assertEquals(Duration.ofSeconds(5), configuration.mysql.connectionTimeout)
-        assertEquals("${'$'}{INVITECODE_DB_PASSWORD}", configuration.mysql.passwordReference)
+        assertEquals("${'$'}{INVITECODE_DB_PASSWORD}", configuration.mysql.passwordSetting)
         assertEquals(MysqlTlsMode.VERIFY_IDENTITY, configuration.mysql.tlsMode)
     }
 
@@ -40,12 +40,26 @@ class StorageConfigurationTest {
     }
 
     @Test
-    fun `MySQL config rejects literal credentials and URL injection`() {
+    fun `MySQL config accepts literal password without exposing it in configuration text`() {
+        val literal = "sample-only:p@ss#word"
+        val value = validConfiguration().toMutableMap().apply {
+            put("mysql", (get("mysql") as Map<String, Any?>) + ("password" to literal))
+        }
+        val configuration = StorageConfigurationParser.parse(value)
+        assertEquals(literal, configuration.mysql.passwordSetting)
+        assertEquals(false, configuration.toString().contains(literal))
+    }
+
+    @Test
+    fun `MySQL config rejects blank or malformed password and URL injection`() {
         fun withMysql(changed: Map<String, Any?>): Map<String, Any?> = validConfiguration().toMutableMap().apply {
             put("mysql", (get("mysql") as Map<String, Any?>) + changed)
         }
         assertThrows<IllegalArgumentException> {
-            StorageConfigurationParser.parse(withMysql(mapOf("password" to "plaintext")))
+            StorageConfigurationParser.parse(withMysql(mapOf("password" to " ")))
+        }
+        assertThrows<IllegalArgumentException> {
+            StorageConfigurationParser.parse(withMysql(mapOf("password" to "${'$'}{BROKEN")))
         }
         assertThrows<IllegalArgumentException> {
             StorageConfigurationParser.parse(withMysql(mapOf("host" to "localhost/?allowPublicKeyRetrieval=true")))

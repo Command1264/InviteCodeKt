@@ -52,6 +52,17 @@ class MysqlRuntimeBootstrapTest {
                     reopened.storage.close()
                     reopened.networkHasher.close()
                 }
+                val literal = MysqlRuntimeBootstrap(
+                    config.copy(passwordSetting = password), guard,
+                    environment = { name -> if (name == "NETWORK_SECRET") secret else null },
+                ).initializeOrOpen()
+                try {
+                    assertEquals(false, literal.initialized)
+                    assertEquals(first.networkHasher.keyId, literal.networkHasher.keyId)
+                } finally {
+                    literal.storage.close()
+                    literal.networkHasher.close()
+                }
                 assertThrows(MysqlStorageException::class.java) {
                     MysqlRuntimeBootstrap(config, guard, environment = { name ->
                         if (name == "DB_PASSWORD") password else Base64.getEncoder()

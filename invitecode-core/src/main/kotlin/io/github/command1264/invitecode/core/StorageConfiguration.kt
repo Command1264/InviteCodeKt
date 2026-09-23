@@ -37,7 +37,7 @@ data class MysqlConfiguration(
     val port: Int,
     val database: String,
     val username: String,
-    val passwordReference: String,
+    val passwordSetting: String,
     val networkSecretReference: String,
     val connectionTimeout: Duration,
     val tlsMode: MysqlTlsMode = MysqlTlsMode.VERIFY_IDENTITY,
@@ -47,7 +47,10 @@ data class MysqlConfiguration(
         require(port in 1..65535) { "MySQL port must be between 1 and 65535." }
         require(DATABASE.matches(database)) { "MySQL database must contain only letters, digits and underscores." }
         require(username.isNotBlank()) { "MySQL username must not be blank." }
-        require(ENV_REFERENCE.matches(passwordReference)) { "MySQL password must be an environment variable reference." }
+        require(passwordSetting.isNotBlank()) { "MySQL password must not be blank." }
+        require(!passwordSetting.startsWith("${'$'}{") || ENV_REFERENCE.matches(passwordSetting)) {
+            "MySQL password has an invalid environment variable reference."
+        }
         require(ENV_REFERENCE.matches(networkSecretReference)) {
             "MySQL network secret must be an environment variable reference."
         }
@@ -55,6 +58,11 @@ data class MysqlConfiguration(
             "MySQL connection timeout must be between 250ms and 60s."
         }
     }
+
+    override fun toString(): String =
+        "MysqlConfiguration(host=$host, port=$port, database=$database, username=$username, " +
+            "password=<redacted>, networkSecretReference=$networkSecretReference, " +
+            "connectionTimeout=$connectionTimeout, tlsMode=$tlsMode)"
 
     companion object {
         private val ENV_REFERENCE = Regex("\\$\\{[A-Za-z_][A-Za-z0-9_]*}")
@@ -107,7 +115,7 @@ object StorageConfigurationParser {
                 port = mysql.requiredInteger("port", "mysql"),
                 database = mysql.requiredString("database", "mysql"),
                 username = mysql.requiredString("username", "mysql"),
-                passwordReference = mysql.requiredString("password", "mysql"),
+                passwordSetting = mysql.requiredString("password", "mysql"),
                 networkSecretReference = mysql.requiredString("network-secret", "mysql"),
                 connectionTimeout = parsePositiveDuration(
                     mysql.requiredString("connection-timeout", "mysql"),

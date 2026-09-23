@@ -24,7 +24,9 @@ mysql:
   tls-mode: VERIFY_IDENTITY
 ```
 
-`password` 與 `network-secret` 只接受 `${ENV_VAR}` 格式。啟動 Minecraft 伺服器前，必須在其程序環境中設定兩個變數；找不到變數會在連線前拒絕啟動。`INVITECODE_NETWORK_SECRET` 是 32 bytes 隨機資料的 Base64 字串，同一個 MySQL database 的所有插件實例必須使用完全相同的值。PowerShell 7 可在伺服器啟動腳本中產生一次，再由安全的設定管理方式保存並分發：
+`password` 可以像上例使用 `${ENV_VAR}`，也可以直接在 `storage.yml` 寫入密碼，例如 `password: "在此填入自己的資料庫密碼"`。環境變數不存在時會在連線前拒絕啟動；若密碼以 `${` 開頭，必須是完整的環境變數參照，以免拼錯後被當成明文密碼。直接寫入時請限制 `storage.yml` 的讀取權限，檢查備份與檔案分享範圍，且不要把真實密碼提交到 Git。預設的 JAR 設定仍採環境變數參照，不內附密碼。
+
+`network-secret` 仍只接受 `${ENV_VAR}`。啟動 Minecraft 伺服器前，必須在其程序環境中設定該變數。`INVITECODE_NETWORK_SECRET` 是 32 bytes 隨機資料的 Base64 字串，同一個 MySQL database 的所有插件實例必須使用完全相同的值。PowerShell 7 可在伺服器啟動腳本中產生一次，再由安全的設定管理方式保存並分發：
 
 ```powershell
 $env:INVITECODE_NETWORK_SECRET = [Convert]::ToBase64String(

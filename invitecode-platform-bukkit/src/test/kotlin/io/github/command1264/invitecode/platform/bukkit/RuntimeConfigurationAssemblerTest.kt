@@ -45,14 +45,13 @@ class RuntimeConfigurationAssemblerTest {
     }
 
     @Test
-    fun `unsupported configured backend fails before snapshot installation`() {
+    fun `JSON backend is accepted in the configuration snapshot`() {
         val json = storage().toMutableMap().apply { this["backend"] = "JSON" }
 
-        assertThrows(IllegalStateException::class.java) {
-            RuntimeConfigurationAssembler.parse(
-                general(), json, qualifications(), rewards(), mapOf("zh_TW" to catalog("訊息")),
-            )
-        }
+        val configured = RuntimeConfigurationAssembler.parse(
+            general(), json, qualifications(), rewards(), mapOf("zh_TW" to catalog("訊息")),
+        )
+        assertEquals(StorageBackendType.JSON, configured.storage.backend)
     }
 
     @Test

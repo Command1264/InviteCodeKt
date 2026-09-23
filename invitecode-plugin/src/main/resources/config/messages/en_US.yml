@@ -68,9 +68,9 @@ admin:
   doctor-runtime: "Runtime={phase}, configuration generation={generation}, executor={executor}."
   doctor-integrations: "Integrations: PlaceholderAPI={placeholder}, Vault Economy={vault}, Dialog={dialog}, RGB={rgb}."
   doctor-maintenance: "Maintenance reason: {reason}"
-  doctor-storage-offline: "SQLite is offline. Doctor did not create or modify the database."
-  doctor-storage: "SQLite schema={schema}; Reward backlog: PENDING={pending}, PROCESSING={processing}, UNCERTAIN={uncertain}."
-  doctor-storage-failed: "The SQLite health check failed. Check the server log."
+  doctor-storage-offline: "Storage is offline. Doctor did not create or modify data."
+  doctor-storage: "{backend} storage version={schema}; Reward backlog: PENDING={pending}, PROCESSING={processing}, UNCERTAIN={uncertain}."
+  doctor-storage-failed: "The storage health check failed. Check the server log."
   doctor-executor-stopping: "The executor is stopping and cannot query the Reward backlog."
 invite:
   qualified:

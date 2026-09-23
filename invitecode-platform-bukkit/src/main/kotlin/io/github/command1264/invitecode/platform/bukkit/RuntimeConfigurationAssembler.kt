@@ -45,7 +45,7 @@ object RuntimeConfigurationAssembler {
         onMissingMessage: (String) -> Unit = {},
     ): InviteCodeRuntimeConfiguration {
         val parsedGeneral = BukkitPluginConfigurationParser.parse(general)
-        val parsedStorage = StorageConfigurationParser.parse(storage).requireSupportedBackend()
+        val parsedStorage = StorageConfigurationParser.parse(storage)
         val parsedQualifications = QualificationConfigurationParser.parse(qualifications)
         val parsedRewards = RewardConfigurationParser.parse(rewards)
         require(messageCatalogs.isNotEmpty()) { "At least one message catalog is required." }

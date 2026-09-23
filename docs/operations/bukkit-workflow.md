@@ -1,6 +1,6 @@
 # Bukkit 操作與維護
 
-本文件說明 InviteCode 在 Spigot／Paper 上的玩家流程、管理指令、儲存初始化、維護模式與人工驗收方式。可選擇 `SQLITE` 或 `MYSQL`；`JSON` 尚未實作。MySQL 的設定與復原細節見 [`mysql-storage.md`](./mysql-storage.md)。
+本文件說明 InviteCode 在 Spigot／Paper 上的玩家流程、管理指令、儲存初始化、維護模式與人工驗收方式。可選擇 `SQLITE`、`MYSQL` 或小型單實例環境使用的 `JSON`。JSON 與 MySQL 的設定及復原細節分別見 [`json-storage.md`](./json-storage.md) 與 [`mysql-storage.md`](./mysql-storage.md)。
 
 ## 首次啟動
 

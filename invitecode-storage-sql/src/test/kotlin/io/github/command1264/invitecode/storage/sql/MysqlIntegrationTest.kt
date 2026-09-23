@@ -1,5 +1,7 @@
 package io.github.command1264.invitecode.storage.sql
 
+import io.github.command1264.invitecode.core.StorageContractTest
+
 import com.zaxxer.hikari.HikariDataSource
 import io.github.command1264.invitecode.core.ClaimConfirmation
 import io.github.command1264.invitecode.core.ClaimEligibilityPolicy

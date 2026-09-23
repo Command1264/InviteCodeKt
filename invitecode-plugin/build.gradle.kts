@@ -121,6 +121,7 @@ val shadowJar = tasks.named<ShadowJar>("shadowJar") {
     archiveClassifier.set("")
     exclude("module-info.class", "META-INF/versions/**")
     mergeServiceFiles()
+    relocate("com.google.gson", "io.github.command1264.invitecode.libs.gson")
 }
 
 tasks.withType<Test>().configureEach {
@@ -150,6 +151,8 @@ val verifyPluginJar by tasks.registering(VerifyPluginJar::class) {
             "org/sqlite/JDBC.class",
             "com/mysql/cj/jdbc/Driver.class",
             "com/zaxxer/hikari/HikariDataSource.class",
+            "io/github/command1264/invitecode/libs/gson/Gson.class",
+            "io/github/command1264/invitecode/storage/json/JsonInviteCodeStorage.class",
             "org/slf4j/impl/JDK14LoggerFactory.class",
             "mysql/V1__initial_schema.sql",
             "org/sqlite/native/Linux/x86_64/libsqlitejdbc.so",
@@ -165,6 +168,7 @@ val verifyPluginJar by tasks.registering(VerifyPluginJar::class) {
             "rewards.yml",
             "messages/zh_TW.yml",
             "messages/en_US.yml",
+            "com/google/gson/Gson.class",
         ),
     )
 }

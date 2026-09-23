@@ -27,16 +27,25 @@ class StorageConfigurationTest {
     }
 
     @Test
-    fun `supports MySQL and rejects unfinished JSON`() {
+    fun `supports MySQL and JSON with a safe default path`() {
         assertEquals(
             StorageBackendType.MYSQL,
             StorageConfigurationParser.parse(validConfiguration().toMutableMap().apply { put("backend", "MYSQL") })
-                .requireSupportedBackend().backend,
+                .backend,
         )
-        assertThrows<UnsupportedStorageBackendException> {
-            StorageConfigurationParser.parse(validConfiguration().toMutableMap().apply { put("backend", "JSON") })
-                .requireSupportedBackend()
+        val json = StorageConfigurationParser.parse(
+            validConfiguration().toMutableMap().apply { put("backend", "JSON") },
+        )
+        assertEquals(StorageBackendType.JSON, json.backend)
+        assertEquals("invitecode.json", json.json.file)
+    }
+
+    @Test
+    fun `JSON file rejects escaping paths`() {
+        val value = validConfiguration().toMutableMap().apply {
+            put("json", mapOf("file" to "../outside.json"))
         }
+        assertThrows<IllegalArgumentException> { StorageConfigurationParser.parse(value) }
     }
 
     @Test

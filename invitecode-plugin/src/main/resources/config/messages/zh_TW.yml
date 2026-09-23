@@ -68,9 +68,9 @@ admin:
   doctor-runtime: "Runtime={phase}，設定世代={generation}，executor={executor}。"
   doctor-integrations: "Integration：PlaceholderAPI={placeholder}，Vault Economy={vault}，Dialog={dialog}，RGB={rgb}。"
   doctor-maintenance: "維護原因：{reason}"
-  doctor-storage-offline: "SQLite=未連線；doctor 未建立或修改資料庫。"
-  doctor-storage: "SQLite schema={schema}；Reward backlog：PENDING={pending}，PROCESSING={processing}，UNCERTAIN={uncertain}。"
-  doctor-storage-failed: "SQLite 健康檢查失敗，請查看伺服器紀錄。"
+  doctor-storage-offline: "儲存未連線；doctor 未建立或修改資料。"
+  doctor-storage: "{backend} 儲存版本={schema}；Reward backlog：PENDING={pending}，PROCESSING={processing}，UNCERTAIN={uncertain}。"
+  doctor-storage-failed: "儲存健康檢查失敗，請查看伺服器紀錄。"
   doctor-executor-stopping: "Executor 正在停止，無法完成 Reward backlog 查詢。"
 invite:
   qualified:

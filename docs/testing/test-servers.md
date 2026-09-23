@@ -65,7 +65,7 @@ pwsh -NoProfile -File .\scripts\test-servers\start.ps1 -Profile paper-latest
 ## 每個 profile 的最低 smoke
 
 1. 確認 InviteCode 啟用且沒有 linkage error、legacy material warning 或未處理 exception。
-2. 確認第一次啟動自動建立 SQLite 與 anti-abuse key，重新啟動後沿用既有資料。
+2. 確認所選 backend 首次啟動自動建立必要資料與 anti-abuse key（MySQL 使用外部密鑰），重新啟動後沿用既有資料。
 3. 玩家與 Console 驗證 `/ic help`、`/ic reload`、Tab completion 與權限拒絕。
 4. 玩家驗證 Invite Code 顯示、Claim、Confirmation、Status 與 Stats。
 5. 驗證 `zh_TW`／`en_US`、UTF-8 與 client locale fallback。

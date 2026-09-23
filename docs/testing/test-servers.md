@@ -118,6 +118,22 @@ node .\scripts\test-servers\synthetic-player\uncertain.cjs `
 
 `mark-delivered` 與 `retry` 各使用不同的新實例，勿重用上例的 `$name`；`MISE_EXE` 指向當前電腦實際安裝的 mise 執行檔。Runner 會檢查 loopback、EULA、JAR SHA-256 與全新資料庫，並只停止自己啟動的伺服器。第一次故障造成測試客戶端 `ECONNRESET` 是預期現象。重啟後 `UNCERTAIN=1`、重新登入不重發；`mark-delivered` 後標記仍只有一次，`retry` 後才增加至兩次並轉為 `DELIVERED`。這是隔離演練，不代表能證明外部系統中的所有實際效果。
 
+### SQLite 遷移失敗與復原
+
+`migration-recovery.cjs` 使用全新的 Spigot 1.8.8／SQLite 隔離實例。它先讓插件正常初始化，再於停機時用 Python 3 標準 `sqlite3` 建立測試用 v7 schema 與哨兵玩家資料，並以同名索引阻擋 v8 遷移的第二個 DDL。Runner 檢查重啟不自動升級、管理指令失敗後交易回滾、哨兵資料與 `anti-abuse.key` 保留；清除測試衝突後，透過 Console 明確遷移到 v8，再重啟驗證。此 fixture 會直接修改**自己的隔離資料庫**，不得指向正式伺服器或既有實例。
+
+```powershell
+$jar = 'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-fixture-spigot-188\plugins\InviteCode-0.1.0-SNAPSHOT.jar'
+$name = 'issue12-migration-example-188'
+pwsh -NoProfile -File .\scripts\test-servers\prepare.ps1 `
+  -Profile spigot-1.8.8 -Instance $name -Artifact $jar -AcceptEula
+$env:MISE_EXE = (Get-Command mise.exe -CommandType Application | Select-Object -First 1).Source
+node .\scripts\test-servers\synthetic-player\migration-recovery.cjs `
+  "D:\Code\Java\Plugin\TestLab\instances\InviteCode\$name"
+```
+
+上例只適用於已接受 Minecraft EULA 的本機 TestLab。每次執行須換用尚不存在的新實例名稱，受測 JAR 的雜湊須與 `workspace.json` 相同。此測試驗證 SQLite 在伺服器層級的遷移回滾與復原，不涵蓋 MySQL DDL 中斷續建或正式資料搬移。
+
 ### Vault 與 PlaceholderAPI 的實際路徑
 
 `prepare-integration-player.ps1` 以全新 `issue12-*` 實例測試已取得的外部插件 JAR。Vault 情境使用 Paper 1.21.8、Vault、EssentialsX 與測試專用唯讀餘額指令；Placeholder 情境使用 Paper 1.20.6、PlaceholderAPI 與測試專用 `%icprobe_ready%` 擴充。兩種 probe 都只在 loopback、離線模式及 TestLab 實例內啟用，不會封裝進 InviteCode JAR。編譯 probe 需要既有 Spigot 1.8.8 `server.jar` 作為 Bukkit API classpath，並以 `mise java@local-21` 產生 Java 8 bytecode。

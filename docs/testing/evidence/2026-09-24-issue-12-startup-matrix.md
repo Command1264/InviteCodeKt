@@ -82,4 +82,12 @@ UUID 由測試程式透過 Python 標準 `sqlite3` 唯讀查得，斷言仍透�
 
 Spigot／Paper 26.2 的 log 有 Windows Perflib／OSHI／JNA 讀取系統計數器失敗及衍生的 system-report `NullPointerException`；堆疊未涉及 InviteCode，伺服器與插件仍可啟動、診斷並正常停機。這是測試主機／伺服器層級的已知雜訊，不能用它替代插件無錯誤的判定。
 
-本輪對 Spigot／Paper 涵蓋啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console help／reload／doctor、外部服務偵測，並在三個版本通過合成玩家 Claim 與離線 `MESSAGE` Reward 補發。另在 Spigot 1.8.8 通過外部指令中斷後的 `UNCERTAIN` 復原及兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款。Issue #12 尚缺最新 Paper 26.2 的玩家 critical path、伺服器層級 migration 故障復原、Folia 可載入後的實驗性 smoke，以及最終人工觀感驗收；不得據此宣布 1.0 發行 gate 通過。
+本輪對 Spigot／Paper 涵蓋啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console help／reload／doctor、外部服務偵測，並在三個版本通過合成玩家 Claim 與離線 `MESSAGE` Reward 補發。另在 Spigot 1.8.8 通過外部指令中斷後的 `UNCERTAIN` 復原及兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款。Issue #12 尚缺最新 Paper 26.2 的玩家 critical path、MySQL 初始化中斷續建的伺服器層級證據、Folia 可載入後的實驗性 smoke，以及最終人工觀感驗收；不得據此宣布 1.0 發行 gate 通過。
+
+## SQLite 遷移故障與復原（伺服器層級）
+
+新增 `migration-recovery.cjs`，在全新 `issue12-migration-rollback1-188` 實例使用 Spigot 1.8.8、`local-8` 與同一份產品 JAR（SHA-256 `99CE69BE0A38679EDD914AC608C0B0ACC85FE5BCD6A88D80B44FCEF3238BDADA`）。初始化到 SQLite v8 並正常停機後，測試程式只在此隔離資料庫建立合成 v7 fixture：保留舊資料、加入 `MigrationSentinel` 玩家，並於既有 `invitecode_players` 表先建立 `invitecode_network_hash_expiry` 索引。這是為了讓插件 v8 遷移先成功 `CREATE TABLE`，再於 `CREATE INDEX` 發生名稱衝突。fixture 由測試程式建造，**不是**舊版外掛實際產生的資料庫，也不代表曾有正式使用者需要遷移。
+
+第一次重啟時，Console doctor 回報 `Runtime=MAINTENANCE`、schema 7 不符，未自動遷移。第二次重啟後，Console `ic admin storage migrate SQLITE injected-index-conflict` 回報遷移失敗，log 的根因是 `index invitecode_network_hash_expiry already exists`。停機後直接核對：版本仍為 7、v8 新表不存在、原索引與哨兵資料存在，`PRAGMA integrity_check=ok`，`anti-abuse.key` SHA-256 未變；證明這次 SQLite 交易中的前一步建表已回滾。預期的錯誤只出現在注入故障階段。
+
+停機移除測試索引後，第三次啟動仍在維護模式；Console 明確遷移成功至 v8，doctor 轉為 `Runtime=ACTIVE`。第四次啟動直接進入 `ACTIVE`，版本 8、新表及正確索引存在，哨兵資料、密鑰與 integrity check 均保持正常。Runner 回報 `PASS`；加入 TestLab 路徑與固定埠檢查後，使用另一個全新 `issue12-migration-rollback2-188` 實例複驗也回報 `PASS`。所有伺服器均由 runner 正常關閉，51888 埠已釋放。此測試涵蓋 SQLite 的伺服器層級安全拒絕、失敗回滾與明確復原；尚未涵蓋在遷移交易進行中強制終止 JVM，亦未涵蓋 MySQL DDL 中斷續建。

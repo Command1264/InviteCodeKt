@@ -134,6 +134,24 @@ node .\scripts\test-servers\synthetic-player\migration-recovery.cjs `
 
 上例只適用於已接受 Minecraft EULA 的本機 TestLab。每次執行須換用尚不存在的新實例名稱，受測 JAR 的雜湊須與 `workspace.json` 相同。此測試驗證 SQLite 在伺服器層級的遷移回滾與復原，不涵蓋 MySQL DDL 中斷續建或正式資料搬移。
 
+### MySQL 初始化中斷後續建
+
+`mysql-migration-recovery.cjs` 在全新 Paper 1.20.6 TestLab 實例及專用 `invitecode_issue12_test_*` database 建立合成 `APPLYING` ledger、一張已提交的玩家表與哨兵資料。先把玩家表欄位改壞，驗證插件進入維護模式且未補建；修正欄位後再注入錯誤 checksum，驗證同樣拒絕；最後恢復 checksum，驗證啟動自動續建、ledger 轉為 `APPLIED`、玩家資料保留，且重啟不重複初始化。這是從已提交 DDL 邊界重建的**合成中斷狀態**，並非在正式建表過程中強制終止 JVM。
+
+先啟動 TestLab 隔離的 MySQL 8.4.11 服務，使其只在 `127.0.0.1:63384` 接受連線；測試程序須有 `INVITECODE_TEST_MYSQL_ROOT_PASSWORD`、`INVITECODE_DB_PASSWORD`、`INVITECODE_NETWORK_SECRET`，均從 TestLab 使用者專屬加密暫存還原至目前程序環境，不寫入 repository 或命令列。測試器只接受 TestLab 中尚未啟動過的 `issue12-*` Paper 1.20.6 實例，驗證 EULA、loopback、JAR 雜湊與固定埠後，才建立新 database；拒絕覆寫既有 database。MySQL root 密碼不傳給 Paper 子程序。測試結束後關閉自己啟動的 Paper，再由測試操作者正常關閉隔離 MySQL 服務；保留測試 database 作為證據。
+
+```powershell
+$jar = 'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-mysql-paper-1206\plugins\InviteCode-0.1.0-SNAPSHOT.jar'
+$name = 'issue12-mysql-recover-example-1206'
+pwsh -NoProfile -File .\scripts\test-servers\prepare.ps1 `
+  -Profile paper-1.20.6 -Instance $name -Artifact $jar -AcceptEula
+$env:MISE_EXE = (Get-Command mise.exe -CommandType Application | Select-Object -First 1).Source
+node .\scripts\test-servers\synthetic-player\mysql-migration-recovery.cjs `
+  "D:\Code\Java\Plugin\TestLab\instances\InviteCode\$name"
+```
+
+執行上例前須已接受 Minecraft EULA，且上述三個環境變數與隔離 MySQL 服務均已準備妥當。每次複驗使用新的實例名稱，以免重用有資料的 database。測試目前使用受控本機 `tls-mode: REQUIRED`，不證明正式預設 `VERIFY_IDENTITY` 的憑證驗證。
+
 ### Vault 與 PlaceholderAPI 的實際路徑
 
 `prepare-integration-player.ps1` 以全新 `issue12-*` 實例測試已取得的外部插件 JAR。Vault 情境使用 Paper 1.21.8、Vault、EssentialsX 與測試專用唯讀餘額指令；Placeholder 情境使用 Paper 1.20.6、PlaceholderAPI 與測試專用 `%icprobe_ready%` 擴充。兩種 probe 都只在 loopback、離線模式及 TestLab 實例內啟用，不會封裝進 InviteCode JAR。編譯 probe 需要既有 Spigot 1.8.8 `server.jar` 作為 Bukkit API classpath，並以 `mise java@local-21` 產生 Java 8 bytecode。

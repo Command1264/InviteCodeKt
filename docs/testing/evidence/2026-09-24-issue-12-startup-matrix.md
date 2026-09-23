@@ -47,9 +47,9 @@ Vault 的 `PENDING=1` 是離線 Inviter 的預設 `MESSAGE` Reward，並非存�
 
 從 [Oracle 官方 MySQL 下載來源](https://dev.mysql.com/downloads/mysql/)取得 Windows ZIP，使用的 `mysql-8.4.11-winx64.zip` SHA-256 為 `A492371D687D2BAB088B0062581144A0044B8964BAEFDF4FAA579292B423D25C`。ZIP 解壓與資料目錄都在 TestLab 的 `artifacts/invitecode-issue12-mysql-8.4.11/`，與 `C:\Program Files\MySQL` 的既有資料完全分離。`mysqld --version` 為 8.4.11；服務只綁定 `127.0.0.1:63384`，使用隨機測試密碼、獨立 `invitecode_issue12` database 和專用 `invitecode_test` 帳號。測試密碼與 network secret 以目前 Windows 使用者的加密 CLIXML 暫存於該隔離 runtime，未寫入 repository、設定範本或 log。測試設定採 `tls-mode: REQUIRED`，因此未驗證正式預設的 `VERIFY_IDENTITY` 憑證身分檢查。
 
-在此服務上強制重跑 `mise exec -- .\gradlew.bat :invitecode-storage-sql:test :invitecode-plugin:test --rerun-tasks --no-daemon`：storage SQL 51 個、plugin 17 個測試，皆無失敗或略過。測試所建的隨機 database 都已清理，除 MySQL 系統資料庫外只剩本次 `invitecode_issue12`。
+在此服務上強制重跑 `mise exec -- .\gradlew.bat :invitecode-storage-sql:test :invitecode-plugin:test --rerun-tasks --no-daemon`：storage SQL 51 個、plugin 17 個測試，皆無失敗或略過。當時測試所建的隨機 database 都已清理，除 MySQL 系統資料庫外只剩 `invitecode_issue12`；後續另保留兩個專用的中斷復原測試 database，見下文。
 
-`issue12-mysql-paper-1206` 使用 Paper 1.20.6 build 151 與同一份受測插件 JAR，`storage.yml` 指向上述隔離服務。首次啟動回報 `Runtime=ACTIVE`、`MYSQL 儲存版本=1`、自動初始化；從 Console 執行 `ic admin doctor`、`ic help`、`ic reload` 均成功。正常停機後資料庫有 13 張表、migration ledger `version=1,state=APPLIED`、初始化稽核紀錄 1 筆。以相同密碼與 network secret 重啟後仍為 `ACTIVE`，上述表數、ledger 與稽核筆數維持不變；插件資料夾沒有產生本機 `anti-abuse.key`。兩次 Paper log 沒有 InviteCode error／exception。測試後以 `mysqladmin shutdown` 關閉本次 MySQL 服務，63384 與 Paper 的 62060 埠都已釋放。此項驗證首次建表與再開啟，尚未涵蓋真實玩家 Claim 或 MySQL 的伺服器層級中斷復原。
+`issue12-mysql-paper-1206` 使用 Paper 1.20.6 build 151 與同一份受測插件 JAR，`storage.yml` 指向上述隔離服務。首次啟動回報 `Runtime=ACTIVE`、`MYSQL 儲存版本=1`、自動初始化；從 Console 執行 `ic admin doctor`、`ic help`、`ic reload` 均成功。正常停機後資料庫有 13 張表、migration ledger `version=1,state=APPLIED`、初始化稽核紀錄 1 筆。以相同密碼與 network secret 重啟後仍為 `ACTIVE`，上述表數、ledger 與稽核筆數維持不變；插件資料夾沒有產生本機 `anti-abuse.key`。兩次 Paper log 沒有 InviteCode error／exception。測試後以 `mysqladmin shutdown` 關閉本次 MySQL 服務，63384 與 Paper 的 62060 埠都已釋放。此項驗證首次建表與再開啟，尚未涵蓋真實玩家 Claim；合成中斷狀態的伺服器層級續建另見下節。
 
 Runner 擴充後，再於 Paper 1.20.6 各重跑一次既有 SQLite 與 JSON 實例；`ACTIVE`、Console 指令、本機儲存檔與 key 檢查均通過，確認新增 MYSQL 分支沒有破壞原本兩種 backend 的 smoke 路徑。
 
@@ -82,8 +82,6 @@ UUID 由測試程式透過 Python 標準 `sqlite3` 唯讀查得，斷言仍透�
 
 Spigot／Paper 26.2 的 log 有 Windows Perflib／OSHI／JNA 讀取系統計數器失敗及衍生的 system-report `NullPointerException`；堆疊未涉及 InviteCode，伺服器與插件仍可啟動、診斷並正常停機。這是測試主機／伺服器層級的已知雜訊，不能用它替代插件無錯誤的判定。
 
-本輪對 Spigot／Paper 涵蓋啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console help／reload／doctor、外部服務偵測，並在三個版本通過合成玩家 Claim 與離線 `MESSAGE` Reward 補發。另在 Spigot 1.8.8 通過外部指令中斷後的 `UNCERTAIN` 復原及兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款。Issue #12 尚缺最新 Paper 26.2 的玩家 critical path、MySQL 初始化中斷續建的伺服器層級證據、Folia 可載入後的實驗性 smoke，以及最終人工觀感驗收；不得據此宣布 1.0 發行 gate 通過。
-
 ## SQLite 遷移故障與復原（伺服器層級）
 
 新增 `migration-recovery.cjs`，在全新 `issue12-migration-rollback1-188` 實例使用 Spigot 1.8.8、`local-8` 與同一份產品 JAR（SHA-256 `99CE69BE0A38679EDD914AC608C0B0ACC85FE5BCD6A88D80B44FCEF3238BDADA`）。初始化到 SQLite v8 並正常停機後，測試程式只在此隔離資料庫建立合成 v7 fixture：保留舊資料、加入 `MigrationSentinel` 玩家，並於既有 `invitecode_players` 表先建立 `invitecode_network_hash_expiry` 索引。這是為了讓插件 v8 遷移先成功 `CREATE TABLE`，再於 `CREATE INDEX` 發生名稱衝突。fixture 由測試程式建造，**不是**舊版外掛實際產生的資料庫，也不代表曾有正式使用者需要遷移。
@@ -91,3 +89,13 @@ Spigot／Paper 26.2 的 log 有 Windows Perflib／OSHI／JNA 讀取系統計數�
 第一次重啟時，Console doctor 回報 `Runtime=MAINTENANCE`、schema 7 不符，未自動遷移。第二次重啟後，Console `ic admin storage migrate SQLITE injected-index-conflict` 回報遷移失敗，log 的根因是 `index invitecode_network_hash_expiry already exists`。停機後直接核對：版本仍為 7、v8 新表不存在、原索引與哨兵資料存在，`PRAGMA integrity_check=ok`，`anti-abuse.key` SHA-256 未變；證明這次 SQLite 交易中的前一步建表已回滾。預期的錯誤只出現在注入故障階段。
 
 停機移除測試索引後，第三次啟動仍在維護模式；Console 明確遷移成功至 v8，doctor 轉為 `Runtime=ACTIVE`。第四次啟動直接進入 `ACTIVE`，版本 8、新表及正確索引存在，哨兵資料、密鑰與 integrity check 均保持正常。Runner 回報 `PASS`；加入 TestLab 路徑與固定埠檢查後，使用另一個全新 `issue12-migration-rollback2-188` 實例複驗也回報 `PASS`。所有伺服器均由 runner 正常關閉，51888 埠已釋放。此測試涵蓋 SQLite 的伺服器層級安全拒絕、失敗回滾與明確復原；尚未涵蓋在遷移交易進行中強制終止 JVM，亦未涵蓋 MySQL DDL 中斷續建。
+
+## MySQL 初始化中斷狀態的安全續建
+
+新增 `mysql-migration-recovery.cjs`，使用全新 `issue12-mysql-recover1-1206`、`issue12-mysql-recover2-1206` 實例，以及各自命名的新 MySQL database。Paper 1.20.6 build 151、`local-21`、MySQL 8.4.11 與同一份產品 JAR（SHA-256 `99CE69BE0A38679EDD914AC608C0B0ACC85FE5BCD6A88D80B44FCEF3238BDADA`）。測試器從受測 JAR 讀取 schema 與 checksum，在全新 database 建立 `APPLYING` ledger、已提交的 `invitecode_players` 表及 `MigrationSentinel` 玩家；它模擬首次建表剛完成一張表後中斷，不會觸碰既有 `invitecode_issue12` database。
+
+先將玩家名稱欄位改為 `VARCHAR(32)`：插件啟動後進入 `MAINTENANCE`，只保留 ledger 加玩家表兩張表、`APPLYING` 狀態和哨兵資料。修正回 `VARCHAR(64)` 後把 checksum 改錯：再次啟動仍進維護模式，沒有補建任何表。恢復正確 checksum 後，下一次普通啟動自動核對既有表並補齊至 13 張表；Console doctor 回報 `ACTIVE`，ledger 轉為 `APPLIED`，原哨兵資料與唯一一次初始化稽核保留。再次重啟仍為 `ACTIVE`，表數、ledger、稽核及哨兵資料不變。插件資料夾沒有建立本機 SQLite DB 或 `anti-abuse.key`。兩個獨立實例的 runner 均回報 `PASS`；第二次測試前，測試器已改為從 Paper 子程序環境移除 MySQL root 密碼。預期的兩次維護模式錯誤只出現在注入故障階段。
+
+這是**合成的已提交 DDL 中斷狀態**，不是在 MySQL 實際執行 DDL 時殺掉 JVM；它證明產品在該持久化邊界的安全拒絕、續建與重啟持久性，不證明任意時間點的 crash 都能復原。測試採本機 `tls-mode: REQUIRED`，仍未驗證 `VERIFY_IDENTITY`。兩次 Paper 及隔離 MySQL 服務均已正常關閉，62060／63384 埠已釋放；專用 database 保留作為測試證據。
+
+目前 Spigot／Paper 的啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console 指令、外部服務偵測及三個版本的合成玩家 Claim／離線 `MESSAGE` Reward 已有證據。Spigot 1.8.8 通過 Reward 中斷後的 `UNCERTAIN` 復原與兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款；SQLite 與 MySQL 也完成上述伺服器層級遷移復原測試。Issue #12 仍缺最新 Paper 26.2 的玩家 critical path、Folia 可載入後的實驗性 smoke，以及最終人工觀感驗收；不得據此宣布 1.0 發行 gate 通過。

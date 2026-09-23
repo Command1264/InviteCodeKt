@@ -64,6 +64,15 @@ pwsh -NoProfile -File .\scripts\test-servers\start.ps1 -Profile paper-latest
 
 ## 每個 profile 的最低 smoke
 
+已準備、記錄 EULA 接受狀態的隔離實例，可使用無玩家 smoke runner：
+
+```powershell
+pwsh -NoProfile -File .\scripts\test-servers\smoke.ps1 `
+  -Profile spigot-1.8.8 -Instance issue12-spigot-188
+```
+
+Runner 核對 `workspace.json` 的 profile、EULA、核心與插件 JAR SHA-256；等待插件啟用後從 Console 執行 `ic admin doctor`，確認 `ACTIVE`、整合狀態與儲存版本，正常送出 `stop`，檢查嚴格 UTF-8 log、儲存檔與 anti-abuse key，並輸出 JSON 結果。預設 backend 為 SQLite；對已明確設定 `backend: JSON` 的實例傳入 `-Backend JSON`。它不會替使用者接受 EULA、重建實例或模擬玩家。再次執行同一實例可比對重啟前後的資料與 key SHA-256。完整發行 gate 仍須依下列清單補足 critical user path 與外部整合情境。
+
 1. 確認 InviteCode 啟用且沒有 linkage error、legacy material warning 或未處理 exception。
 2. 確認所選 backend 首次啟動自動建立必要資料與 anti-abuse key（MySQL 使用外部密鑰），重新啟動後沿用既有資料。
 3. 玩家與 Console 驗證 `/ic help`、`/ic reload`、Tab completion 與權限拒絕。

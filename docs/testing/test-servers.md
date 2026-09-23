@@ -73,6 +73,8 @@ pwsh -NoProfile -File .\scripts\test-servers\smoke.ps1 `
 
 Runner 核對 `workspace.json` 的 profile、EULA、核心與插件 JAR SHA-256；等待插件啟用後從 Console 執行 `ic admin doctor`、`ic help` 與 `ic reload`，確認 `ACTIVE`、整合狀態、儲存版本、指令說明與重新載入成功，正常送出 `stop`，檢查嚴格 UTF-8 log、儲存檔與 anti-abuse key，並輸出 JSON 結果。預設 backend 為 SQLite；對已明確設定 `backend: JSON` 的實例傳入 `-Backend JSON`。它不會替使用者接受 EULA、重建實例或模擬玩家。再次執行同一實例可比對重啟前後的資料與 key SHA-256。完整發行 gate 仍須依下列清單補足 critical user path 與外部整合情境。
 
+預設預期 PlaceholderAPI 與 Vault Economy 都不存在。已在獨立實例安裝 PlaceholderAPI 時加上 `-ExpectPlaceholderApi`；已安裝 Vault 與經濟提供者時加上 `-ExpectVaultEconomy`。Runner 會核對 Console doctor 的實際整合狀態，輸出對應布林值；這只驗證服務偵測，不代表實際 placeholder 展開或經濟入帳已通過。
+
 1. 確認 InviteCode 啟用且沒有 linkage error、legacy material warning 或未處理 exception。
 2. 確認所選 backend 首次啟動自動建立必要資料與 anti-abuse key（MySQL 使用外部密鑰），重新啟動後沿用既有資料。
 3. 玩家與 Console 驗證 `/ic help`、`/ic reload`、Tab completion 與權限拒絕。

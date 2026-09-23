@@ -3,6 +3,8 @@ param(
     [Parameter(Mandatory = $true)][string] $Profile,
     [Parameter(Mandatory = $true)][string] $Instance,
     [ValidateSet('SQLITE', 'JSON')][string] $Backend = 'SQLITE',
+    [switch] $ExpectPlaceholderApi,
+    [switch] $ExpectVaultEconomy,
     [AllowNull()][string] $TestLabRoot,
     [ValidateRange(10, 600)][int] $TimeoutSeconds = 180
 )
@@ -72,6 +74,8 @@ $started = $false
 $doctorSent = $false
 $commandsSent = $false
 $stopped = $false
+$placeholderExpected = $ExpectPlaceholderApi.IsPresent.ToString().ToLowerInvariant()
+$vaultExpected = $ExpectVaultEconomy.IsPresent.ToString().ToLowerInvariant()
 $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
 $utf8Strict = [System.Text.UTF8Encoding]::new($false, $true)
 function Read-LiveLog {
@@ -102,6 +106,11 @@ try {
         if ($log -match "Could not load plugin 'InviteCode.*not marked as supporting Folia") {
             throw "Folia 拒絕載入尚未宣告支援的 InviteCode：$Instance"
         }
+        if ($doctorSent -and
+            $log -match 'Integration：PlaceholderAPI=(true|false)，Vault Economy=(true|false)' -and
+            $log -notmatch "Integration：PlaceholderAPI=$placeholderExpected，Vault Economy=$vaultExpected") {
+            throw "外部整合診斷與預期不符：PlaceholderAPI=$placeholderExpected，Vault Economy=$vaultExpected；$Instance"
+        }
         if (-not $doctorSent -and $log -match 'Done \(' -and
             $log -match '\[InviteCode\].*已啟用') {
             $process.StandardInput.WriteLine('ic admin doctor')
@@ -109,7 +118,8 @@ try {
             $doctorSent = $true
         }
         if ($doctorSent -and $log -match 'Runtime=ACTIVE' -and
-            $log -match 'Integration：' -and $log -match "$Backend 儲存版本=" -and
+            $log -match "Integration：PlaceholderAPI=$placeholderExpected，Vault Economy=$vaultExpected" -and
+            $log -match "$Backend 儲存版本=" -and
             -not $commandsSent) {
             $process.StandardInput.WriteLine('ic help')
             $process.StandardInput.WriteLine('ic reload')
@@ -151,6 +161,8 @@ try {
         serverSha256 = $metadata.serverSha256
         javaAlias = $metadata.javaAlias
         doctorActive = $true
+        placeholderApi = $ExpectPlaceholderApi.IsPresent
+        vaultEconomy = $ExpectVaultEconomy.IsPresent
         consoleCommands = @('ic admin doctor', 'ic help', 'ic reload')
         storageSha256 = (Get-FileHash -LiteralPath $databasePath -Algorithm SHA256).Hash
         keySha256 = (Get-FileHash -LiteralPath $keyPath -Algorithm SHA256).Hash

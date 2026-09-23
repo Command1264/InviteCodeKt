@@ -6,6 +6,7 @@ param(
     [Parameter(Mandatory = $true)][string] $Instance,
     [Parameter(Mandatory = $true)][string] $Artifact,
     [switch] $AcceptEula,
+    [switch] $RewardInterruption,
     [AllowNull()][string] $TestLabRoot
 )
 
@@ -15,6 +16,9 @@ $ErrorActionPreference = 'Stop'
 
 if ($Instance -cnotmatch '^issue12-[a-zA-Z0-9-]{1,72}$') {
     throw '合成玩家測試需要新的 issue12-* TestLab instance 名稱。'
+}
+if ($RewardInterruption -and $Profile -cne 'spigot-1.8.8') {
+    throw 'Reward 中斷測試目前只在 Spigot 1.8.8 的隔離實例執行。'
 }
 $lab = Resolve-PluginTestLabRoot -ExplicitRoot $TestLabRoot
 Import-Module (Join-Path $lab 'scripts\TestLab.psm1') -Force
@@ -50,4 +54,33 @@ policies:
 [System.IO.File]::WriteAllText(
     (Join-Path $data 'qualifications.yml'), $qualification, [System.Text.UTF8Encoding]::new($false)
 )
+if ($RewardInterruption) {
+    $rewards = @'
+config-version: 1
+
+qualification-rewards:
+  default:
+    inviter:
+      - type: MESSAGE
+        message: invite.qualified.inviter
+    invitee:
+      - type: CONSOLE_COMMAND
+        command: icfault
+
+milestone-rewards: {}
+'@
+    [System.IO.File]::WriteAllText(
+        (Join-Path $data 'rewards.yml'), $rewards, [System.Text.UTF8Encoding]::new($false)
+    )
+    $faultSource = Join-Path $PSScriptRoot 'synthetic-player\fault-plugin'
+    $classes = Join-Path $instancePath 'fault-plugin-classes'
+    $faultJar = Join-Path $instancePath 'plugins\InviteCodeFaultProbe.jar'
+    New-Item -ItemType Directory -Path $classes -Force | Out-Null
+    & mise exec java@local-8 -- javac -source 8 -target 8 -cp (Join-Path $instancePath 'server.jar') `
+        -d $classes (Join-Path $faultSource 'FaultPlugin.java')
+    if ($LASTEXITCODE -ne 0) { throw '測試專用 fault plugin 編譯失敗。' }
+    Copy-Item -LiteralPath (Join-Path $faultSource 'plugin.yml') -Destination (Join-Path $classes 'plugin.yml')
+    & mise exec java@local-8 -- jar cf $faultJar -C $classes .
+    if ($LASTEXITCODE -ne 0) { throw '測試專用 fault plugin 封裝失敗。' }
+}
 Write-Output "已建立合成玩家測試實例：$instancePath"

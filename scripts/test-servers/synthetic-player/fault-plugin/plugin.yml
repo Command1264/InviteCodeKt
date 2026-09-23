@@ -1,0 +1,6 @@
+name: InviteCodeFaultProbe
+version: 1.0.0
+main: io.github.command1264.invitecode.test.FaultPlugin
+commands:
+  icfault:
+    description: Test-only abrupt termination after a durable marker.

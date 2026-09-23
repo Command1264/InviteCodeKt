@@ -102,6 +102,22 @@ node .\scripts\test-servers\synthetic-player\flow.cjs `
 
 `-AcceptEula` 只能在使用者已接受 Minecraft EULA 的測試環境使用。Fixture 限定 Spigot 1.8.8、Paper 1.20.6 與 1.21.8；同一測試埠的實例須依序執行。準備腳本把測試實例設定為 `en_US`、`COMMAND_ONLY`、同 IP `ALLOW`，並以登入 1 天即符合資格的政策觸發預設 `MESSAGE` Reward。這些都是隔離測試設定，產品預設不變。Runner 要求資料庫與 key 尚不存在，完成後正常關閉自己啟動的伺服器；再次測試須使用新實例名稱。輸出 `PASS` 只證明這些指令與訊息路徑，不涵蓋聊天／Dialog 輸入、Vault 金額、最新 Paper 26.2 或中斷於外部效果期間的 `UNCERTAIN` 復原。
 
+### Reward 外部效果中斷
+
+在**全新的** Spigot 1.8.8 隔離實例上，`-RewardInterruption` 會以本機 `mise java@local-8` 編譯測試專用 `InviteCodeFaultProbe.jar`，並把 Invitee 的 Reward 設為 `CONSOLE_COMMAND: icfault`。此指令先將效果進入標記同步寫入自己的資料夾，第一次呼叫隨即以 `Runtime.halt(83)` 強制終止測試 JVM；只有同一實例的管理員明確 `retry`，第二次呼叫才會正常返回。它絕不可放到正式伺服器。需要 Python 3 的標準 `sqlite3` 模組，僅用於找出測試 Action UUID；狀態斷言透過 Console `doctor` 與 `inspect reward`。
+
+```powershell
+$jar = 'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-fixture-spigot-188\plugins\InviteCode-0.1.0-SNAPSHOT.jar'
+$name = 'issue12-uncertain-example-188'
+pwsh -NoProfile -File .\scripts\test-servers\prepare-synthetic-player.ps1 `
+  -Profile spigot-1.8.8 -Instance $name -Artifact $jar -AcceptEula -RewardInterruption
+$env:MISE_EXE = (Get-Command mise.exe -CommandType Application | Select-Object -First 1).Source
+node .\scripts\test-servers\synthetic-player\uncertain.cjs `
+  "D:\Code\Java\Plugin\TestLab\instances\InviteCode\$name" mark-delivered
+```
+
+`mark-delivered` 與 `retry` 各使用不同的新實例，勿重用上例的 `$name`；`MISE_EXE` 指向當前電腦實際安裝的 mise 執行檔。Runner 會檢查 loopback、EULA、JAR SHA-256 與全新資料庫，並只停止自己啟動的伺服器。第一次故障造成測試客戶端 `ECONNRESET` 是預期現象。重啟後 `UNCERTAIN=1`、重新登入不重發；`mark-delivered` 後標記仍只有一次，`retry` 後才增加至兩次並轉為 `DELIVERED`。這是隔離演練，不代表能證明外部系統中的所有實際效果。
+
 ## 自動檢查與最終真人驗收
 
 日常開發與各功能階段先由 Agent 執行不需要玩家判斷的檢查，包括 Gradle 測試、JAR 結構與 Java 8 bytecode、伺服器啟動與正常停機、log 錯誤掃描、UTF-8 解碼、SQLite／防濫用密鑰初始化，以及適用時的重啟持久化。這些結果須綁定受測 commit 與 JAR SHA-256。

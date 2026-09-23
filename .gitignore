@@ -10,3 +10,4 @@ out/
 *.db-shm
 *.db-wal
 .env
+scripts/test-servers/synthetic-player/node_modules/

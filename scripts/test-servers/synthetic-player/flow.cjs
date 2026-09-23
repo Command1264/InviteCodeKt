@@ -6,7 +6,7 @@ const { spawn, spawnSync } = require('node:child_process')
 const instancePath = path.resolve(process.argv[2] || '')
 const metadataPath = path.join(instancePath, 'workspace.json')
 const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
-const supportedProfiles = new Set(['spigot-1.8.8', 'paper-1.20.6', 'paper-1.21.8', 'paper-latest'])
+const supportedProfiles = new Set(['spigot-1.8.8', 'paper-1.20.6', 'paper-1.21.8', 'paper-latest', 'folia-latest'])
 if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(instancePath) ||
     !metadata.instance.startsWith('issue12-') || !supportedProfiles.has(metadata.profile) ||
     !metadata.eulaAccepted) {
@@ -15,6 +15,9 @@ if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(ins
 const clientPath = process.env.INVITECODE_SYNTHETIC_CLIENT_262
 if (metadata.profile === 'paper-latest' && metadata.minecraftVersion !== '26.2') {
   throw new Error('The pinned independent test client only supports Paper 26.2')
+}
+if (metadata.profile === 'folia-latest' && metadata.minecraftVersion !== '26.1.2') {
+  throw new Error('The pinned official test client only supports the selected Folia 26.1.2 fixture')
 }
 if (metadata.profile === 'paper-latest' &&
     (!clientPath || !path.isAbsolute(clientPath) || !fs.existsSync(path.join(clientPath, 'package.json')))) {
@@ -29,8 +32,10 @@ if (metadata.profile === 'paper-latest' &&
 const dataDirectory = path.join(instancePath, 'plugins', 'InviteCode')
 const config = fs.readFileSync(path.join(dataDirectory, 'config.yml'), 'utf8')
 const qualifications = fs.readFileSync(path.join(dataDirectory, 'qualifications.yml'), 'utf8')
+const chatMode = metadata.profile === 'folia-latest' && process.env.INVITECODE_FOLIA_CHAT === '1'
 if (!/default: en_US/.test(config) || !/use-client-locale: false/.test(config) ||
-    !/input-mode: COMMAND_ONLY/.test(config) || !/matching-ip-action: ALLOW/.test(config) ||
+    !(chatMode ? /input-mode: CHAT/.test(config) : /input-mode: COMMAND_ONLY/.test(config)) ||
+    !/matching-ip-action: ALLOW/.test(config) ||
     !/type: LOGIN_DAYS\s+at-least: 1/.test(qualifications)) {
   throw new Error('Synthetic-player fixture configuration does not match the expected isolated test policy')
 }
@@ -145,16 +150,42 @@ async function doctor(state, expected) {
 let server
 let inviter
 let invitee
+let regionA
+let regionB
 async function main() {
   try {
     server = await startServer()
+    if (metadata.profile === 'folia-latest' && process.env.INVITECODE_FOLIA_MULTI_REGION === '1') {
+      regionA = await createBot('IcRegionA')
+      regionB = await createBot('IcRegionB')
+      server.child.stdin.write('tp IcRegionA 10000 80 10000\n')
+      server.child.stdin.write('tp IcRegionB -10000 80 -10000\n')
+      await until(() => Math.abs(regionA.bot.entity.position.x - 10000) < 2 &&
+        Math.abs(regionB.bot.entity.position.x + 10000) < 2, 'bots in separate Folia regions')
+      await Promise.all([
+        command(regionA, '/ic status', /Invitation status: eligible=/),
+        command(regionB, '/ic status', /Invitation status: eligible=/)
+      ])
+      regionA.bot.quit()
+      regionB.bot.quit()
+      regionA = null
+      regionB = null
+    }
     inviter = await createBot('IcTestA')
     const code = (await command(inviter, '/ic code', /Your Invite Code is ([A-F0-9]{6})/))[1]
     inviter.bot.quit()
     inviter = null
     await delay(500)
     invitee = await createBot('IcTestB')
-    await command(invitee, `/ic claim ${code}`, /Inviter: IcTestA; Invite Code:/)
+    if (chatMode) {
+      await command(invitee, '/ic claim', /Enter the Invite Code in chat/)
+      const start = invitee.messages.length
+      invitee.bot.chat(code)
+      await until(() => invitee.messages.slice(start).some(message =>
+        /Inviter: IcTestA; Invite Code:/.test(message)), 'private chat claim confirmation')
+    } else {
+      await command(invitee, `/ic claim ${code}`, /Inviter: IcTestA; Invite Code:/)
+    }
     await command(invitee, '/ic confirm', /The Invitation has been created\./)
     await until(() => invitee.messages.some(message => message.includes('You have qualified as an invitee.')), 'Invitee Reward')
     await doctor(server, /Reward backlog: PENDING=1, PROCESSING=0, UNCERTAIN=0/)
@@ -170,11 +201,18 @@ async function main() {
     process.stdout.write(JSON.stringify({
       result: 'PASS', profile: metadata.profile, minecraftVersion: metadata.minecraftVersion,
       instance: metadata.instance, pluginSha256: metadata.pluginSha256,
-      checks: ['code', 'claim', 'confirm', 'qualification', 'pending-after-restart', 'offline-reward-on-login', 'stats']
+      checks: [
+        ...(metadata.profile === 'folia-latest' && process.env.INVITECODE_FOLIA_MULTI_REGION === '1'
+          ? ['separate-region-status'] : []),
+        ...(chatMode ? ['private-chat-input'] : []),
+        'code', 'claim', 'confirm', 'qualification', 'pending-after-restart', 'offline-reward-on-login', 'stats'
+      ]
     }) + '\n')
   } finally {
     if (inviter) inviter.bot.quit()
     if (invitee) invitee.bot.quit()
+    if (regionA) regionA.bot.quit()
+    if (regionB) regionB.bot.quit()
     if (server) await stopServer(server)
   }
 }

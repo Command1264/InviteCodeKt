@@ -25,7 +25,23 @@ class AsyncOperationExecutor(
     val acceptingOperations: Boolean
         get() = accepting.get()
 
+    fun callbacksOn(dispatch: (() -> Unit) -> Unit): BackgroundOperationExecutor =
+        object : BackgroundOperationExecutor {
+            override fun <T> submit(
+                operation: () -> T,
+                onSuccess: (T) -> Unit,
+                onFailure: (Throwable) -> Unit,
+            ): Boolean = submitWithDispatcher(dispatch, operation, onSuccess, onFailure)
+        }
+
     override fun <T> submit(
+        operation: () -> T,
+        onSuccess: (T) -> Unit,
+        onFailure: (Throwable) -> Unit,
+    ): Boolean = submitWithDispatcher(dispatchMain, operation, onSuccess, onFailure)
+
+    private fun <T> submitWithDispatcher(
+        dispatcher: (() -> Unit) -> Unit,
         operation: () -> T,
         onSuccess: (T) -> Unit,
         onFailure: (Throwable) -> Unit,
@@ -35,8 +51,8 @@ class AsyncOperationExecutor(
             executor.execute {
                 val result = runCatching(operation)
                 if (accepting.get()) {
-                    dispatchMain {
-                        if (!accepting.get()) return@dispatchMain
+                    dispatcher {
+                        if (!accepting.get()) return@dispatcher
                         result.fold(onSuccess, onFailure)
                     }
                 }

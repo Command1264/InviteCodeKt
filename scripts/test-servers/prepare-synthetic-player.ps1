@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('spigot-1.8.8', 'paper-1.20.6', 'paper-1.21.8', 'paper-latest')]
+    [ValidateSet('spigot-1.8.8', 'paper-1.20.6', 'paper-1.21.8', 'paper-latest', 'folia-latest')]
     [string] $Profile,
     [Parameter(Mandatory = $true)][string] $Instance,
     [Parameter(Mandatory = $true)][string] $Artifact,

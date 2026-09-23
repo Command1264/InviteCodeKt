@@ -2,10 +2,10 @@
 
 本文件為 InviteCode 的主要繁體中文維護者說明；精簡英文介紹請見 [`README.md`](../README.md)。
 
-InviteCode 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件；`InviteCodeKt` 是 repository 名稱，`Kt` 只表示實作使用 Kotlin。目標是以單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並透過隔離的 adapter 載入新版能力。
+InviteCode 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件；`InviteCodeKt` 是 repository 名稱，`Kt` 只表示實作使用 Kotlin。單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並以隔離 adapter 實驗性支援 Folia 26.1.2。
 
 > [!IMPORTANT]
-> 這個 repository 目前是 `0.1.0-SNAPSHOT`。舊版相容的 Bukkit 指令、聊天輸入、SQLite lifecycle、Qualification、可復原 Reward Delivery 與新版原生 Dialog adapter 已完成串接；跨版本自動化 smoke 已建立，玩家實際操作與畫面呈現仍留待發行前真人驗收。
+> 這個 repository 目前是 `0.1.0-SNAPSHOT`。舊版相容的 Bukkit 指令、聊天輸入、SQLite lifecycle、Qualification、可復原 Reward Delivery 與新版原生 Dialog adapter 已完成串接；Folia 26.1.2 的隔離合成玩家 smoke 也已通過。Folia 上的第三方整合與原生 Dialog 畫面、以及最終玩家體驗仍未完成驗收。
 
 ## 專案目標
 

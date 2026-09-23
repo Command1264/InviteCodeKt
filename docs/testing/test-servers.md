@@ -100,7 +100,23 @@ node .\scripts\test-servers\synthetic-player\flow.cjs `
   'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-example-spigot-188'
 ```
 
-`-AcceptEula` 只能在使用者已接受 Minecraft EULA 的測試環境使用。Fixture 支援 Spigot 1.8.8、Paper 1.20.6、1.21.8 與 `paper-latest` 設為 26.2 時的獨立測試客戶端；同一測試埠的實例須依序執行。準備腳本把測試實例設定為 `en_US`、`COMMAND_ONLY`、同 IP `ALLOW`，並以登入 1 天即符合資格的政策觸發預設 `MESSAGE` Reward。這些都是隔離測試設定，產品預設不變。Runner 要求資料庫與 key 尚不存在，完成後正常關閉自己啟動的伺服器；再次測試須使用新實例名稱。輸出 `PASS` 只證明這些指令與訊息路徑，不涵蓋聊天／Dialog 輸入、Vault 金額或中斷於外部效果期間的 `UNCERTAIN` 復原。
+`-AcceptEula` 只能在使用者已接受 Minecraft EULA 的測試環境使用。Fixture 支援 Spigot 1.8.8、Paper 1.20.6、1.21.8、`paper-latest` 設為 26.2 時的獨立測試客戶端，以及 `folia-latest` 設為 26.1.2 時的實驗性測試；同一測試埠的實例須依序執行。準備腳本把測試實例設定為 `en_US`、`COMMAND_ONLY`、同 IP `ALLOW`，並以登入 1 天即符合資格的政策觸發預設 `MESSAGE` Reward。這些都是隔離測試設定，產品預設不變。Runner 要求資料庫與 key 尚不存在，完成後正常關閉自己啟動的伺服器；再次測試須使用新實例名稱。輸出 `PASS` 只證明這些指令與訊息路徑，不涵蓋原生 Dialog 視覺、Vault 金額或中斷於外部效果期間的 `UNCERTAIN` 復原。
+
+Folia 26.1.2 的實驗性 fixture 需使用已選到該版本的 TestLab root。本機 `TestLab/worktrees/fix-folia-stable-profile` 提供這個 profile；若它尚未整合到 TestLab `develop`，請明確傳入 `-TestLabRoot`。與其他版本一樣，先安裝 `scripts/test-servers/synthetic-player/` 的固定測試依賴，並為每次測試選全新 `issue12-*` 實例：
+
+```powershell
+$lab = 'D:\Code\Java\Plugin\TestLab\worktrees\fix-folia-stable-profile'
+$name = 'issue12-folia-example'
+pwsh -NoProfile -File .\scripts\test-servers\prepare-synthetic-player.ps1 `
+  -Profile folia-latest -Instance $name `
+  -Artifact .\invitecode-plugin\build\libs\InviteCode-0.1.0-SNAPSHOT.jar `
+  -TestLabRoot $lab -AcceptEula
+$env:MISE_EXE = (Get-Command mise.exe -CommandType Application | Select-Object -First 1).Source
+node .\scripts\test-servers\synthetic-player\flow.cjs `
+  "D:\Code\Java\Plugin\TestLab\instances\InviteCode\$name"
+```
+
+跨 region 驗證須在**另一個全新實例首次啟動前**將其 `config/paper-global.yml` 的 `threaded-regions.threads` 設為 `2`，再設定 `$env:INVITECODE_FOLIA_MULTI_REGION = '1'` 執行同一 runner；它會把兩名合成玩家送往相距約兩萬格的區域，並行執行 `/ic status`。私密聊天驗證也使用新實例，將其 `plugins/InviteCode/config.yml` 設為 `input-mode: CHAT`，並設定 `$env:INVITECODE_FOLIA_CHAT = '1'`；原生 Dialog 畫面仍需後續人工驗收。完整實例、JAR 雜湊與結果見 [Issue #12 證據](./evidence/2026-09-24-issue-12-startup-matrix.md)。
 
 Paper 26.2 的玩家測試使用[獨立維護的 Mineflayer 26.2](https://github.com/Complexity-ML/mineflayer-26.2)，它並非 [PrismarineJS 官方 Mineflayer](https://github.com/PrismarineJS/mineflayer/blob/master/docs/README.md)。它只存在於 `scripts/test-servers/synthetic-player-26-2/` 的測試依賴，JAR 不會封裝它；安裝時停用 npm scripts，並僅連線至 EULA 已接受的 loopback／offline TestLab。`package-lock.json` 固定下載內容。先安裝，再建立**全新**實例：
 

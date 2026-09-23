@@ -13,7 +13,7 @@
 | `paper-1.20.6` | Paper 1.20.6 build 151 | `local-21` | 通過 |
 | `paper-1.21.8` | Paper 1.21.8 build 60 | `local-21` | 通過 |
 | `paper-latest` | Paper 26.2 build 128 | `local-25` | 通過 |
-| `folia-latest` | Folia 26.1.2 stable build 8，僅於 TestLab 本機 task Worktree 修正 profile 後 | `local-25` | 不通過：Folia 在載入階段拒絕插件 |
+| `folia-latest` | Folia 26.1.2 stable build 8，僅於 TestLab 本機 task Worktree 修正 profile 後 | `local-25` | 初輪拒載；排程改造後啟動、Console、合成玩家與兩個 region 的實驗性 smoke 通過，細節見下節 |
 
 另外以同一份 JAR 在 `paper-1.20.6` 的獨立 `issue12-json-paper-1206` 實例設為 `backend: JSON`，首次啟動與重啟均回報 `ACTIVE` 與 JSON 儲存版本 1；兩次正常停機後，`invitecode.json` 和 `anti-abuse.key` 的 SHA-256 各自一致。Console 的 `ic help` 與 `ic reload` 也通過。這是代表性 JSON 真實伺服器整合，並未測試 JSON 的玩家負載或跨 backend 搬移。
 
@@ -79,9 +79,9 @@ UUID 由測試程式透過 Python 標準 `sqlite3` 唯讀查得，斷言仍透�
 
 [Mineflayer 官方文件](https://github.com/PrismarineJS/mineflayer/blob/master/docs/README.md)目前列出的支援版本到 26.1；本地官方 Mineflayer 4.39.0 對 `26.2` 直接回報 `unsupported protocol version: 26.2`。本輪改用上述獨立客戶端後，兩個 Paper 26.2 build 129 實例都完成 Code、Claim、Confirm、Qualification、重啟後離線 Reward 補發與 Stats；Console doctor 的 `PENDING=1 → 0` 也符合預期。這是實際 26.2 伺服器玩家路徑證據，不代表上游 Mineflayer 已支援該版本，也不涵蓋真人客戶端的 Dialog 顯示或視覺體驗。
 
-[PaperMC Folia 下載頁](https://papermc.io/downloads/folia)當時提供 26.1.2 stable build 8，將 26.2 標示為 experimental；TestLab `develop` 的 `folia-latest` 固定為 26.2 並只選 stable，因此初次無法建立實例。於 TestLab 獨立本機 `codex/fix/folia-stable-profile` Worktree 將 profile 指向 26.1.2 後，TestLab self-test 與 doctor 通過，實例可建立。Folia log 隨即顯示 `Could not load plugin 'InviteCode v0.1.0-SNAPSHOT' as it is not marked as supporting Folia!`；插件在載入前遭拒，尚未進入程式相容性測試。[PaperMC 的 Folia 開發文件](https://docs.papermc.io/paper/dev/folia-support/)也明確指出，加入支援標記仍不足以保證相容，須使用正確的 scheduler。目前程式仍呼叫傳統 `server.scheduler`，不能為通過 smoke 而直接在正式 JAR 宣告 Folia 支援，必須先驗證 scheduler 與事件處理是否符合 Folia 邊界。Folia 26.1.2 在這台主機上還讓 Console `/stop` 拋出伺服器內部 `NullPointerException`；runner 等待 30 秒後終止自己建立的程序樹，63620 port 已釋放。此項不與 InviteCode 載入失敗混為一談。
+[PaperMC Folia 下載頁](https://papermc.io/downloads/folia)當時提供 26.1.2 stable build 8，將 26.2 標示為 experimental；TestLab `develop` 的 `folia-latest` 固定為 26.2 並只選 stable，因此初次無法建立實例。於 TestLab 獨立本機 `codex/fix/folia-stable-profile` Worktree 將 profile 指向 26.1.2 後，TestLab self-test 與 doctor 通過，實例可建立。Folia log 隨即顯示 `Could not load plugin 'InviteCode v0.1.0-SNAPSHOT' as it is not marked as supporting Folia!`；插件在載入前遭拒，尚未進入程式相容性測試。[PaperMC 的 Folia 開發文件](https://docs.papermc.io/paper/dev/folia-support/)也明確指出，加入支援標記仍不足以保證相容，須使用正確的 scheduler。當時程式仍呼叫傳統 `server.scheduler`，所以先完成下述排程稽核與改造，才在正式 JAR 宣告 Folia 支援。Folia 26.1.2 在這台主機上還曾讓 Console `/stop` 拋出伺服器內部 `NullPointerException`；runner 等待 30 秒後終止自己建立的程序樹，63620 port 已釋放。此項不與 InviteCode 載入失敗混為一談。
 
-### Folia 程式路徑稽核（2026-09-24）
+### Folia 變更前程式路徑稽核（2026-09-24）
 
 這是原始碼與先前 Folia 載入 log 的稽核，**不是**可載入後的 smoke。依 [PaperMC 的 scheduler 分工](https://docs.papermc.io/paper/dev/folia-support/#schedulers)，全域工作與玩家 entity 工作需要分別排程；不應把原本單一「server main thread」假設直接搬到 Folia。找到以下阻礙：
 
@@ -92,7 +92,21 @@ UUID 由測試程式透過 Python 標準 `sqlite3` 唯讀查得，斷言仍透�
 | Reward delivery | `BukkitRewardExecutionEnvironment` 以 `Bukkit.isPrimaryThread()` 作為所有 Reward 的共同前提，且同一路徑執行 Console command、Player command、訊息與 Vault deposit | 先定義各 Action 的執行位置；Console 與玩家效果不可假定由同一個執行緒安全完成，保留既有 `PROCESSING`／`UNCERTAIN` 語意 |
 | 管理指令及外部 API | 背景完成 callback 可能對玩家 sender 回訊，管理指令亦可依 UUID 直接讀取玩家；API 重評估讀取玩家 Statistic 與 qualification inputs | 依 sender／玩家歸屬派送，避免在全域 callback 讀寫遠端 region 的玩家 |
 
-因此本輪不修改 `plugin.yml` 的 `folia-supported` 欄位，也不以測試用 JAR 強行宣告相容來冒充有效 smoke。若另行實作 Folia 支援，先設計 Java 8／Spigot 1.8 可載入的 scheduler 邊界與玩家離線時 callback 處理，再對 Console、玩家 Claim／Chat／Dialog、資格掃描、離線 Reward 與 Vault／Placeholder 整合建立跨 region 測試；最後才加入支援標記並在隔離 TestLab 重跑 Folia smoke。未完成前 Folia 保持**未支援、實驗性驗證未通過**，不阻擋已通過的 Spigot／Paper 路徑，但 Issue #12 的 Folia 項目仍未完成。
+當時沒有只靠修改 `plugin.yml` 強行宣告相容。後續依此稽核實作 Java 8／Spigot 1.8 可載入的排程 adapter，並加入 `folia-supported: true`；實際 smoke 證據與剩餘限制如下。
+
+### Folia 排程改造與實驗性 smoke
+
+`PlatformTaskDispatcher` 讓舊版 Bukkit 使用既有 scheduler；Folia adapter 以反射隔離新版 API，將全域 callback、定時資格掃描與 Console Reward 排至 global scheduler，逐玩家資格取值、指令回覆、聊天／Dialog callback、訊息與 Player command Reward 排至 entity scheduler。玩家參照由登入／離線事件維護；Reward 仍先持久化狀態，再執行外部效果。`plugin.yml` 已加入 `folia-supported: true`，但這不代表未測試的 Folia 版本或外部插件組合可用。
+
+| 實例與受測 JAR SHA-256 | 結果 |
+| --- | --- |
+| `issue12-folia-scheduler-1`／`22E0CB80...` | 載入、SQLite 初始化與 Console doctor 通過；關閉時反射到 Folia 非公開類別導致 `IllegalAccessException`，已改由公開 `ScheduledTask` 介面取消 |
+| `issue12-folia-scheduler-2`、`issue12-folia-flow-1`／`C67B4768...` | 全新實例啟動、Console `doctor`／`help`／`reload`、正常關閉及合成玩家 Claim／重啟後離線訊息補發通過 |
+| `issue12-folia-rewards-2`／`48EC4706...` | 預設 MESSAGE 外另加 Console `say` 與玩家 `help`；兩種指令均實際執行，唯讀查 SQLite 確認 `CONSOLE_COMMAND=DELIVERED 1`、`PLAYER_COMMAND=DELIVERED 1`、`MESSAGE=DELIVERED 2` |
+| `issue12-folia-regions-3`、`issue12-folia-chat-1`／`89DE0B80DD950EE2942766F11E1B4EB3B0B6F0FE3EBAF5984BE36BB525BF0BAC` | 兩個獨立實例通過；前者設定 Folia 2 條 region 排程執行緒，將兩名玩家傳送至相距約兩萬格的區域後並行執行 `/ic status`，再完成原本 Claim／Reward 流程；後者使用私密聊天輸入完成同一流程，log 未刊出邀請碼聊天內容 |
+| `issue12-folia-final4`／`FF187679BD246A30BC76A573C16179363D3A79909C0595FF97F25A13065661BC` | 最終 JAR 在同一全新實例結合 Folia 2 條 region 執行緒、相距約兩萬格玩家的並行 `/ic status`、私密聊天輸入、Claim／Qualification、重啟後離線 Reward 補發與 Stats；runner 回報 `PASS`，正常停機 |
+
+較早同一個 `89DE0B80...` JAR 在全新的 `issue12-final-spigot-188` 與 `issue12-final-paper-262` 實例通過相同 Code、Claim、Confirmation、Qualification、重啟、離線 Reward 與 Stats 流程。最後的 `FF187679...` JAR 亦在全新 `issue12-spigot-final4` 與 `issue12-paper-final4` 實例完成上述完整流程，兩者 runner 均回報 `PASS`。以上皆使用 loopback、offline、已接受 EULA 的 TestLab 實例及 SQLite。各 runner 正常關閉自己啟動的服務。尚未驗證 Folia 上的原生 Dialog 畫面、Vault／PlaceholderAPI 與第三方 provider 的執行緒相容性，也未涵蓋不同 Folia 版本或長時間負載。這些限制不能由合成玩家 `PASS` 推定通過；發行文件只能稱 **Folia 26.1.2 實驗性 smoke 通過**。
 
 Spigot／Paper 26.2 的 log 有 Windows Perflib／OSHI／JNA 讀取系統計數器失敗及衍生的 system-report `NullPointerException`；堆疊未涉及 InviteCode，伺服器與插件仍可啟動、診斷並正常停機。這是測試主機／伺服器層級的已知雜訊，不能用它替代插件無錯誤的判定。
 
@@ -112,4 +126,4 @@ Spigot／Paper 26.2 的 log 有 Windows Perflib／OSHI／JNA 讀取系統計數�
 
 這是**合成的已提交 DDL 中斷狀態**，不是在 MySQL 實際執行 DDL 時殺掉 JVM；它證明產品在該持久化邊界的安全拒絕、續建與重啟持久性，不證明任意時間點的 crash 都能復原。測試採本機 `tls-mode: REQUIRED`，仍未驗證 `VERIFY_IDENTITY`。兩次 Paper 及隔離 MySQL 服務均已正常關閉，62060／63384 埠已釋放；專用 database 保留作為測試證據。
 
-目前 Spigot／Paper 的啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console 指令、外部服務偵測，以及 Spigot 1.8.8、Paper 1.20.6／1.21.8／26.2 的合成玩家 Claim／離線 `MESSAGE` Reward 已有證據。Spigot 1.8.8 通過 Reward 中斷後的 `UNCERTAIN` 復原與兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款；SQLite 與 MySQL 也完成上述伺服器層級遷移復原測試。Folia 的程式路徑稽核已完成，但可載入後的實驗性 smoke 仍缺，且最終人工觀感驗收尚未執行；不得據此宣布 1.0 發行 gate 通過。
+目前 Spigot／Paper 的啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console 指令、外部服務偵測，以及 Spigot 1.8.8、Paper 1.20.6／1.21.8／26.2 的合成玩家 Claim／離線 `MESSAGE` Reward 已有證據。Spigot 1.8.8 通過 Reward 中斷後的 `UNCERTAIN` 復原與兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款；SQLite 與 MySQL 也完成上述伺服器層級遷移復原測試。Folia 26.1.2 的實驗性啟動、玩家 Claim／Chat、跨 region 狀態查詢及三種 Reward Action smoke 已通過；原生 Dialog 視覺、Folia 第三方整合及最終人工觀感仍未驗證，不得據此宣布 1.0 發行 gate 通過。

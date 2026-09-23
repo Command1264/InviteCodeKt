@@ -24,10 +24,11 @@ class BukkitCompatibilityTest {
     }
 
     @Test
-    fun `Spigot 1_8 loader accepts the modern api-version metadata`() {
+    fun `Spigot 1_8 loader accepts modern and Folia metadata`() {
         val resource = requireNotNull(javaClass.getResourceAsStream("/plugin.yml"))
         val text = resource.bufferedReader(Charsets.UTF_8).use { it.readText() }
         assertTrue(text.lineSequence().any { it.trim() == "api-version: '1.13'" })
+        assertTrue(text.lineSequence().any { it.trim() == "folia-supported: true" })
 
         val description = javaClass.getResourceAsStream("/plugin.yml").use { input ->
             PluginDescriptionFile(requireNotNull(input))

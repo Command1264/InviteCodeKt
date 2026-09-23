@@ -4,6 +4,7 @@ import io.github.command1264.invitecode.core.OnlineRewardActionResult
 import io.github.command1264.invitecode.core.RewardExecutionEnvironment
 import org.bukkit.Bukkit
 import org.bukkit.Server
+import org.bukkit.entity.Player
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -20,10 +21,11 @@ class BukkitRewardExecutionEnvironment(
     private val messages: RewardMessageResolver,
     private val economy: EconomyRewardGateway? = null,
     private val isPrimaryThread: () -> Boolean = Bukkit::isPrimaryThread,
+    private val playerLookup: (UUID) -> Player? = server::getPlayer,
 ) : RewardExecutionEnvironment {
     override fun isOnline(playerId: UUID): Boolean {
         requireMainThread()
-        return server.getPlayer(playerId)?.isOnline == true
+        return playerLookup(playerId)?.isOnline == true
     }
 
     override fun dispatchConsole(command: String): Boolean {
@@ -33,7 +35,7 @@ class BukkitRewardExecutionEnvironment(
 
     override fun dispatchPlayer(playerId: UUID, command: String): OnlineRewardActionResult {
         requireMainThread()
-        val player = server.getPlayer(playerId)
+        val player = playerLookup(playerId)
             ?: return OnlineRewardActionResult.RECIPIENT_OFFLINE
         return if (player.performCommand(command)) {
             OnlineRewardActionResult.ACCEPTED
@@ -44,7 +46,7 @@ class BukkitRewardExecutionEnvironment(
 
     override fun sendMessage(playerId: UUID, localeKey: String): OnlineRewardActionResult {
         requireMainThread()
-        val player = server.getPlayer(playerId)
+        val player = playerLookup(playerId)
             ?: return OnlineRewardActionResult.RECIPIENT_OFFLINE
         player.sendMessage(messages.resolve(playerId, localeKey))
         return OnlineRewardActionResult.ACCEPTED
@@ -63,7 +65,7 @@ class BukkitRewardExecutionEnvironment(
 
     private fun requireMainThread() {
         check(isPrimaryThread()) {
-            "Bukkit Reward operations must be called on the server main thread by AsyncRewardDeliveryWorkflow."
+            "Bukkit Reward operations must be called on a platform-owned thread by AsyncRewardDeliveryWorkflow."
         }
     }
 }

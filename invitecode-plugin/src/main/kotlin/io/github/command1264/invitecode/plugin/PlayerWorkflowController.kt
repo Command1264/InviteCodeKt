@@ -20,6 +20,7 @@ import io.github.command1264.invitecode.core.PermissionQualificationLookup
 import io.github.command1264.invitecode.core.PlayerNetworkHash
 import io.github.command1264.invitecode.core.PlaceholderQualificationLookup
 import io.github.command1264.invitecode.core.RewardActionExecutionContext
+import io.github.command1264.invitecode.core.RewardActionType
 import io.github.command1264.invitecode.core.RewardDeliveryCoordinator
 import io.github.command1264.invitecode.core.StandardRewardActionExecutor
 import io.github.command1264.invitecode.core.PlayerClaimState
@@ -44,6 +45,7 @@ import io.github.command1264.invitecode.platform.bukkit.parser
 import io.github.command1264.invitecode.platform.bukkit.ParsedInviteCodeCommand
 import io.github.command1264.invitecode.platform.bukkit.RewardMessageResolver
 import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
+import io.github.command1264.invitecode.platform.bukkit.PlatformTaskDispatcher
 import io.github.command1264.invitecode.platform.bukkit.resolve
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
@@ -67,6 +69,7 @@ class PlayerWorkflowController(
     private val configuration: AtomicRuntimeSnapshot<InviteCodeRuntimeConfiguration>,
     private val storage: AtomicReference<InviteCodeStorage?>,
     private val operations: AsyncOperationExecutor,
+    private val tasks: PlatformTaskDispatcher,
     private val sessions: ClaimInteractionSessions,
     private val externalQualificationProviders: QualificationProviderRegistry,
     private val networkHasher: AtomicReference<NetworkAddressHasher?>,
@@ -84,14 +87,23 @@ class PlayerWorkflowController(
                 requireNotNull(store.invitation(invitationId)) { "Invitation $invitationId does not exist." }
             },
             onSuccess = { invitation ->
-                val player = plugin.server.getPlayer(invitation.inviteeId)
                 val runtime = configuration.current().value
-                val playTime = player?.let {
-                    Duration.ofMillis(BukkitStatisticCompatibility.playTimeTicks(it) * 50L)
+                val player = tasks.onlinePlayer(invitation.inviteeId)
+                if (player == null) {
+                    submitQualificationEvaluation(
+                        invitationId, null, runtime, QualificationInputs(emptyMap(), emptyMap()), future,
+                    )
+                } else {
+                    tasks.player(player, operation = {
+                        val playTime = Duration.ofMillis(BukkitStatisticCompatibility.playTimeTicks(player) * 50L)
+                        val inputs = captureQualificationInputs(player, runtime)
+                        submitQualificationEvaluation(invitationId, playTime, runtime, inputs, future)
+                    }, retired = {
+                        submitQualificationEvaluation(
+                            invitationId, null, runtime, QualificationInputs(emptyMap(), emptyMap()), future,
+                        )
+                    })
                 }
-                val inputs = player?.let { captureQualificationInputs(it, runtime) }
-                    ?: QualificationInputs(emptyMap(), emptyMap())
-                submitQualificationEvaluation(invitationId, playTime, runtime, inputs, future)
             },
             onFailure = future::completeExceptionally,
         )
@@ -111,6 +123,7 @@ class PlayerWorkflowController(
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onJoin(event: PlayerJoinEvent) {
+        tasks.track(event.player)
         registerPlayer(event.player)
     }
 
@@ -125,7 +138,8 @@ class PlayerWorkflowController(
         val externalInputs = captureQualificationInputs(player, snapshot.value)
         val networkAddress = player.address?.address?.address?.copyOf()
         submit(
-            playerId,
+            player,
+            globalCompletion = true,
             operation = { store ->
                 val existing = store.player(playerId)
                 val firstSeenAt = if (
@@ -181,13 +195,14 @@ class PlayerWorkflowController(
         val playerId = event.player.uniqueId
         val code = sessions.consumeChatInput(playerId, event.message) ?: return
         event.isCancelled = true
-        plugin.server.scheduler.runTask(plugin, Runnable {
-            plugin.server.getPlayer(playerId)?.let { beginClaim(it, code) }
+        tasks.player(event.player, operation = {
+            if (tasks.onlinePlayer(playerId) === event.player) beginClaim(event.player, code)
         })
     }
 
     @EventHandler
     fun onQuit(event: PlayerQuitEvent) {
+        tasks.untrack(event.player)
         sessions.disconnect(event.player.uniqueId)
         nativeDialogInput.disconnect(event.player.uniqueId)
     }
@@ -197,7 +212,7 @@ class PlayerWorkflowController(
         val snapshot = configuration.current()
         val generator = snapshot.value.general.inviteCode.format.generator()
         submit(
-            playerId,
+            player,
             operation = { store ->
                 InviteCodeLifecycleService(store, generator, 64).assign(playerId, now())
             },
@@ -218,9 +233,9 @@ class PlayerWorkflowController(
         when (claim.inputMode.resolve(capabilities)) {
             ClaimInputChannel.COMMAND_ONLY -> send(playerId, "command.claim.command-only")
             ClaimInputChannel.DIALOG -> {
-                if (!startDialogInput(player, runtime)) startChatInput(playerId, claim.chatInputTimeout)
+                if (!startDialogInput(player, runtime)) startChatInput(player, claim.chatInputTimeout)
             }
-            ClaimInputChannel.CHAT -> startChatInput(playerId, claim.chatInputTimeout)
+            ClaimInputChannel.CHAT -> startChatInput(player, claim.chatInputTimeout)
         }
     }
 
@@ -240,13 +255,14 @@ class PlayerWorkflowController(
                 maximumLength = 64,
             ),
             onSubmit = { rawCode ->
-                plugin.server.scheduler.runTask(plugin, Runnable {
-                    val current = plugin.server.getPlayer(playerId) ?: return@Runnable
-                    sessions.consumeDialogInput(playerId, rawCode)?.let { beginClaim(current, it) }
+                tasks.player(player, operation = {
+                    if (tasks.onlinePlayer(playerId) === player) {
+                        sessions.consumeDialogInput(playerId, rawCode)?.let { beginClaim(player, it) }
+                    }
                 })
             },
             onCancel = {
-                plugin.server.scheduler.runTask(plugin, Runnable {
+                tasks.player(player, operation = {
                     if (sessions.cancel(playerId)) send(playerId, "command.claim.cancelled")
                 })
             },
@@ -255,18 +271,19 @@ class PlayerWorkflowController(
             sessions.cancel(playerId)
             return false
         }
-        scheduleTimeout(timeout) {
+        scheduleTimeout(player, timeout) {
             if (sessions.expireDialogInput(playerId)) {
-                plugin.server.getPlayer(playerId)?.let(nativeDialogInput::cancel)
+                tasks.onlinePlayer(playerId)?.let(nativeDialogInput::cancel)
                 send(playerId, "command.claim.dialog-timeout")
             }
         }
         return true
     }
 
-    private fun startChatInput(playerId: UUID, timeout: Duration) {
+    private fun startChatInput(player: Player, timeout: Duration) {
+        val playerId = player.uniqueId
         sessions.startChatInput(playerId, timeout)
-        scheduleTimeout(timeout) {
+        scheduleTimeout(player, timeout) {
             if (sessions.expireChatInput(playerId)) send(playerId, "command.claim.chat-timeout")
         }
         send(
@@ -280,7 +297,7 @@ class PlayerWorkflowController(
         val playerId = player.uniqueId
         val snapshot = configuration.current()
         submit(
-            playerId,
+            player,
             operation = { store -> prepareClaim(playerId, rawCode, snapshot.value, store) },
             onSuccess = { prepared ->
                 when (prepared) {
@@ -289,7 +306,7 @@ class PlayerWorkflowController(
                     PreparedClaim.Self -> send(playerId, "command.claim.self")
                     is PreparedClaim.Ready -> {
                         sessions.startConfirmation(prepared.confirmation)
-                        scheduleTimeout(snapshot.value.general.claim.confirmationTimeout) {
+                        scheduleTimeout(player, snapshot.value.general.claim.confirmationTimeout) {
                             if (sessions.expireConfirmation(playerId)) {
                                 send(playerId, "command.claim.confirmation-timeout")
                             }
@@ -345,7 +362,7 @@ class PlayerWorkflowController(
         }
         val snapshot = configuration.current()
         submit(
-            playerId,
+            player,
             operation = { store ->
                 val confirmed = confirmation.confirm(playerId, now())
                 InvitationClaimService(
@@ -366,7 +383,7 @@ class PlayerWorkflowController(
                                     "invitee=${result.invitation.inviteeId}。",
                             )
                         }
-                        plugin.server.getPlayer(playerId)?.let(::registerPlayer)
+                        tasks.onlinePlayer(playerId)?.let(::registerPlayer)
                     }
                     is InvitationClaimResult.MatchingNetworkDenied -> {
                         send(playerId, "command.claim.matching-network-denied")
@@ -396,7 +413,7 @@ class PlayerWorkflowController(
         val playerId = player.uniqueId
         val snapshot = configuration.current()
         submit(
-            playerId,
+            player,
             operation = { store ->
                 val state = store.claimState(playerId)
                 PlayerStatus(
@@ -430,7 +447,7 @@ class PlayerWorkflowController(
     private fun stats(player: Player) {
         val playerId = player.uniqueId
         submit(
-            playerId,
+            player,
             operation = { store -> store.inviterInvitationStats(playerId) },
             onSuccess = { result ->
                 send(
@@ -633,17 +650,29 @@ class PlayerWorkflowController(
         val environment = BukkitRewardExecutionEnvironment(
             plugin.server,
             RewardMessageResolver { playerId, localeKey ->
-                val locale = plugin.server.getPlayer(playerId)?.let(BukkitLocaleCompatibility::locale)
+                val locale = this.tasks.currentPlayer(playerId)?.let(BukkitLocaleCompatibility::locale)
                 messages.resolve(locale, localeKey)
             },
             economyGateway(),
-        )
-        val workflow = AsyncRewardDeliveryWorkflow(
-            operations,
-            CoordinatorRewardActionStateStore(RewardDeliveryCoordinator(store)),
-            StandardRewardActionExecutor(environment),
+            isPrimaryThread = this.tasks::isManagedThread,
+            playerLookup = this.tasks::currentPlayer,
         )
         tasks.forEach { task ->
+            val actionOperations = operations.callbacksOn { callback ->
+                when (task.action.type) {
+                    RewardActionType.MESSAGE.name, RewardActionType.PLAYER_COMMAND.name -> {
+                        val player = this.tasks.onlinePlayer(task.action.recipientId)
+                        if (player == null) this.tasks.global(callback)
+                        else this.tasks.player(player, operation = callback, retired = { this.tasks.global(callback) })
+                    }
+                    else -> this.tasks.global(callback)
+                }
+            }
+            val workflow = AsyncRewardDeliveryWorkflow(
+                actionOperations,
+                CoordinatorRewardActionStateStore(RewardDeliveryCoordinator(store)),
+                StandardRewardActionExecutor(environment),
+            )
             val accepted = workflow.process(
                 task.action,
                 task.context,
@@ -657,15 +686,20 @@ class PlayerWorkflowController(
     }
 
     private fun <T> submit(
-        playerId: UUID,
+        player: Player,
+        globalCompletion: Boolean = false,
         operation: (InviteCodeStorage) -> T,
         onSuccess: (T) -> Unit,
     ) {
-        val accepted = operations.submit(
+        val playerId = player.uniqueId
+        val callbackExecutor = if (globalCompletion) operations else operations.callbacksOn { callback ->
+            tasks.player(player, operation = callback)
+        }
+        val accepted = callbackExecutor.submit(
             operation = { operation(requireNotNull(storage.get()) { "SQLite storage is unavailable." }) },
             onSuccess = onSuccess,
             onFailure = { error ->
-                send(playerId, "command.error")
+                tasks.player(player, operation = { send(playerId, "command.error") })
                 plugin.logger.log(Level.WARNING, "InviteCode 玩家操作失敗。", error)
             },
         )
@@ -673,7 +707,7 @@ class PlayerWorkflowController(
     }
 
     private fun send(playerId: UUID, key: String, variables: Map<String, String> = emptyMap()) {
-        val player = plugin.server.getPlayer(playerId) ?: return
+        val player = tasks.onlinePlayer(playerId) ?: return
         val messages = configuration.currentOrNull()?.value?.messages
         if (messages == null) {
             player.sendMessage("InviteCode 設定尚未載入。")
@@ -683,7 +717,7 @@ class PlayerWorkflowController(
     }
 
     private fun resolve(playerId: UUID, key: String): String {
-        val player = plugin.server.getPlayer(playerId) ?: return "[offline]"
+        val player = tasks.onlinePlayer(playerId) ?: return "[offline]"
         return configuration.current().value.messages.resolve(BukkitLocaleCompatibility.locale(player), key)
     }
 
@@ -691,9 +725,9 @@ class PlayerWorkflowController(
         return displayFormatter.display(code)
     }
 
-    private fun scheduleTimeout(duration: Duration, operation: () -> Unit) {
+    private fun scheduleTimeout(player: Player, duration: Duration, operation: () -> Unit) {
         val ticks = ((duration.toMillis() + 49L) / 50L).coerceAtLeast(1L)
-        plugin.server.scheduler.runTaskLater(plugin, Runnable(operation), ticks)
+        tasks.delayPlayer(player, ticks, operation)
     }
 
     private sealed class PreparedClaim {

@@ -19,8 +19,10 @@ import io.github.command1264.invitecode.platform.bukkit.PluginRuntimeState
 import io.github.command1264.invitecode.platform.bukkit.RuntimePhase
 import io.github.command1264.invitecode.platform.bukkit.RuntimeConfigurationReload
 import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
+import io.github.command1264.invitecode.platform.bukkit.PlatformTaskDispatcher
 import io.github.command1264.invitecode.platform.modern.ModernPlatformCapabilities
 import io.github.command1264.invitecode.platform.modern.ModernPlatformIntegration
+import io.github.command1264.invitecode.platform.modern.PlatformTaskDispatchers
 import io.github.command1264.invitecode.storage.json.JsonInviteCodeStorage
 import io.github.command1264.invitecode.storage.sql.BlockingOperationGuard
 import io.github.command1264.invitecode.storage.sql.SqliteInviteCodeStorage
@@ -33,7 +35,6 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.plugin.ServicePriority
-import org.bukkit.scheduler.BukkitTask
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
@@ -48,13 +49,16 @@ class InviteCodePlugin : JavaPlugin() {
     private val sessions = ClaimInteractionSessions()
     private var operations: AsyncOperationExecutor? = null
     private var playerWorkflows: PlayerWorkflowController? = null
-    private var qualificationTask: BukkitTask? = null
+    private var qualificationTask: AutoCloseable? = null
+    private lateinit var tasks: PlatformTaskDispatcher
     private var modernIntegration: ModernPlatformIntegration? = null
 
     override fun onEnable() {
         saveBundledResources()
+        tasks = PlatformTaskDispatchers.create(this)
+        server.onlinePlayers.forEach(tasks::track)
         val executor = AsyncOperationExecutor("InviteCode-storage") { operation ->
-            server.scheduler.runTask(this, Runnable(operation))
+            tasks.global(operation)
         }
         operations = executor
         val modern = ModernPlatformCapabilities.initialize(this)
@@ -65,6 +69,7 @@ class InviteCodePlugin : JavaPlugin() {
             configuration,
             storage,
             executor,
+            tasks,
             sessions,
             externalQualificationProviders,
             networkHasher,
@@ -92,8 +97,11 @@ class InviteCodePlugin : JavaPlugin() {
             configuration,
             storage,
             executor,
+            tasks,
             refreshPlayer = { playerId ->
-                server.getPlayer(playerId)?.let(playerWorkflows::registerPlayer)
+                tasks.onlinePlayer(playerId)?.let { player ->
+                    tasks.player(player, operation = { playerWorkflows.registerPlayer(player) })
+                }
             },
         )
         getCommand("invitecode")?.let { command ->
@@ -108,19 +116,21 @@ class InviteCodePlugin : JavaPlugin() {
                     doctor = ::doctor,
                 ),
             )
-            command.setTabCompleter(BukkitInviteCodeTabCompleter(server))
+            command.setTabCompleter(BukkitInviteCodeTabCompleter(tasks))
         }
-        qualificationTask = server.scheduler.runTaskTimer(this, Runnable {
+        qualificationTask = tasks.repeatGlobal(20L * 60L, 20L * 60L) {
             if (runtime.phase == RuntimePhase.ACTIVE) {
-                server.onlinePlayers.forEach(playerWorkflows::registerPlayer)
+                tasks.onlinePlayers().forEach { player ->
+                    tasks.player(player, operation = { playerWorkflows.registerPlayer(player) })
+                }
             }
-        }, 20L * 60L, 20L * 60L)
+        }
         start(executor)
     }
 
     override fun onDisable() {
         runtime.beginStopping()
-        qualificationTask?.cancel()
+        qualificationTask?.close()
         qualificationTask = null
         sessions.clear()
         modernIntegration?.dialogInput?.close()
@@ -151,7 +161,9 @@ class InviteCodePlugin : JavaPlugin() {
                     if (result.storageInitialized) {
                         logger.info("已自動完成首次 ${result.configuration?.storage?.backend} 儲存與防濫用密鑰初始化。")
                     }
-                    server.onlinePlayers.forEach { playerWorkflows?.registerPlayer(it) }
+                    tasks.onlinePlayers().forEach { player ->
+                        tasks.player(player, operation = { playerWorkflows?.registerPlayer(player) })
+                    }
                     logger.info("InviteCode ${description.version} 已啟用。")
                 } else {
                     val message = result.error?.message ?: "未知的啟動錯誤。"
@@ -230,7 +242,7 @@ class InviteCodePlugin : JavaPlugin() {
             sendLocalized(sender, "admin.reload-stopping")
             return
         }
-        val accepted = executor.submit(
+        val accepted = executor.callbacksOn { callback -> dispatchSender(sender, callback) }.submit(
             operation = {
                 val candidate = BukkitConfigurationLoader(dataFolder.toPath()) { key ->
                     logger.warning("找不到語系訊息：$key")
@@ -271,7 +283,7 @@ class InviteCodePlugin : JavaPlugin() {
         }
         val actor = sender.name
         val reason = requireNotNull(request.reason)
-        val accepted = executor.submit(
+        val accepted = executor.callbacksOn { callback -> dispatchSender(sender, callback) }.submit(
             operation = {
                 val guard = BlockingOperationGuard.rejectingServerMainThread(Bukkit::isPrimaryThread)
                 when (candidate.storage.backend) {
@@ -322,7 +334,9 @@ class InviteCodePlugin : JavaPlugin() {
                     networkHasher.getAndSet(hasher)?.close()
                 }
                 if (runtime.phase == RuntimePhase.MAINTENANCE) runtime.activate()
-                server.onlinePlayers.forEach { playerWorkflows?.registerPlayer(it) }
+                tasks.onlinePlayers().forEach { player ->
+                    tasks.player(player, operation = { playerWorkflows?.registerPlayer(player) })
+                }
                 logger.info("$actor 以理由「$reason」完成 $target schema migration 至版本 ${result.version}。")
                 sendLocalized(sender, "admin.storage-success", mapOf("version" to result.version.toString()))
             },
@@ -367,7 +381,7 @@ class InviteCodePlugin : JavaPlugin() {
             sendLocalized(sender, "admin.doctor-storage-offline")
             return
         }
-        val accepted = executor.submit(
+        val accepted = executor.callbacksOn { callback -> dispatchSender(sender, callback) }.submit(
             operation = { store.rewardBacklogCounts() },
             onSuccess = { backlog ->
                 sendLocalized(
@@ -403,6 +417,11 @@ class InviteCodePlugin : JavaPlugin() {
         }
         val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
         sender.sendMessage(messages.resolve(locale, key, variables))
+    }
+
+    private fun dispatchSender(sender: CommandSender, operation: () -> Unit) {
+        if (sender is Player) tasks.player(sender, operation = operation)
+        else tasks.global(operation)
     }
 
     private fun saveBundledResources() {

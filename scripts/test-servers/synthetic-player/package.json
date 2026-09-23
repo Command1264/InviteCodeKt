@@ -1,0 +1,12 @@
+{
+  "name": "invitecode-synthetic-player-smoke",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Test-only Minecraft clients for InviteCode release-gate smoke",
+  "devDependencies": {
+    "mineflayer": "4.39.0"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
+  }
+}

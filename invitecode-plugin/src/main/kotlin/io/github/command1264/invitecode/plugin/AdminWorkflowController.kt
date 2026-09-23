@@ -17,6 +17,7 @@ import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeRuntimeConfiguration
 import io.github.command1264.invitecode.platform.bukkit.generator
 import io.github.command1264.invitecode.platform.bukkit.ParsedInviteCodeCommand
+import io.github.command1264.invitecode.platform.bukkit.PlatformTaskDispatcher
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
@@ -30,6 +31,7 @@ class AdminWorkflowController(
     private val configuration: AtomicRuntimeSnapshot<InviteCodeRuntimeConfiguration>,
     private val storage: AtomicReference<InviteCodeStorage?>,
     private val operations: AsyncOperationExecutor,
+    private val tasks: PlatformTaskDispatcher,
     private val refreshPlayer: (UUID) -> Unit,
     private val now: () -> Instant = Instant::now,
 ) {
@@ -230,7 +232,10 @@ class AdminWorkflowController(
         operation: (InviteCodeStorage) -> T,
         onSuccess: (T) -> Unit,
     ): Boolean {
-        val accepted = operations.submit(
+        val accepted = operations.callbacksOn { callback ->
+            if (sender is Player) tasks.player(sender, operation = callback)
+            else tasks.global(callback)
+        }.submit(
             operation = { operation(requireNotNull(storage.get()) { "SQLite storage is unavailable." }) },
             onSuccess = onSuccess,
             onFailure = { error ->

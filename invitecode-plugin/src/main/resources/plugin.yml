@@ -2,6 +2,7 @@ name: InviteCode
 version: "${version}"
 main: io.github.command1264.invitecode.plugin.InviteCodePlugin
 api-version: '1.13'
+folia-supported: true
 description: Cross-version invitation and referral rewards plugin.
 authors: [Command1264]
 website: https://github.com/Command1264/InviteCodeKt

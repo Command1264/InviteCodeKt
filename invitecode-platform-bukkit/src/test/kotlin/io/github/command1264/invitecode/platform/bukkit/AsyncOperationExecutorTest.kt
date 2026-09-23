@@ -53,6 +53,25 @@ class AsyncOperationExecutorTest {
         callbacks.forEach { it.invoke() }
     }
 
+    @Test
+    fun `routes callbacks through the selected dispatcher`() {
+        val global = CopyOnWriteArrayList<() -> Unit>()
+        val player = CopyOnWriteArrayList<() -> Unit>()
+        val completed = CountDownLatch(1)
+        AsyncOperationExecutor("invitecode-test", global::add).use { executor ->
+            val playerOperations = executor.callbacksOn(player::add)
+            assertTrue(playerOperations.submit(
+                operation = { "player result" },
+                onSuccess = { assertEquals("player result", it); completed.countDown() },
+                onFailure = { throw AssertionError(it) },
+            ))
+            waitForCallbacks(player)
+            assertTrue(global.isEmpty())
+            player.removeAt(0).invoke()
+            assertTrue(completed.await(1, TimeUnit.SECONDS))
+        }
+    }
+
     private fun waitForCallbacks(callbacks: List<() -> Unit>) {
         repeat(100) {
             if (callbacks.isNotEmpty()) return

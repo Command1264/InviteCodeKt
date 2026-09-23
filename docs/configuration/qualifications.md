@@ -32,6 +32,8 @@ policies:
 
 時間接受 `ms`、`s`、`m`、`h`、`d` 簡寫或 ISO-8601 Duration，例如 `30m`、`1d`、`PT2H`。Placeholder operator 支援 `EQUALS`、`NOT_EQUALS`、`CONTAINS`、`GREATER_THAN`、`GREATER_THAN_OR_EQUAL`、`LESS_THAN` 與 `LESS_THAN_OR_EQUAL`；大小比較要求實際值與設定值都是數字。
 
+比較文字 `yes`、`no`、`on`、`off` 時，請將 `value` 寫成帶引號的字串，例如 `value: "yes"`。YAML 解析器可能把未加引號的寫法當成布林值，導致與 PlaceholderAPI 回傳的文字不相等。
+
 Permission、Placeholder 或外部 provider 不存在時，condition 預設產生 `UNKNOWN`。可明確設定安全的退回行為：
 
 ```yaml

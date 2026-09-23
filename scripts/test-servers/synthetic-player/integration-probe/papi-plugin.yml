@@ -1,0 +1,8 @@
+name: InviteCodePapiProbe
+version: 1.0.0
+api-version: '1.13'
+main: io.github.command1264.invitecode.test.PapiProbePlugin
+depend: [PlaceholderAPI]
+commands:
+  icprobe:
+    description: Test-only PlaceholderAPI value toggle.

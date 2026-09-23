@@ -12,7 +12,7 @@ InviteCode 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件；`In
 - 透過 Invite Code 建立一筆永久的 Inviter 與 Invitee 關係。
 - 將建立 Invitation 與達成獎勵資格分成不同階段。
 - 支援可設定的 Qualification Policy 與可復原的 Reward Delivery。
-- 已實作 SQLite 與 MySQL 8.4；JSON 仍是後續規劃。
+- 已實作 SQLite 與 MySQL 8.4；JSON 可供小型單實例伺服器、測試與資料交換使用。
 - 在不使用 NMS 的前提下維持 Java 8 執行環境相容性。
 - 在有能力的新版伺服器使用原生 Dialog 輸入，其餘版本安全退回聊天或指令輸入。
 
@@ -67,6 +67,8 @@ invitecode-plugin/build/libs/InviteCode-0.1.0-SNAPSHOT.jar
 SQLite persistence 具備暫存資料庫 contract tests，插件只在專用 executor 執行 blocking I/O。全新安裝會自動建立 SQLite schema 與所需密鑰；既有資料庫的 schema 更新仍須使用明確的 `admin storage migrate`。完整操作方式請參閱 [`bukkit-workflow.md`](./operations/bukkit-workflow.md)。
 
 MySQL 8.4 使用共用外部 HMAC 密鑰、連線池及具 checksum 與中斷復原檢查的 migration ledger。資料庫須先存在，全新的空白 database 會在插件啟動時自動建表；多個插件實例必須使用同一個密鑰。設定與復原方式請見 [`mysql-storage.md`](./operations/mysql-storage.md)。
+
+JSON 以版本化、可閱讀的資料快照作為持久化來源，沿用 SQLite 的交易約束處理操作；每次寫入都要更新整份檔案，因此僅適合小型單實例環境。設定、備份與錯誤復原方式見 [`json-storage.md`](./operations/json-storage.md)。
 
 Claim 防濫用只保存具期限的 HMAC-SHA-256 網路雜湊，不保存原始 IP；預設保留 30 天，並可設定相符時 `ALLOW`、`WARN` 或 `DENY`。SQLite 的 `anti-abuse.key` 由首次初始化建立，需隨 SQLite 備份且不得提交版本控制；MySQL 則使用所有實例共用的外部密鑰。
 

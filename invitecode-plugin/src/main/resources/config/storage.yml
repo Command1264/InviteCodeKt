@@ -4,6 +4,9 @@ backend: SQLITE
 sqlite:
   file: invitecode.db
 
+json:
+  file: invitecode.json
+
 mysql:
   host: localhost
   port: 3306

@@ -347,8 +347,11 @@ private class SpigotDialogBackend private constructor(
             val button = load("net.md_5.bungee.api.dialog.action.ActionButton")
             val dialog = load("net.md_5.bungee.api.dialog.Dialog")
             val confirmation = load("net.md_5.bungee.api.dialog.ConfirmationDialog")
-            val jsonElement = load("com.google.gson.JsonElement")
-            val jsonObject = load("com.google.gson.JsonObject")
+            // Shadow 8.3 relocates matching string constants. Construct the server API name at
+            // runtime so this reflective adapter still uses the server's Gson classes.
+            val serverJsonPackage = listOf("com", "google", "gson").joinToString(".")
+            val jsonElement = load("$serverJsonPackage.JsonElement")
+            val jsonObject = load("$serverJsonPackage.JsonObject")
             SpigotDialogBackend(
                 plugin = plugin,
                 eventClass = event,

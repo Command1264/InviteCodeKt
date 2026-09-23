@@ -21,6 +21,7 @@ import io.github.command1264.invitecode.platform.bukkit.RuntimeConfigurationRelo
 import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
 import io.github.command1264.invitecode.platform.modern.ModernPlatformCapabilities
 import io.github.command1264.invitecode.platform.modern.ModernPlatformIntegration
+import io.github.command1264.invitecode.storage.json.JsonInviteCodeStorage
 import io.github.command1264.invitecode.storage.sql.BlockingOperationGuard
 import io.github.command1264.invitecode.storage.sql.SqliteInviteCodeStorage
 import io.github.command1264.invitecode.storage.sql.SqliteSchemaMigrator
@@ -148,7 +149,7 @@ class InviteCodePlugin : JavaPlugin() {
                         )
                     }
                     if (result.storageInitialized) {
-                        logger.info("已自動完成首次 ${result.configuration?.storage?.backend} schema 與防濫用密鑰初始化。")
+                        logger.info("已自動完成首次 ${result.configuration?.storage?.backend} 儲存與防濫用密鑰初始化。")
                     }
                     server.onlinePlayers.forEach { playerWorkflows?.registerPlayer(it) }
                     logger.info("InviteCode ${description.version} 已啟用。")
@@ -196,7 +197,17 @@ class InviteCodePlugin : JavaPlugin() {
                     hasher = bootstrap.networkHasher
                     bootstrap.initialized
                 }
-                StorageBackendType.JSON -> error("JSON storage is not implemented.")
+                StorageBackendType.JSON -> {
+                    val dataDirectory = dataFolder.toPath().normalize()
+                    val file = dataDirectory.resolve(candidate.storage.json.file).normalize()
+                    require(file.startsWith(dataDirectory)) { "JSON storage path escapes the plugin data directory." }
+                    val bootstrap = JsonRuntimeBootstrap(
+                        file, dataDirectory.resolve(NETWORK_SECRET_FILE), guard,
+                    ).initializeOrOpen()
+                    opened = bootstrap.storage
+                    hasher = bootstrap.networkHasher
+                    bootstrap.initialized
+                }
             }
             val recovered = RewardDeliveryCoordinator(opened).recoverInterrupted(Instant.now())
             StartupResult(
@@ -363,10 +374,11 @@ class InviteCodePlugin : JavaPlugin() {
                     sender,
                     "admin.doctor-storage",
                     mapOf(
+                        "backend" to configuration.current().value.storage.backend.name,
                         "schema" to when (configuration.current().value.storage.backend) {
                             StorageBackendType.SQLITE -> SqliteSchemaMigrator.currentVersion.toString()
                             StorageBackendType.MYSQL -> MysqlSchemaMigrator.CURRENT_VERSION.toString()
-                            StorageBackendType.JSON -> "N/A"
+                            StorageBackendType.JSON -> JsonInviteCodeStorage.FORMAT_VERSION.toString()
                         },
                         "pending" to backlog.pending.toString(),
                         "processing" to backlog.processing.toString(),

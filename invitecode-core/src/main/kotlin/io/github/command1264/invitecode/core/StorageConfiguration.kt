@@ -32,6 +32,20 @@ data class SqliteConfiguration(val file: String) {
     }
 }
 
+data class JsonConfiguration(val file: String) {
+    init {
+        require(file.isNotBlank() && file.endsWith(".json", ignoreCase = true)) {
+            "JSON file must be a non-blank .json path."
+        }
+        require(!file.startsWith('/') && !Regex("^[A-Za-z]:.*").matches(file)) {
+            "JSON file must be relative to the plugin data directory."
+        }
+        require(file.replace('\\', '/').split('/').none { it.isBlank() || it == "." || it == ".." }) {
+            "JSON file must not contain empty, current-directory, or parent-directory segments."
+        }
+    }
+}
+
 data class MysqlConfiguration(
     val host: String,
     val port: Int,
@@ -76,25 +90,15 @@ data class StorageConfiguration(
     val backend: StorageBackendType,
     val sqlite: SqliteConfiguration,
     val mysql: MysqlConfiguration,
-) {
-    fun requireSupportedBackend(): StorageConfiguration {
-        if (backend == StorageBackendType.JSON) {
-            throw UnsupportedStorageBackendException(backend)
-        }
-        return this
-    }
-}
-
-class UnsupportedStorageBackendException(backend: StorageBackendType) : IllegalStateException(
-    "Storage backend $backend is not implemented in this version; select SQLITE or install a version that supports it.",
+    val json: JsonConfiguration = JsonConfiguration("invitecode.json"),
 )
 
 object StorageConfigurationParser {
     const val CURRENT_VERSION = 1
 
     fun parse(value: Map<String, Any?>): StorageConfiguration {
-        require(value.keys == ROOT_KEYS) {
-            "Storage configuration must contain only ${ROOT_KEYS.sorted().joinToString()}."
+        require(value.keys == ROOT_KEYS || value.keys == ROOT_KEYS + "json") {
+            "Storage configuration must contain ${ROOT_KEYS.sorted().joinToString()} and optional json."
         }
         val version = value.requiredInteger("config-version", "Storage configuration")
         require(version == CURRENT_VERSION) {
@@ -106,6 +110,11 @@ object StorageConfigurationParser {
         require(mysql.keys == MYSQL_KEYS) {
             "mysql must contain only ${MYSQL_KEYS.sorted().joinToString()}."
         }
+        val json = if ("json" in value) {
+            val map = value.requiredMap("json", "Storage configuration")
+            require(map.keys == setOf("file")) { "json must contain only file." }
+            JsonConfiguration(map.requiredString("file", "json"))
+        } else JsonConfiguration("invitecode.json")
         return StorageConfiguration(
             version = version,
             backend = value.requiredEnum("backend", "Storage configuration"),
@@ -123,6 +132,7 @@ object StorageConfigurationParser {
                 ),
                 tlsMode = mysql.requiredEnum("tls-mode", "mysql"),
             ),
+            json = json,
         )
     }
 

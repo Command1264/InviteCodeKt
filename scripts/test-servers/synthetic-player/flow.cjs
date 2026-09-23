@@ -2,16 +2,28 @@ const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
 const { spawn, spawnSync } = require('node:child_process')
-const mineflayer = require('mineflayer')
 
 const instancePath = path.resolve(process.argv[2] || '')
 const metadataPath = path.join(instancePath, 'workspace.json')
 const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
-const supportedProfiles = new Set(['spigot-1.8.8', 'paper-1.20.6', 'paper-1.21.8'])
+const supportedProfiles = new Set(['spigot-1.8.8', 'paper-1.20.6', 'paper-1.21.8', 'paper-latest'])
 if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(instancePath) ||
     !metadata.instance.startsWith('issue12-') || !supportedProfiles.has(metadata.profile) ||
     !metadata.eulaAccepted) {
   throw new Error('Expected a prepared, EULA-accepted, isolated InviteCode synthetic-player instance')
+}
+const clientPath = process.env.INVITECODE_SYNTHETIC_CLIENT_262
+if (metadata.profile === 'paper-latest' && metadata.minecraftVersion !== '26.2') {
+  throw new Error('The pinned independent test client only supports Paper 26.2')
+}
+if (metadata.profile === 'paper-latest' &&
+    (!clientPath || !path.isAbsolute(clientPath) || !fs.existsSync(path.join(clientPath, 'package.json')))) {
+  throw new Error('Paper 26.2 needs an absolute test-only client path in INVITECODE_SYNTHETIC_CLIENT_262')
+}
+const mineflayer = metadata.profile === 'paper-latest' ? require(clientPath) : require('mineflayer')
+if (metadata.profile === 'paper-latest' &&
+    require(path.join(clientPath, 'package.json')).version !== '4.37.1+complexity.26.2.3') {
+  throw new Error('Unexpected Paper 26.2 test client version')
 }
 
 const dataDirectory = path.join(instancePath, 'plugins', 'InviteCode')

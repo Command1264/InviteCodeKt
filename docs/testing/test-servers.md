@@ -100,7 +100,24 @@ node .\scripts\test-servers\synthetic-player\flow.cjs `
   'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-example-spigot-188'
 ```
 
-`-AcceptEula` 只能在使用者已接受 Minecraft EULA 的測試環境使用。Fixture 限定 Spigot 1.8.8、Paper 1.20.6 與 1.21.8；同一測試埠的實例須依序執行。準備腳本把測試實例設定為 `en_US`、`COMMAND_ONLY`、同 IP `ALLOW`，並以登入 1 天即符合資格的政策觸發預設 `MESSAGE` Reward。這些都是隔離測試設定，產品預設不變。Runner 要求資料庫與 key 尚不存在，完成後正常關閉自己啟動的伺服器；再次測試須使用新實例名稱。輸出 `PASS` 只證明這些指令與訊息路徑，不涵蓋聊天／Dialog 輸入、Vault 金額、最新 Paper 26.2 或中斷於外部效果期間的 `UNCERTAIN` 復原。
+`-AcceptEula` 只能在使用者已接受 Minecraft EULA 的測試環境使用。Fixture 支援 Spigot 1.8.8、Paper 1.20.6、1.21.8 與 `paper-latest` 設為 26.2 時的獨立測試客戶端；同一測試埠的實例須依序執行。準備腳本把測試實例設定為 `en_US`、`COMMAND_ONLY`、同 IP `ALLOW`，並以登入 1 天即符合資格的政策觸發預設 `MESSAGE` Reward。這些都是隔離測試設定，產品預設不變。Runner 要求資料庫與 key 尚不存在，完成後正常關閉自己啟動的伺服器；再次測試須使用新實例名稱。輸出 `PASS` 只證明這些指令與訊息路徑，不涵蓋聊天／Dialog 輸入、Vault 金額或中斷於外部效果期間的 `UNCERTAIN` 復原。
+
+Paper 26.2 的玩家測試使用[獨立維護的 Mineflayer 26.2](https://github.com/Complexity-ML/mineflayer-26.2)，它並非 [PrismarineJS 官方 Mineflayer](https://github.com/PrismarineJS/mineflayer/blob/master/docs/README.md)。它只存在於 `scripts/test-servers/synthetic-player-26-2/` 的測試依賴，JAR 不會封裝它；安裝時停用 npm scripts，並僅連線至 EULA 已接受的 loopback／offline TestLab。`package-lock.json` 固定下載內容。先安裝，再建立**全新**實例：
+
+```powershell
+npm.cmd ci --ignore-scripts --prefix .\scripts\test-servers\synthetic-player-26-2
+$jar = 'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-paper-latest\plugins\InviteCode-0.1.0-SNAPSHOT.jar'
+$name = 'issue12-flow-paper-262-example'
+pwsh -NoProfile -File .\scripts\test-servers\prepare-synthetic-player.ps1 `
+  -Profile paper-latest -Instance $name -Artifact $jar -AcceptEula
+$env:INVITECODE_SYNTHETIC_CLIENT_262 = (Resolve-Path `
+  .\scripts\test-servers\synthetic-player-26-2\node_modules\mineflayer).Path
+$env:MISE_EXE = (Get-Command mise.exe -CommandType Application | Select-Object -First 1).Source
+node .\scripts\test-servers\synthetic-player\flow.cjs `
+  "D:\Code\Java\Plugin\TestLab\instances\InviteCode\$name"
+```
+
+Runner 會驗證 26.2 客戶端版本、TestLab metadata、EULA、loopback、離線模式與受測 JAR 的 SHA-256。這個獨立客戶端讓本機 26.2 玩家流程可測，但不代表官方 Mineflayer 已宣告支援，也不能代替最後的真人視覺與互動驗收。
 
 ### Reward 外部效果中斷
 

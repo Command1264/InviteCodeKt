@@ -55,13 +55,14 @@ Runner 擴充後，再於 Paper 1.20.6 各重跑一次既有 SQLite 與 JSON 實
 
 ## 合成玩家 Claim 與離線 Reward
 
-測試專用 Mineflayer 4.39.0 fixture 使用固定 `package-lock.json`，`npm ci --ignore-scripts` 成功、`npm audit` 回報 0 個已知漏洞。它從正式玩家指令與 Console doctor 觀察結果，使用相同插件 JAR SHA-256 `99CE69BE0A38679EDD914AC608C0B0ACC85FE5BCD6A88D80B44FCEF3238BDADA`，每個版本各建立全新 SQLite TestLab 實例。測試設定限定英文指令訊息、`COMMAND_ONLY`、同 IP `ALLOW` 與 `LOGIN_DAYS at-least: 1`；本輪驗證的是預設 `MESSAGE` Reward，而非 Vault 發錢。
+測試專用官方 Mineflayer 4.39.0 fixture 使用固定 `package-lock.json`，`npm ci --ignore-scripts` 成功、當時 `npm audit` 回報 0 個已知漏洞，用於前三個版本。Paper 26.2 另用[獨立維護的 26.2 客戶端](https://github.com/Complexity-ML/mineflayer-26.2) `4.37.1+complexity.26.2.3`；其測試專用 lockfile 與官方版分開，`npm ci --ignore-scripts` 成功，`npm audit` 回報 6 個 moderate、0 個 high／critical，測試只連線 loopback／offline 伺服器。兩套測試都從正式玩家指令與 Console doctor 觀察結果，使用相同插件 JAR SHA-256 `99CE69BE0A38679EDD914AC608C0B0ACC85FE5BCD6A88D80B44FCEF3238BDADA`，每個版本各建立全新 SQLite TestLab 實例。測試設定限定英文指令訊息、`COMMAND_ONLY`、同 IP `ALLOW` 與 `LOGIN_DAYS at-least: 1`；本輪驗證的是預設 `MESSAGE` Reward，而非 Vault 發錢。
 
 | Profile | 實例 | 合成玩家流程 |
 | --- | --- | --- |
 | Spigot 1.8.8 | `issue12-fixture-spigot-188` | 通過 |
 | Paper 1.20.6 | `issue12-fixture-paper-1206` | 通過；Mineflayer／protodef 在登入時另有非致命封包解析警告 |
 | Paper 1.21.8 | `issue12-fixture-paper-1218` | 通過 |
+| Paper 26.2 build 129 | `issue12-flow-paper-262-1`、`issue12-flow-paper-262-2` | 兩個全新實例均通過；第二次使用 repository 固定的獨立客戶端 lockfile |
 
 每次流程由 A 執行 `/ic code` 後離線，B 執行 `/ic claim <code>`、`/ic confirm`，收到 Invitation 已建立及 Qualification Reward 訊息。Console doctor 回報 `PENDING=1, PROCESSING=0, UNCERTAIN=0`；正常關機並重啟後仍為 `PENDING=1`。A 再登入收到離線補發訊息，doctor 變為 `PENDING=0`，`/ic stats` 顯示 `qualified=1`。以上驗證真實伺服器的玩家指令與訊息路徑；外部效果期間的非正常終止另見下節。Paper 1.20.6 的封包警告出自測試客戶端 `protodef`，伺服器端沒有 InviteCode error；該版本的其他客戶端封包相容性不能由此次流程推定。
 
@@ -76,7 +77,7 @@ Runner 擴充後，再於 Paper 1.20.6 各重跑一次既有 SQLite 與 JSON 實
 
 UUID 由測試程式透過 Python 標準 `sqlite3` 唯讀查得，斷言仍透過公開管理指令。兩實例測完均正常停止重啟後的伺服器，測試用 JVM 中斷沒有影響正式資料。測試演練刻意讓外部效果與最後狀態保存之間斷開；不證明 Vault、其他插件或非同步命令效果可 exactly-once。
 
-[Mineflayer 官方文件](https://github.com/PrismarineJS/mineflayer/blob/master/docs/README.md)目前列出的支援版本到 26.1；本地 Mineflayer 4.39.0 對 `26.2` 直接回報 `unsupported protocol version: 26.2`。因此不能用它宣稱 Paper 26.2 玩家流程已通過；目前只有該版本的啟動、Console 與儲存 smoke 證據。待官方協定資料支援或有可靠的獨立測試客戶端後再補玩家流程，最後再做一次真人觀感驗收。
+[Mineflayer 官方文件](https://github.com/PrismarineJS/mineflayer/blob/master/docs/README.md)目前列出的支援版本到 26.1；本地官方 Mineflayer 4.39.0 對 `26.2` 直接回報 `unsupported protocol version: 26.2`。本輪改用上述獨立客戶端後，兩個 Paper 26.2 build 129 實例都完成 Code、Claim、Confirm、Qualification、重啟後離線 Reward 補發與 Stats；Console doctor 的 `PENDING=1 → 0` 也符合預期。這是實際 26.2 伺服器玩家路徑證據，不代表上游 Mineflayer 已支援該版本，也不涵蓋真人客戶端的 Dialog 顯示或視覺體驗。
 
 [PaperMC Folia 下載頁](https://papermc.io/downloads/folia)當時提供 26.1.2 stable build 8，將 26.2 標示為 experimental；TestLab `develop` 的 `folia-latest` 固定為 26.2 並只選 stable，因此初次無法建立實例。於 TestLab 獨立本機 `codex/fix/folia-stable-profile` Worktree 將 profile 指向 26.1.2 後，TestLab self-test 與 doctor 通過，實例可建立。Folia log 隨即顯示 `Could not load plugin 'InviteCode v0.1.0-SNAPSHOT' as it is not marked as supporting Folia!`；插件在載入前遭拒，尚未進入程式相容性測試。[PaperMC 的 Folia 開發文件](https://docs.papermc.io/paper/dev/folia-support/)也明確指出，加入支援標記仍不足以保證相容，須使用正確的 scheduler。目前程式仍呼叫傳統 `server.scheduler`，不能為通過 smoke 而直接在正式 JAR 宣告 Folia 支援，必須先驗證 scheduler 與事件處理是否符合 Folia 邊界。Folia 26.1.2 在這台主機上還讓 Console `/stop` 拋出伺服器內部 `NullPointerException`；runner 等待 30 秒後終止自己建立的程序樹，63620 port 已釋放。此項不與 InviteCode 載入失敗混為一談。
 
@@ -98,4 +99,4 @@ Spigot／Paper 26.2 的 log 有 Windows Perflib／OSHI／JNA 讀取系統計數�
 
 這是**合成的已提交 DDL 中斷狀態**，不是在 MySQL 實際執行 DDL 時殺掉 JVM；它證明產品在該持久化邊界的安全拒絕、續建與重啟持久性，不證明任意時間點的 crash 都能復原。測試採本機 `tls-mode: REQUIRED`，仍未驗證 `VERIFY_IDENTITY`。兩次 Paper 及隔離 MySQL 服務均已正常關閉，62060／63384 埠已釋放；專用 database 保留作為測試證據。
 
-目前 Spigot／Paper 的啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console 指令、外部服務偵測及三個版本的合成玩家 Claim／離線 `MESSAGE` Reward 已有證據。Spigot 1.8.8 通過 Reward 中斷後的 `UNCERTAIN` 復原與兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款；SQLite 與 MySQL 也完成上述伺服器層級遷移復原測試。Issue #12 仍缺最新 Paper 26.2 的玩家 critical path、Folia 可載入後的實驗性 smoke，以及最終人工觀感驗收；不得據此宣布 1.0 發行 gate 通過。
+目前 Spigot／Paper 的啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console 指令、外部服務偵測，以及 Spigot 1.8.8、Paper 1.20.6／1.21.8／26.2 的合成玩家 Claim／離線 `MESSAGE` Reward 已有證據。Spigot 1.8.8 通過 Reward 中斷後的 `UNCERTAIN` 復原與兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款；SQLite 與 MySQL 也完成上述伺服器層級遷移復原測試。Issue #12 仍缺 Folia 可載入後的實驗性 smoke，以及最終人工觀感驗收；不得據此宣布 1.0 發行 gate 通過。

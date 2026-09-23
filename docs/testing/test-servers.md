@@ -71,7 +71,7 @@ pwsh -NoProfile -File .\scripts\test-servers\smoke.ps1 `
   -Profile spigot-1.8.8 -Instance issue12-spigot-188
 ```
 
-Runner 核對 `workspace.json` 的 profile、EULA、核心與插件 JAR SHA-256；等待插件啟用後從 Console 執行 `ic admin doctor`、`ic help` 與 `ic reload`，確認 `ACTIVE`、整合狀態、儲存版本、指令說明與重新載入成功，正常送出 `stop`，檢查嚴格 UTF-8 log、儲存檔與 anti-abuse key，並輸出 JSON 結果。預設 backend 為 SQLite；對已明確設定 `backend: JSON` 的實例傳入 `-Backend JSON`。它不會替使用者接受 EULA、重建實例或模擬玩家。再次執行同一實例可比對重啟前後的資料與 key SHA-256。完整發行 gate 仍須依下列清單補足 critical user path 與外部整合情境。
+Runner 核對 `workspace.json` 的 profile、EULA、核心與插件 JAR SHA-256；等待插件啟用後從 Console 執行 `ic admin doctor`、`ic help` 與 `ic reload`，確認 `ACTIVE`、整合狀態、儲存版本、指令說明與重新載入成功，正常送出 `stop`，檢查嚴格 UTF-8 log，並輸出 JSON 結果。預設 backend 為 SQLite；對已明確設定 `backend: JSON` 的實例傳入 `-Backend JSON`，對 `backend: MYSQL` 的實例傳入 `-Backend MYSQL`。SQLite／JSON 會檢查本機儲存檔與 anti-abuse key；MySQL 要求測試程序環境有 `INVITECODE_DB_PASSWORD`、`INVITECODE_NETWORK_SECRET`，並確認沒有在插件資料夾建立本機 key。MySQL 的資料庫 schema／ledger 須另用該獨立服務的用戶端核對，Runner 對這兩個本機檔案雜湊輸出 `null`。它不會替使用者接受 EULA、建立資料庫、重建實例或模擬玩家。再次執行同一實例可比對重啟前後的資料與 key SHA-256；MySQL 改核對 ledger、表與稽核紀錄。完整發行 gate 仍須依下列清單補足 critical user path 與外部整合情境。
 
 預設預期 PlaceholderAPI 與 Vault Economy 都不存在。已在獨立實例安裝 PlaceholderAPI 時加上 `-ExpectPlaceholderApi`；已安裝 Vault 與經濟提供者時加上 `-ExpectVaultEconomy`。Runner 會核對 Console doctor 的實際整合狀態，輸出對應布林值；這只驗證服務偵測，不代表實際 placeholder 展開或經濟入帳已通過。
 

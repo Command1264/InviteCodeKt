@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true)][string] $Profile,
     [Parameter(Mandatory = $true)][string] $Instance,
-    [ValidateSet('SQLITE', 'JSON')][string] $Backend = 'SQLITE',
+    [ValidateSet('SQLITE', 'JSON', 'MYSQL')][string] $Backend = 'SQLITE',
     [switch] $ExpectPlaceholderApi,
     [switch] $ExpectVaultEconomy,
     [AllowNull()][string] $TestLabRoot,
@@ -55,6 +55,11 @@ if (Test-Path -LiteralPath $storagePath -PathType Leaf) {
 }
 elseif ($Backend -cne 'SQLITE') {
     throw "非預設 backend 需要先建立 storage.yml：$Instance"
+}
+if ($Backend -ceq 'MYSQL' -and
+    ([string]::IsNullOrEmpty($env:INVITECODE_DB_PASSWORD) -or
+     [string]::IsNullOrEmpty($env:INVITECODE_NETWORK_SECRET))) {
+    throw 'MYSQL smoke 需要先在測試程序環境提供資料庫密碼與 network secret。'
 }
 $mise = (Get-Command mise -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
@@ -148,10 +153,21 @@ try {
         throw "伺服器 log 含 InviteCode linkage 或事件錯誤：$Instance"
     }
     $keyPath = Join-Path $dataPath 'anti-abuse.key'
-    $databasePath = Join-Path $dataPath $(if ($Backend -ceq 'JSON') { 'invitecode.json' } else { 'invitecode.db' })
-    if (-not (Test-Path -LiteralPath $keyPath -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $databasePath -PathType Leaf)) {
-        throw "$Backend 或 anti-abuse key 尚未建立：$Instance"
+    $storageSha256 = $null
+    $keySha256 = $null
+    if ($Backend -ceq 'MYSQL') {
+        if (Test-Path -LiteralPath $keyPath -PathType Leaf) {
+            throw "MYSQL 模式不應在本機建立 anti-abuse key：$Instance"
+        }
+    }
+    else {
+        $databasePath = Join-Path $dataPath $(if ($Backend -ceq 'JSON') { 'invitecode.json' } else { 'invitecode.db' })
+        if (-not (Test-Path -LiteralPath $keyPath -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $databasePath -PathType Leaf)) {
+            throw "$Backend 或 anti-abuse key 尚未建立：$Instance"
+        }
+        $storageSha256 = (Get-FileHash -LiteralPath $databasePath -Algorithm SHA256).Hash
+        $keySha256 = (Get-FileHash -LiteralPath $keyPath -Algorithm SHA256).Hash
     }
     [pscustomobject]@{
         profile = $Profile
@@ -164,8 +180,8 @@ try {
         placeholderApi = $ExpectPlaceholderApi.IsPresent
         vaultEconomy = $ExpectVaultEconomy.IsPresent
         consoleCommands = @('ic admin doctor', 'ic help', 'ic reload')
-        storageSha256 = (Get-FileHash -LiteralPath $databasePath -Algorithm SHA256).Hash
-        keySha256 = (Get-FileHash -LiteralPath $keyPath -Algorithm SHA256).Hash
+        storageSha256 = $storageSha256
+        keySha256 = $keySha256
         logPath = $logPath
     } | ConvertTo-Json -Compress
 }

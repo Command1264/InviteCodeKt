@@ -55,7 +55,7 @@ object InviteCodeTabCompletion {
             listOf("admin", "code", "rotate") ->
                 permitted(hasPermission, "invitecode.admin.code", onlinePlayerNames)
             listOf("admin", "storage", "migrate") ->
-                permitted(hasPermission, "invitecode.admin.storage", listOf("SQLITE"))
+                permitted(hasPermission, "invitecode.admin.storage", listOf("SQLITE", "MYSQL"))
             else -> emptyList()
         }
         return candidates

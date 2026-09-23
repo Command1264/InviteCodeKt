@@ -9,6 +9,12 @@ enum class StorageBackendType {
     JSON,
 }
 
+enum class MysqlTlsMode {
+    VERIFY_IDENTITY,
+    VERIFY_CA,
+    REQUIRED,
+}
+
 data class SqliteConfiguration(val file: String) {
     init {
         require(file.isNotBlank()) { "SQLite file must not be blank." }
@@ -31,18 +37,37 @@ data class MysqlConfiguration(
     val port: Int,
     val database: String,
     val username: String,
-    val passwordReference: String,
+    val passwordSetting: String,
+    val networkSecretReference: String,
     val connectionTimeout: Duration,
+    val tlsMode: MysqlTlsMode = MysqlTlsMode.VERIFY_IDENTITY,
 ) {
     init {
-        require(host.isNotBlank()) { "MySQL host must not be blank." }
+        require(HOST.matches(host)) { "MySQL host must be a hostname or IPv4 address without URL parameters." }
         require(port in 1..65535) { "MySQL port must be between 1 and 65535." }
-        require(database.isNotBlank()) { "MySQL database must not be blank." }
+        require(DATABASE.matches(database)) { "MySQL database must contain only letters, digits and underscores." }
         require(username.isNotBlank()) { "MySQL username must not be blank." }
-        require(passwordReference.isNotBlank()) { "MySQL password reference must not be blank." }
-        require(!connectionTimeout.isZero && !connectionTimeout.isNegative) {
-            "MySQL connection timeout must be greater than zero."
+        require(passwordSetting.isNotBlank()) { "MySQL password must not be blank." }
+        require(!passwordSetting.startsWith("${'$'}{") || ENV_REFERENCE.matches(passwordSetting)) {
+            "MySQL password has an invalid environment variable reference."
         }
+        require(ENV_REFERENCE.matches(networkSecretReference)) {
+            "MySQL network secret must be an environment variable reference."
+        }
+        require(connectionTimeout.toMillis() in 250..60_000) {
+            "MySQL connection timeout must be between 250ms and 60s."
+        }
+    }
+
+    override fun toString(): String =
+        "MysqlConfiguration(host=$host, port=$port, database=$database, username=$username, " +
+            "password=<redacted>, networkSecretReference=$networkSecretReference, " +
+            "connectionTimeout=$connectionTimeout, tlsMode=$tlsMode)"
+
+    companion object {
+        private val ENV_REFERENCE = Regex("\\$\\{[A-Za-z_][A-Za-z0-9_]*}")
+        private val HOST = Regex("[A-Za-z0-9][A-Za-z0-9.-]*")
+        private val DATABASE = Regex("[A-Za-z0-9_]+")
     }
 }
 
@@ -53,7 +78,7 @@ data class StorageConfiguration(
     val mysql: MysqlConfiguration,
 ) {
     fun requireSupportedBackend(): StorageConfiguration {
-        if (backend != StorageBackendType.SQLITE) {
+        if (backend == StorageBackendType.JSON) {
             throw UnsupportedStorageBackendException(backend)
         }
         return this
@@ -90,11 +115,13 @@ object StorageConfigurationParser {
                 port = mysql.requiredInteger("port", "mysql"),
                 database = mysql.requiredString("database", "mysql"),
                 username = mysql.requiredString("username", "mysql"),
-                passwordReference = mysql.requiredString("password", "mysql"),
+                passwordSetting = mysql.requiredString("password", "mysql"),
+                networkSecretReference = mysql.requiredString("network-secret", "mysql"),
                 connectionTimeout = parsePositiveDuration(
                     mysql.requiredString("connection-timeout", "mysql"),
                     "mysql.connection-timeout",
                 ),
+                tlsMode = mysql.requiredEnum("tls-mode", "mysql"),
             ),
         )
     }
@@ -158,7 +185,9 @@ object StorageConfigurationParser {
         "database",
         "username",
         "password",
+        "network-secret",
         "connection-timeout",
+        "tls-mode",
     )
     private val SHORT_DURATION = Regex("^(\\d+)(ms|s|m|h|d)$")
 }

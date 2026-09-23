@@ -14,7 +14,8 @@ class StorageConfigurationTest {
         assertEquals("invitecode.db", configuration.sqlite.file)
         assertEquals(3306, configuration.mysql.port)
         assertEquals(Duration.ofSeconds(5), configuration.mysql.connectionTimeout)
-        assertEquals("${'$'}{INVITECODE_DB_PASSWORD}", configuration.mysql.passwordReference)
+        assertEquals("${'$'}{INVITECODE_DB_PASSWORD}", configuration.mysql.passwordSetting)
+        assertEquals(MysqlTlsMode.VERIFY_IDENTITY, configuration.mysql.tlsMode)
     }
 
     @Test
@@ -26,10 +27,45 @@ class StorageConfigurationTest {
     }
 
     @Test
-    fun `marks unfinished backends unsupported`() {
-        assertThrows<UnsupportedStorageBackendException> {
+    fun `supports MySQL and rejects unfinished JSON`() {
+        assertEquals(
+            StorageBackendType.MYSQL,
             StorageConfigurationParser.parse(validConfiguration().toMutableMap().apply { put("backend", "MYSQL") })
+                .requireSupportedBackend().backend,
+        )
+        assertThrows<UnsupportedStorageBackendException> {
+            StorageConfigurationParser.parse(validConfiguration().toMutableMap().apply { put("backend", "JSON") })
                 .requireSupportedBackend()
+        }
+    }
+
+    @Test
+    fun `MySQL config accepts literal password without exposing it in configuration text`() {
+        val literal = "sample-only:p@ss#word"
+        val value = validConfiguration().toMutableMap().apply {
+            put("mysql", (get("mysql") as Map<String, Any?>) + ("password" to literal))
+        }
+        val configuration = StorageConfigurationParser.parse(value)
+        assertEquals(literal, configuration.mysql.passwordSetting)
+        assertEquals(false, configuration.toString().contains(literal))
+    }
+
+    @Test
+    fun `MySQL config rejects blank or malformed password and URL injection`() {
+        fun withMysql(changed: Map<String, Any?>): Map<String, Any?> = validConfiguration().toMutableMap().apply {
+            put("mysql", (get("mysql") as Map<String, Any?>) + changed)
+        }
+        assertThrows<IllegalArgumentException> {
+            StorageConfigurationParser.parse(withMysql(mapOf("password" to " ")))
+        }
+        assertThrows<IllegalArgumentException> {
+            StorageConfigurationParser.parse(withMysql(mapOf("password" to "${'$'}{BROKEN")))
+        }
+        assertThrows<IllegalArgumentException> {
+            StorageConfigurationParser.parse(withMysql(mapOf("host" to "localhost/?allowPublicKeyRetrieval=true")))
+        }
+        assertThrows<IllegalArgumentException> {
+            StorageConfigurationParser.parse(withMysql(mapOf("tls-mode" to "DISABLED")))
         }
     }
 
@@ -43,7 +79,9 @@ class StorageConfigurationTest {
             "database" to "invitecode",
             "username" to "invitecode",
             "password" to "${'$'}{INVITECODE_DB_PASSWORD}",
+            "network-secret" to "${'$'}{INVITECODE_NETWORK_SECRET}",
             "connection-timeout" to "5s",
+            "tls-mode" to "VERIFY_IDENTITY",
         ),
     )
 }

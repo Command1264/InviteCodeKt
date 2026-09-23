@@ -3,9 +3,11 @@ package io.github.command1264.invitecode.platform.bukkit
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Base64
 
 class NetworkAddressHasherTest {
     @TempDir
@@ -33,6 +35,19 @@ class NetworkAddressHasherTest {
 
         hasher.use {
             assertEquals(it.hash(ipv4), it.hash(mapped))
+        }
+    }
+
+    @Test
+    fun `shared Base64 secret yields the same digest and rejects invalid length`() {
+        val secret = Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() })
+        val address = byteArrayOf(192.toByte(), 0, 2, 10)
+        val first = NetworkAddressHasher.fromBase64(secret).use { it.keyId to it.hash(address) }
+        val second = NetworkAddressHasher.fromBase64(secret).use { it.keyId to it.hash(address) }
+        assertEquals(first, second)
+        assertThrows<IllegalArgumentException> { NetworkAddressHasher.fromBase64("not-base64") }
+        assertThrows<IllegalArgumentException> {
+            NetworkAddressHasher.fromBase64(Base64.getEncoder().encodeToString(ByteArray(16)))
         }
     }
 }

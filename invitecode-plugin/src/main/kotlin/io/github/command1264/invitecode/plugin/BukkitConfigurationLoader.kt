@@ -3,6 +3,7 @@ package io.github.command1264.invitecode.plugin
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeRuntimeConfiguration
 import io.github.command1264.invitecode.platform.bukkit.RuntimeConfigurationAssembler
 import org.bukkit.configuration.ConfigurationSection
+import org.bukkit.configuration.InvalidConfigurationException
 import org.bukkit.configuration.file.YamlConfiguration
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -51,7 +52,18 @@ class BukkitConfigurationLoader(
     private fun loadDocument(path: Path): Map<String, Any?> {
         require(Files.isRegularFile(path)) { "Configuration file does not exist: ${path.toAbsolutePath()}." }
         val yaml = YamlConfiguration()
-        Files.newBufferedReader(path, StandardCharsets.UTF_8).use { reader -> yaml.load(reader) }
+        Files.newBufferedReader(path, StandardCharsets.UTF_8).use { reader ->
+            try {
+                yaml.load(reader)
+            } catch (error: InvalidConfigurationException) {
+                if (path.fileName.toString() == "storage.yml") {
+                    throw IllegalArgumentException(
+                        "storage.yml has invalid YAML; check its syntax without sharing the file because it may contain credentials.",
+                    )
+                }
+                throw error
+            }
+        }
         return yaml.getValues(false).mapValues { (_, value) -> normalize(value) }
     }
 

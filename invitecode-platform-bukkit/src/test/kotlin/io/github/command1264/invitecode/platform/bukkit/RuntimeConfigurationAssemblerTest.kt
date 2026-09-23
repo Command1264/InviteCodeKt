@@ -46,11 +46,11 @@ class RuntimeConfigurationAssemblerTest {
 
     @Test
     fun `unsupported configured backend fails before snapshot installation`() {
-        val mysql = storage().toMutableMap().apply { this["backend"] = "MYSQL" }
+        val json = storage().toMutableMap().apply { this["backend"] = "JSON" }
 
         assertThrows(IllegalStateException::class.java) {
             RuntimeConfigurationAssembler.parse(
-                general(), mysql, qualifications(), rewards(), mapOf("zh_TW" to catalog("訊息")),
+                general(), json, qualifications(), rewards(), mapOf("zh_TW" to catalog("訊息")),
             )
         }
     }
@@ -98,8 +98,10 @@ class RuntimeConfigurationAssemblerTest {
             "port" to 3306,
             "database" to "invitecode",
             "username" to "invitecode",
-            "password" to "env:INVITECODE_DB_PASSWORD",
+            "password" to "${'$'}{INVITECODE_DB_PASSWORD}",
+            "network-secret" to "${'$'}{INVITECODE_NETWORK_SECRET}",
             "connection-timeout" to "5s",
+            "tls-mode" to "VERIFY_IDENTITY",
         ),
     )
 

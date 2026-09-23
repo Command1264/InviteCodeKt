@@ -54,6 +54,12 @@ abstract class VerifyPluginJar : DefaultTask() {
                 "plugin.yml must declare the oldest supported modern API version"
             }
 
+            val drivers = zip.getInputStream(requireNotNull(zip.getEntry("META-INF/services/java.sql.Driver")))
+                .bufferedReader(Charsets.UTF_8).use { it.readLines().map(String::trim).toSet() }
+            check(drivers.containsAll(setOf("org.sqlite.JDBC", "com.mysql.cj.jdbc.Driver"))) {
+                "Plugin JAR must register both SQLite and MySQL JDBC drivers"
+            }
+
             val entries = zip.entries()
             while (entries.hasMoreElements()) {
                 val entry = entries.nextElement()
@@ -91,6 +97,7 @@ dependencies {
     implementation(project(":invitecode-core"))
     implementation(project(":invitecode-storage-json"))
     implementation(project(":invitecode-storage-sql"))
+    implementation("com.zaxxer:HikariCP:4.0.3")
     implementation(project(":invitecode-platform-bukkit"))
     implementation(project(":invitecode-platform-modern"))
     compileOnly("org.spigotmc:spigot-api:1.8.8-R0.1-SNAPSHOT")
@@ -141,6 +148,10 @@ val verifyPluginJar by tasks.registering(VerifyPluginJar::class) {
             "config/messages/en_US.yml",
             "io/github/command1264/invitecode/plugin/InviteCodePlugin.class",
             "org/sqlite/JDBC.class",
+            "com/mysql/cj/jdbc/Driver.class",
+            "com/zaxxer/hikari/HikariDataSource.class",
+            "org/slf4j/impl/JDK14LoggerFactory.class",
+            "mysql/V1__initial_schema.sql",
             "org/sqlite/native/Linux/x86_64/libsqlitejdbc.so",
             "org/sqlite/native/Windows/x86_64/sqlitejdbc.dll",
             "META-INF/services/java.sql.Driver",

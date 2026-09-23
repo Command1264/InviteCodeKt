@@ -15,7 +15,12 @@ import java.util.UUID
 internal object SqlitePlayerRecords {
     fun save(connection: Connection, player: StoredPlayer) {
         connection.prepareStatement(
-            """
+            if (connection.isMysql()) """
+            INSERT INTO invitecode_players(player_id, first_seen_at, last_known_name)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                last_known_name = COALESCE(VALUES(last_known_name), last_known_name)
+            """.trimIndent() else """
             INSERT INTO invitecode_players(player_id, first_seen_at, last_known_name)
             VALUES (?, ?, ?)
             ON CONFLICT(player_id) DO UPDATE SET
@@ -23,7 +28,7 @@ internal object SqlitePlayerRecords {
             """.trimIndent(),
         ).use { statement ->
             statement.setString(1, player.id.toString())
-            statement.setString(2, player.firstSeenAt.toString())
+            statement.setString(2, player.firstSeenAt.toSqlText(connection))
             statement.setString(3, player.lastKnownName)
             statement.executeUpdate()
         }
@@ -34,7 +39,7 @@ internal object SqlitePlayerRecords {
             """
             SELECT player_id, first_seen_at, last_known_name
             FROM invitecode_players
-            WHERE last_known_name = ? COLLATE NOCASE
+            WHERE last_known_name = ? ${if (connection.isMysql()) "" else "COLLATE NOCASE"}
             ORDER BY player_id
             LIMIT 2
             """.trimIndent(),
@@ -57,7 +62,10 @@ internal object SqlitePlayerRecords {
 
     fun recordLoginDay(connection: Connection, playerId: UUID, loginDate: LocalDate) {
         connection.prepareStatement(
-            "INSERT OR IGNORE INTO invitecode_player_login_days(player_id, login_date) VALUES (?, ?)",
+            if (connection.isMysql())
+                "INSERT INTO invitecode_player_login_days(player_id, login_date) VALUES (?, ?) " +
+                    "ON DUPLICATE KEY UPDATE login_date = VALUES(login_date)"
+            else "INSERT OR IGNORE INTO invitecode_player_login_days(player_id, login_date) VALUES (?, ?)",
         ).use { statement ->
             statement.setString(1, playerId.toString())
             statement.setString(2, loginDate.toString())
@@ -148,7 +156,7 @@ internal object SqlitePlayerRecords {
             WHERE player_id = ?
             """.trimIndent(),
         ).use { statement ->
-            statement.setString(1, transition.state.firstSeenAt.toString())
+            statement.setString(1, transition.state.firstSeenAt.toSqlText(connection))
             statement.setString(2, transition.state.playerId.toString())
             statement.executeUpdate()
         }
@@ -161,7 +169,13 @@ internal object SqlitePlayerRecords {
 internal object SqliteNetworkHashRecords {
     fun save(connection: Connection, record: PlayerNetworkHash) {
         connection.prepareStatement(
-            """
+            if (connection.isMysql()) """
+            INSERT INTO invitecode_player_network_hashes(player_id, key_id, network_hash, observed_at, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                observed_at = VALUES(observed_at),
+                expires_at = VALUES(expires_at)
+            """.trimIndent() else """
             INSERT INTO invitecode_player_network_hashes(player_id, key_id, network_hash, observed_at, expires_at)
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(player_id, key_id, network_hash) DO UPDATE SET
@@ -172,8 +186,8 @@ internal object SqliteNetworkHashRecords {
             statement.setString(1, record.playerId.toString())
             statement.setString(2, record.keyId)
             statement.setString(3, record.hash)
-            statement.setString(4, record.observedAt.toString())
-            statement.setString(5, record.expiresAt.toString())
+            statement.setString(4, record.observedAt.toSqlText(connection))
+            statement.setString(5, record.expiresAt.toSqlText(connection))
             statement.executeUpdate()
         }
     }
@@ -181,7 +195,7 @@ internal object SqliteNetworkHashRecords {
     fun purgeExpired(connection: Connection, expiredAt: Instant): Int = connection.prepareStatement(
         "DELETE FROM invitecode_player_network_hashes WHERE expires_at <= ?",
     ).use { statement ->
-        statement.setString(1, expiredAt.toString())
+        statement.setString(1, expiredAt.toSqlText(connection))
         statement.executeUpdate()
     }
 
@@ -213,8 +227,8 @@ internal object SqliteNetworkHashRecords {
     ).use { statement ->
         statement.setString(1, firstPlayerId.toString())
         statement.setString(2, secondPlayerId.toString())
-        statement.setString(3, evaluatedAt.toString())
-        statement.setString(4, evaluatedAt.toString())
+        statement.setString(3, evaluatedAt.toSqlText(connection))
+        statement.setString(4, evaluatedAt.toSqlText(connection))
         statement.executeQuery().use { it.next() }
     }
 }
@@ -273,7 +287,7 @@ internal object SqliteInviteCodeRecords {
         ).use { statement ->
             statement.setString(1, activeInviteCode.code.normalized)
             statement.setString(2, activeInviteCode.inviterId.toString())
-            statement.setString(3, activeInviteCode.activatedAt.toString())
+            statement.setString(3, activeInviteCode.activatedAt.toSqlText(connection))
             statement.executeUpdate()
         }
     }
@@ -286,7 +300,7 @@ internal object SqliteInviteCodeRecords {
             WHERE code = ? AND inviter_id = ? AND retired_at IS NULL
             """.trimIndent(),
         ).use { statement ->
-            statement.setString(1, retiredInviteCode.retiredAt.toString())
+            statement.setString(1, retiredInviteCode.retiredAt.toSqlText(connection))
             statement.setString(2, retiredInviteCode.code.normalized)
             statement.setString(3, retiredInviteCode.inviterId.toString())
             statement.executeUpdate()

@@ -43,7 +43,14 @@ internal object SqliteRewardRecords {
         }
         val previousStatus = current?.status
         connection.prepareStatement(
-            """
+            if (connection.isMysql()) """
+            INSERT INTO invitecode_reward_deliveries(
+                delivery_id, invitation_id, reward_id, status,
+                idempotency_key, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                status = VALUES(status), updated_at = VALUES(updated_at)
+            """.trimIndent() else """
             INSERT INTO invitecode_reward_deliveries(
                 delivery_id, invitation_id, reward_id, status,
                 idempotency_key, created_at, updated_at
@@ -58,8 +65,8 @@ internal object SqliteRewardRecords {
             statement.setString(3, delivery.rewardId)
             statement.setString(4, delivery.status.name)
             statement.setString(5, delivery.idempotencyKey)
-            statement.setString(6, delivery.createdAt.toString())
-            statement.setString(7, delivery.updatedAt.toString())
+            statement.setString(6, delivery.createdAt.toSqlText(connection))
+            statement.setString(7, delivery.updatedAt.toSqlText(connection))
             statement.executeUpdate()
         }
         if (previousStatus != delivery.status) {
@@ -73,7 +80,7 @@ internal object SqliteRewardRecords {
                 statement.setString(1, delivery.id.toString())
                 statement.setString(2, previousStatus?.name)
                 statement.setString(3, delivery.status.name)
-                statement.setString(4, delivery.updatedAt.toString())
+                statement.setString(4, delivery.updatedAt.toSqlText(connection))
                 statement.setString(5, administration?.actor)
                 statement.setString(6, administration?.reason)
                 statement.executeUpdate()
@@ -160,7 +167,14 @@ internal object SqliteRewardRecords {
         }
         val previousStatus = current?.status
         connection.prepareStatement(
-            """
+            if (connection.isMysql()) """
+            INSERT INTO invitecode_reward_actions(
+                action_id, reward_delivery_id, invitation_id, recipient_id, position,
+                action_type, payload, status, idempotency_key, created_at, updated_at, last_error
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                status = VALUES(status), updated_at = VALUES(updated_at), last_error = VALUES(last_error)
+            """.trimIndent() else """
             INSERT INTO invitecode_reward_actions(
                 action_id, reward_delivery_id, invitation_id, recipient_id, position,
                 action_type, payload, status, idempotency_key, created_at, updated_at, last_error
@@ -180,8 +194,8 @@ internal object SqliteRewardRecords {
             statement.setString(7, action.payload)
             statement.setString(8, action.status.name)
             statement.setString(9, action.idempotencyKey)
-            statement.setString(10, action.createdAt.toString())
-            statement.setString(11, action.updatedAt.toString())
+            statement.setString(10, action.createdAt.toSqlText(connection))
+            statement.setString(11, action.updatedAt.toSqlText(connection))
             statement.setString(12, action.lastError)
             statement.executeUpdate()
         }
@@ -196,7 +210,7 @@ internal object SqliteRewardRecords {
                 statement.setString(1, action.id.toString())
                 statement.setString(2, previousStatus?.name)
                 statement.setString(3, action.status.name)
-                statement.setString(4, action.updatedAt.toString())
+                statement.setString(4, action.updatedAt.toSqlText(connection))
                 statement.setString(5, action.lastError)
                 statement.setString(6, administration?.actor)
                 statement.setString(7, administration?.reason)

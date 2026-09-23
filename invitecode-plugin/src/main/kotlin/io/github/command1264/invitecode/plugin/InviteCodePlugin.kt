@@ -1,6 +1,7 @@
 package io.github.command1264.invitecode.plugin
 
 import io.github.command1264.invitecode.core.InviteCodeStorage
+import io.github.command1264.invitecode.core.StorageBackendType
 import io.github.command1264.invitecode.core.AuditRecord
 import io.github.command1264.invitecode.core.InvitationAuditAction
 import io.github.command1264.invitecode.core.RewardDeliveryCoordinator
@@ -23,6 +24,7 @@ import io.github.command1264.invitecode.platform.modern.ModernPlatformIntegratio
 import io.github.command1264.invitecode.storage.sql.BlockingOperationGuard
 import io.github.command1264.invitecode.storage.sql.SqliteInviteCodeStorage
 import io.github.command1264.invitecode.storage.sql.SqliteSchemaMigrator
+import io.github.command1264.invitecode.storage.sql.MysqlSchemaMigrator
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -146,7 +148,7 @@ class InviteCodePlugin : JavaPlugin() {
                         )
                     }
                     if (result.storageInitialized) {
-                        logger.info("已自動完成首次 SQLite schema 與防濫用密鑰初始化。")
+                        logger.info("已自動完成首次 ${result.configuration?.storage?.backend} schema 與防濫用密鑰初始化。")
                     }
                     server.onlinePlayers.forEach { playerWorkflows?.registerPlayer(it) }
                     logger.info("InviteCode ${description.version} 已啟用。")
@@ -175,22 +177,33 @@ class InviteCodePlugin : JavaPlugin() {
         var opened: InviteCodeStorage? = null
         var hasher: NetworkAddressHasher? = null
         return try {
-            val dataDirectory = dataFolder.toPath().normalize()
-            val database = dataDirectory.resolve(candidate.storage.sqlite.file).normalize()
-            require(database.startsWith(dataDirectory)) { "SQLite database path escapes the plugin data directory." }
-            val bootstrap = SqliteRuntimeBootstrap(
-                database,
-                dataDirectory.resolve(NETWORK_SECRET_FILE),
-                BlockingOperationGuard.rejectingServerMainThread(Bukkit::isPrimaryThread),
-            ).initializeOrOpen()
-            opened = bootstrap.storage
-            hasher = bootstrap.networkHasher
+            val guard = BlockingOperationGuard.rejectingServerMainThread(Bukkit::isPrimaryThread)
+            val initialized = when (candidate.storage.backend) {
+                StorageBackendType.SQLITE -> {
+                    val dataDirectory = dataFolder.toPath().normalize()
+                    val database = dataDirectory.resolve(candidate.storage.sqlite.file).normalize()
+                    require(database.startsWith(dataDirectory)) { "SQLite database path escapes the plugin data directory." }
+                    val bootstrap = SqliteRuntimeBootstrap(
+                        database, dataDirectory.resolve(NETWORK_SECRET_FILE), guard,
+                    ).initializeOrOpen()
+                    opened = bootstrap.storage
+                    hasher = bootstrap.networkHasher
+                    bootstrap.initialized
+                }
+                StorageBackendType.MYSQL -> {
+                    val bootstrap = MysqlRuntimeBootstrap(candidate.storage.mysql, guard).initializeOrOpen()
+                    opened = bootstrap.storage
+                    hasher = bootstrap.networkHasher
+                    bootstrap.initialized
+                }
+                StorageBackendType.JSON -> error("JSON storage is not implemented.")
+            }
             val recovered = RewardDeliveryCoordinator(opened).recoverInterrupted(Instant.now())
             StartupResult(
                 configuration = candidate,
                 storage = opened,
                 networkHasher = hasher,
-                storageInitialized = bootstrap.initialized,
+                storageInitialized = initialized,
                 recoveredRewardActions = recovered,
             )
         } catch (error: Exception) {
@@ -230,13 +243,14 @@ class InviteCodePlugin : JavaPlugin() {
     }
 
     private fun migrateStorage(sender: CommandSender, request: ParsedInviteCodeCommand) {
-        if (!request.operands.single().equals("SQLITE", ignoreCase = true)) {
-            sendLocalized(sender, "admin.storage-unsupported")
-            return
-        }
         val candidate = configuration.currentOrNull()?.value
         if (candidate == null) {
             sendLocalized(sender, "admin.storage-config-unavailable")
+            return
+        }
+        val target = request.operands.single().uppercase(java.util.Locale.ROOT)
+        if (target != candidate.storage.backend.name || target == "JSON") {
+            sendLocalized(sender, "admin.storage-unsupported")
             return
         }
         val executor = operations
@@ -248,38 +262,47 @@ class InviteCodePlugin : JavaPlugin() {
         val reason = requireNotNull(request.reason)
         val accepted = executor.submit(
             operation = {
-                val dataDirectory = dataFolder.toPath().normalize()
-                val database = dataDirectory.resolve(candidate.storage.sqlite.file).normalize()
-                require(database.startsWith(dataDirectory)) {
-                    "SQLite database path escapes the plugin data directory."
-                }
                 val guard = BlockingOperationGuard.rejectingServerMainThread(Bukkit::isPrimaryThread)
-                val version = SqliteSchemaMigrator(database, guard).migrate()
-                val opened = SqliteInviteCodeStorage.open(database, guard)
-                var newHasher: NetworkAddressHasher? = null
-                try {
-                    val loadedHasher = networkHasher.get()
-                    newHasher = if (loadedHasher == null) {
-                        NetworkAddressHasher.loadOrCreate(dataDirectory.resolve(NETWORK_SECRET_FILE))
-                    } else {
-                        null
+                when (candidate.storage.backend) {
+                    StorageBackendType.SQLITE -> {
+                        val dataDirectory = dataFolder.toPath().normalize()
+                        val database = dataDirectory.resolve(candidate.storage.sqlite.file).normalize()
+                        require(database.startsWith(dataDirectory)) {
+                            "SQLite database path escapes the plugin data directory."
+                        }
+                        val version = SqliteSchemaMigrator(database, guard).migrate()
+                        val opened = SqliteInviteCodeStorage.open(database, guard)
+                        var newHasher: NetworkAddressHasher? = null
+                        try {
+                            val loadedHasher = networkHasher.get()
+                            newHasher = if (loadedHasher == null) {
+                                NetworkAddressHasher.loadOrCreate(dataDirectory.resolve(NETWORK_SECRET_FILE))
+                            } else null
+                            opened.purgeNetworkHashesWithDifferentKey((loadedHasher ?: requireNotNull(newHasher)).keyId)
+                            opened.saveAuditRecord(AuditRecord(UUID.randomUUID(), InvitationAuditAction.STORAGE_MIGRATED, actor, reason, Instant.now()))
+                            StorageMigrationResult(version, opened, newHasher)
+                        } catch (error: Exception) {
+                            newHasher?.close()
+                            opened.close()
+                            throw error
+                        }
                     }
-                    val effectiveHasher = loadedHasher ?: requireNotNull(newHasher)
-                    opened.purgeNetworkHashesWithDifferentKey(effectiveHasher.keyId)
-                    opened.saveAuditRecord(
-                        AuditRecord(
-                            UUID.randomUUID(),
-                            InvitationAuditAction.STORAGE_MIGRATED,
-                            actor,
-                            reason,
-                            Instant.now(),
-                        ),
-                    )
-                    StorageMigrationResult(version, opened, newHasher)
-                } catch (error: Exception) {
-                    newHasher?.close()
-                    opened.close()
-                    throw error
+                    StorageBackendType.MYSQL -> {
+                        val bootstrap = MysqlRuntimeBootstrap(
+                            candidate.storage.mysql, guard, explicitMigration = true,
+                        ).initializeOrOpen()
+                        try {
+                            bootstrap.storage.saveAuditRecord(
+                                AuditRecord(UUID.randomUUID(), InvitationAuditAction.STORAGE_MIGRATED, actor, reason, Instant.now()),
+                            )
+                            StorageMigrationResult(MysqlSchemaMigrator.CURRENT_VERSION, bootstrap.storage, bootstrap.networkHasher)
+                        } catch (error: Exception) {
+                            bootstrap.storage.close()
+                            bootstrap.networkHasher.close()
+                            throw error
+                        }
+                    }
+                    StorageBackendType.JSON -> error("JSON storage is not implemented.")
                 }
             },
             onSuccess = { result ->
@@ -289,12 +312,12 @@ class InviteCodePlugin : JavaPlugin() {
                 }
                 if (runtime.phase == RuntimePhase.MAINTENANCE) runtime.activate()
                 server.onlinePlayers.forEach { playerWorkflows?.registerPlayer(it) }
-                logger.info("$actor 以理由「$reason」完成 SQLite schema migration 至版本 ${result.version}。")
+                logger.info("$actor 以理由「$reason」完成 $target schema migration 至版本 ${result.version}。")
                 sendLocalized(sender, "admin.storage-success", mapOf("version" to result.version.toString()))
             },
             onFailure = { error ->
                 sendLocalized(sender, "admin.storage-failed")
-                logger.log(Level.SEVERE, "$actor 執行 SQLite schema migration 失敗；理由：$reason", error)
+                logger.log(Level.SEVERE, "$actor 執行 $target schema migration 失敗；理由：$reason", error)
             },
         )
         if (!accepted) sendLocalized(sender, "admin.storage-stopping")
@@ -340,7 +363,11 @@ class InviteCodePlugin : JavaPlugin() {
                     sender,
                     "admin.doctor-storage",
                     mapOf(
-                        "schema" to SqliteSchemaMigrator.currentVersion.toString(),
+                        "schema" to when (configuration.current().value.storage.backend) {
+                            StorageBackendType.SQLITE -> SqliteSchemaMigrator.currentVersion.toString()
+                            StorageBackendType.MYSQL -> MysqlSchemaMigrator.CURRENT_VERSION.toString()
+                            StorageBackendType.JSON -> "N/A"
+                        },
                         "pending" to backlog.pending.toString(),
                         "processing" to backlog.processing.toString(),
                         "uncertain" to backlog.uncertain.toString(),

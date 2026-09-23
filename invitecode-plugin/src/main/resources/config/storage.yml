@@ -10,4 +10,6 @@ mysql:
   database: invitecode
   username: invitecode
   password: "${INVITECODE_DB_PASSWORD}"
+  network-secret: "${INVITECODE_NETWORK_SECRET}"
   connection-timeout: 5s
+  tls-mode: VERIFY_IDENTITY

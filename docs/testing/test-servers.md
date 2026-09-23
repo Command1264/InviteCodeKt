@@ -118,6 +118,30 @@ node .\scripts\test-servers\synthetic-player\uncertain.cjs `
 
 `mark-delivered` 與 `retry` 各使用不同的新實例，勿重用上例的 `$name`；`MISE_EXE` 指向當前電腦實際安裝的 mise 執行檔。Runner 會檢查 loopback、EULA、JAR SHA-256 與全新資料庫，並只停止自己啟動的伺服器。第一次故障造成測試客戶端 `ECONNRESET` 是預期現象。重啟後 `UNCERTAIN=1`、重新登入不重發；`mark-delivered` 後標記仍只有一次，`retry` 後才增加至兩次並轉為 `DELIVERED`。這是隔離演練，不代表能證明外部系統中的所有實際效果。
 
+### Vault 與 PlaceholderAPI 的實際路徑
+
+`prepare-integration-player.ps1` 以全新 `issue12-*` 實例測試已取得的外部插件 JAR。Vault 情境使用 Paper 1.21.8、Vault、EssentialsX 與測試專用唯讀餘額指令；Placeholder 情境使用 Paper 1.20.6、PlaceholderAPI 與測試專用 `%icprobe_ready%` 擴充。兩種 probe 都只在 loopback、離線模式及 TestLab 實例內啟用，不會封裝進 InviteCode JAR。編譯 probe 需要既有 Spigot 1.8.8 `server.jar` 作為 Bukkit API classpath，並以 `mise java@local-21` 產生 Java 8 bytecode。
+
+```powershell
+$jar = 'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-fixture-spigot-188\plugins\InviteCode-0.1.0-SNAPSHOT.jar'
+$api = 'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-fixture-spigot-188\server.jar'
+$env:MISE_EXE = (Get-Command mise.exe -CommandType Application | Select-Object -First 1).Source
+pwsh -NoProfile -File .\scripts\test-servers\prepare-integration-player.ps1 `
+  -Scenario Vault -Instance issue12-vault-example-1218 -Artifact $jar -SpigotApiJar $api `
+  -VaultJar 'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-vault-212-paper-1218\plugins\Vault.jar' `
+  -EconomyJar 'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-vault-212-paper-1218\plugins\EssentialsX-2.21.2.jar' -AcceptEula
+node .\scripts\test-servers\synthetic-player\integration.cjs `
+  'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-vault-example-1218' Vault
+
+pwsh -NoProfile -File .\scripts\test-servers\prepare-integration-player.ps1 `
+  -Scenario Placeholder -Instance issue12-papi-example-1206 -Artifact $jar -SpigotApiJar $api `
+  -PlaceholderApiJar 'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-papi-paper-1206\plugins\PlaceholderAPI.jar' -AcceptEula
+node .\scripts\test-servers\synthetic-player\integration.cjs `
+  'D:\Code\Java\Plugin\TestLab\instances\InviteCode\issue12-papi-example-1206' Placeholder
+```
+
+只在已接受 Minecraft EULA 的測試環境使用 `-AcceptEula`。Vault 測試要求 Invitee 的 Vault 餘額從 0 變為 37.5，重啟並重新登入後仍為 37.5；Placeholder 測試要求切換前 Invitation 保持待資格、切換後重新登入才達資格並收到 Reward，重啟後維持已達資格。Paper 1.20.6 上 Mineflayer／protodef 可能輸出非致命封包解析警告，應與伺服器及 InviteCode log 分開判讀。再次執行須改用新實例名稱。
+
 ## 自動檢查與最終真人驗收
 
 日常開發與各功能階段先由 Agent 執行不需要玩家判斷的檢查，包括 Gradle 測試、JAR 結構與 Java 8 bytecode、伺服器啟動與正常停機、log 錯誤掃描、UTF-8 解碼、SQLite／防濫用密鑰初始化，以及適用時的重啟持久化。這些結果須綁定受測 commit 與 JAR SHA-256。

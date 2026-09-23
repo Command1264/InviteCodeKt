@@ -26,7 +26,18 @@
 | PlaceholderAPI 存在 | `issue12-papi-paper-1206`，Paper 1.20.6、PlaceholderAPI 2.12.3；外掛 JAR SHA-256 `FDE03259F5AF6938F3C33EEB4D814000A1ADABF1D2304CE14970BE81F609A437` | 首次啟動與重啟均 `PlaceholderAPI=true`、`Vault Economy=false`；SQLite DB 與 key 雜湊不變 |
 | Vault Economy 存在 | `issue12-vault-212-paper-1218`，Paper 1.21.8、Vault 1.7.3-b131、EssentialsX 2.21.2；兩個 JAR SHA-256 分別為 `A6B5ED97F43A5CF5BBAF00A7C8CD23C5AFC9BD003F849875AF8B36E6CF77D01D`、`0B759026F02F3C547C32886F3666DB3C1F94CFF73E141AE5648313FD0D0BDFC6` | 首次啟動與重啟均 `Vault Economy=true`、`PlaceholderAPI=false`；Vault log 顯示 Essentials Economy hooked；SQLite DB 與 key 雜湊不變 |
 
-也在 Paper 26.2 與 1.21.8 試過 EssentialsX 2.22.0：doctor 可偵測 Vault Economy，但 EssentialsX 自行警告該伺服器版本不受支援，因此不把它當作乾淨的正向驗證。以上只確認外掛載入與 InviteCode 的服務偵測；尚未驗證實際 placeholder 展開、Vault 金額變化或發獎。
+也在 Paper 26.2 與 1.21.8 試過 EssentialsX 2.22.0：doctor 可偵測 Vault Economy，但 EssentialsX 自行警告該伺服器版本不受支援，因此不把它當作乾淨的正向驗證。上表只確認外掛載入與 InviteCode 的服務偵測；實際效果另見下節。
+
+### 合成玩家功能整合
+
+使用相同 InviteCode JAR 與前述已驗證的第三方 JAR，另外建立全新 SQLite TestLab 實例。測試專用 Vault probe 透過註冊的 Vault `Economy` 服務唯讀查詢餘額；測試專用 PlaceholderAPI expansion 回傳玩家專屬 `no`／`yes`，由 Console 指令切換。Probe JAR 不屬於產品產物。
+
+| 情境 | 實例與版本 | 可觀察結果 |
+| --- | --- | --- |
+| Vault 實際存款 | `issue12-vault-flow4-1218`，Paper 1.21.8／Vault 1.7.3-b131／EssentialsX 2.21.2 | Invitee 餘額 `0 → 37.5`，Invitation 已達資格；重啟並再次登入後餘額仍為 `37.5`，Reward backlog `PENDING=1, PROCESSING=0, UNCERTAIN=0`；通過 |
+| PlaceholderAPI 實際資格 | `issue12-papi-flow5-1206`，Paper 1.20.6／PlaceholderAPI 2.12.3 | `%icprobe_ready%` 為 `no` 時 Invitation 待資格；切為 `yes` 後重新登入變成已達資格並收到 Invitee Reward，重啟後仍已達資格；通過 |
+
+Vault 的 `PENDING=1` 是離線 Inviter 的預設 `MESSAGE` Reward，並非存款卡住。Placeholder 的 `value` 須寫為 `"yes"`；首次試跑用未加引號的 `yes` 被 YAML 當作布林值，因而與 PlaceholderAPI 回傳文字不符，改成字串後通過。Paper 1.20.6 的 Mineflayer／protodef 仍出現既知非致命封包解析警告，伺服器端沒有對應的 InviteCode exception。兩個較早實例在玩家離線後立刻停機時出現 Paper 區塊生成執行緒錯誤，堆疊未涉及 InviteCode；測試器在首次停機前等待 10 秒後，新建的上述兩個實例沒有再出現此錯誤。這只能說明目前測試流程較穩定，不能斷定 Paper 錯誤的根因。此驗證覆蓋一個 Vault provider 與一個受控 Placeholder expansion，不代表所有第三方 provider 都相容。
 
 ## 復原測試的現況
 
@@ -71,4 +82,4 @@ UUID 由測試程式透過 Python 標準 `sqlite3` 唯讀查得，斷言仍透�
 
 Spigot／Paper 26.2 的 log 有 Windows Perflib／OSHI／JNA 讀取系統計數器失敗及衍生的 system-report `NullPointerException`；堆疊未涉及 InviteCode，伺服器與插件仍可啟動、診斷並正常停機。這是測試主機／伺服器層級的已知雜訊，不能用它替代插件無錯誤的判定。
 
-本輪對 Spigot／Paper 涵蓋啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console help／reload／doctor、外部服務偵測，並在三個版本通過合成玩家 Claim 與離線 `MESSAGE` Reward 補發。另在 Spigot 1.8.8 通過外部指令中斷後的 `UNCERTAIN` 復原及兩種管理員決定。Issue #12 尚缺最新 Paper 26.2 的玩家 critical path、Vault／PlaceholderAPI 實際功能、伺服器層級 migration 故障復原、Folia 可載入後的實驗性 smoke，以及最終人工觀感驗收；不得據此宣布 1.0 發行 gate 通過。
+本輪對 Spigot／Paper 涵蓋啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console help／reload／doctor、外部服務偵測，並在三個版本通過合成玩家 Claim 與離線 `MESSAGE` Reward 補發。另在 Spigot 1.8.8 通過外部指令中斷後的 `UNCERTAIN` 復原及兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款。Issue #12 尚缺最新 Paper 26.2 的玩家 critical path、伺服器層級 migration 故障復原、Folia 可載入後的實驗性 smoke，以及最終人工觀感驗收；不得據此宣布 1.0 發行 gate 通過。

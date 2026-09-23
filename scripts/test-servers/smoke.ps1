@@ -70,6 +70,7 @@ $process = [System.Diagnostics.Process]::new()
 $process.StartInfo = $startInfo
 $started = $false
 $doctorSent = $false
+$commandsSent = $false
 $stopped = $false
 $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
 $utf8Strict = [System.Text.UTF8Encoding]::new($false, $true)
@@ -108,7 +109,15 @@ try {
             $doctorSent = $true
         }
         if ($doctorSent -and $log -match 'Runtime=ACTIVE' -and
-            $log -match 'Integration：' -and $log -match "$Backend 儲存版本=") {
+            $log -match 'Integration：' -and $log -match "$Backend 儲存版本=" -and
+            -not $commandsSent) {
+            $process.StandardInput.WriteLine('ic help')
+            $process.StandardInput.WriteLine('ic reload')
+            $process.StandardInput.Flush()
+            $commandsSent = $true
+        }
+        if ($commandsSent -and $log -match 'InviteCode 可用指令：' -and
+            $log -match 'InviteCode 設定已完整驗證並套用。') {
             $process.StandardInput.WriteLine('stop')
             $process.StandardInput.Flush()
             $stopped = $true
@@ -116,7 +125,7 @@ try {
         }
     }
     if (-not $stopped) {
-        throw "Smoke 未在 $TimeoutSeconds 秒內取得 ACTIVE doctor 結果：$Instance"
+        throw "Smoke 未在 $TimeoutSeconds 秒內取得 ACTIVE doctor、help 與 reload 結果：$Instance"
     }
     if (-not $process.WaitForExit(30000)) {
         throw "伺服器未在 stop 後 30 秒內結束：$Instance"
@@ -142,6 +151,7 @@ try {
         serverSha256 = $metadata.serverSha256
         javaAlias = $metadata.javaAlias
         doctorActive = $true
+        consoleCommands = @('ic admin doctor', 'ic help', 'ic reload')
         storageSha256 = (Get-FileHash -LiteralPath $databasePath -Algorithm SHA256).Hash
         keySha256 = (Get-FileHash -LiteralPath $keyPath -Algorithm SHA256).Hash
         logPath = $logPath

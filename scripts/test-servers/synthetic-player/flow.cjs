@@ -33,8 +33,12 @@ const dataDirectory = path.join(instancePath, 'plugins', 'InviteCode')
 const config = fs.readFileSync(path.join(dataDirectory, 'config.yml'), 'utf8')
 const qualifications = fs.readFileSync(path.join(dataDirectory, 'qualifications.yml'), 'utf8')
 const chatMode = metadata.profile === 'folia-latest' && process.env.INVITECODE_FOLIA_CHAT === '1'
+const dialogMode = ['folia-latest', 'paper-latest'].includes(metadata.profile) &&
+  process.env.INVITECODE_DIALOG_PROTOCOL === '1'
+if (chatMode && dialogMode) throw new Error('Select either chat or dialog protocol input')
 if (!/default: en_US/.test(config) || !/use-client-locale: false/.test(config) ||
-    !(chatMode ? /input-mode: CHAT/.test(config) : /input-mode: COMMAND_ONLY/.test(config)) ||
+    !(chatMode ? /input-mode: CHAT/.test(config)
+      : dialogMode ? /input-mode: DIALOG/.test(config) : /input-mode: COMMAND_ONLY/.test(config)) ||
     !/matching-ip-action: ALLOW/.test(config) ||
     !/type: LOGIN_DAYS\s+at-least: 1/.test(qualifications)) {
   throw new Error('Synthetic-player fixture configuration does not match the expected isolated test policy')
@@ -118,6 +122,7 @@ async function createBot(name) {
     auth: 'offline', version: metadata.minecraftVersion
   })
   const messages = []
+  const state = { bot, messages, expectedClose: false }
   bot.on('messagestr', message => {
     messages.push(message)
     process.stdout.write(`${name}: ${message}\n`)
@@ -126,13 +131,15 @@ async function createBot(name) {
     if (error.name !== 'PartialReadError') fatalError = error
     process.stderr.write(`${name} protocol warning: ${error.name}: ${error.message}\n`)
   })
-  bot.on('kicked', reason => { fatalError = new Error(`${name} kicked: ${reason}`) })
+  bot.on('kicked', reason => {
+    if (!state.expectedClose) fatalError = new Error(`${name} kicked: ${reason}`)
+  })
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${name} spawn timeout`)), 30000)
     bot.once('spawn', () => { clearTimeout(timer); resolve() })
     bot.once('end', reason => { clearTimeout(timer); reject(new Error(`${name} ended before spawn: ${reason}`)) })
   })
-  return { bot, messages }
+  return state
 }
 
 async function command(player, input, expected) {
@@ -152,6 +159,7 @@ let inviter
 let invitee
 let regionA
 let regionB
+let passed
 async function main() {
   try {
     server = await startServer()
@@ -177,7 +185,19 @@ async function main() {
     inviter = null
     await delay(500)
     invitee = await createBot('IcTestB')
-    if (chatMode) {
+    if (dialogMode) {
+      const dialogs = []
+      invitee.bot._client.on('show_dialog', packet => dialogs.push(packet))
+      invitee.bot.chat('/ic claim')
+      await until(() => dialogs.length === 1, 'native dialog packet')
+      await command(invitee, '/ic cancel', /cancelled/i)
+      await command(invitee, '/ic status', /Invitation=none/)
+      invitee.bot.chat('/ic claim')
+      await until(() => dialogs.length === 2, 'second native dialog packet')
+      await command(invitee, '/ic cancel', /cancelled/i)
+      await command(invitee, '/ic status', /Invitation=none/)
+      await command(invitee, `/ic claim ${code}`, /Inviter: IcTestA; Invite Code:/)
+    } else if (chatMode) {
       await command(invitee, '/ic claim', /Enter the Invite Code in chat/)
       const start = invitee.messages.length
       invitee.bot.chat(code)
@@ -198,23 +218,27 @@ async function main() {
     await until(() => inviter.messages.some(message => message.includes('Your invitation has qualified.')), 'offline Inviter Reward')
     await doctor(server, /Reward backlog: PENDING=0, PROCESSING=0, UNCERTAIN=0/)
     await command(inviter, '/ic stats', /qualified=1/)
-    process.stdout.write(JSON.stringify({
+    passed = {
       result: 'PASS', profile: metadata.profile, minecraftVersion: metadata.minecraftVersion,
       instance: metadata.instance, pluginSha256: metadata.pluginSha256,
       checks: [
         ...(metadata.profile === 'folia-latest' && process.env.INVITECODE_FOLIA_MULTI_REGION === '1'
           ? ['separate-region-status'] : []),
         ...(chatMode ? ['private-chat-input'] : []),
+        ...(dialogMode ? ['dialog-packet', 'command-cancel-preserves-state'] : []),
         'code', 'claim', 'confirm', 'qualification', 'pending-after-restart', 'offline-reward-on-login', 'stats'
       ]
-    }) + '\n')
+    }
   } finally {
-    if (inviter) inviter.bot.quit()
-    if (invitee) invitee.bot.quit()
-    if (regionA) regionA.bot.quit()
-    if (regionB) regionB.bot.quit()
+    for (const player of [inviter, invitee, regionA, regionB]) {
+      if (player) {
+        player.expectedClose = true
+        player.bot.quit()
+      }
+    }
     if (server) await stopServer(server)
   }
+  process.stdout.write(JSON.stringify(passed) + '\n')
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1 })

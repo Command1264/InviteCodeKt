@@ -1,6 +1,7 @@
 name: InviteCodePapiProbe
 version: 1.0.0
 api-version: '1.13'
+folia-supported: true
 main: io.github.command1264.invitecode.test.PapiProbePlugin
 depend: [PlaceholderAPI]
 commands:

@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)][string] $Instance,
     [Parameter(Mandatory = $true)][string] $Artifact,
     [Parameter(Mandatory = $true)][string] $SpigotApiJar,
+    [ValidateSet('paper-1.20.6', 'folia-latest')][string] $PlaceholderProfile = 'paper-1.20.6',
     [AllowNull()][string] $VaultJar,
     [AllowNull()][string] $EconomyJar,
     [AllowNull()][string] $PlaceholderApiJar,
@@ -15,7 +16,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
 
-$profile = if ($Scenario -ceq 'Vault') { 'paper-1.21.8' } else { 'paper-1.20.6' }
+$profile = if ($Scenario -ceq 'Vault') { 'paper-1.21.8' } else { $PlaceholderProfile }
 $required = if ($Scenario -ceq 'Vault') { @($SpigotApiJar, $VaultJar, $EconomyJar) } `
     else { @($SpigotApiJar, $PlaceholderApiJar) }
 foreach ($candidate in $required) {

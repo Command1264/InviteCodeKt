@@ -1,20 +1,23 @@
 package io.github.command1264.invitecode.test;
 
 import java.io.File;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import me.clip.placeholderapi.PlaceholderAPI;
+import java.util.concurrent.ConcurrentHashMap;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /** Test-only PlaceholderAPI expansion whose value changes through a console command. */
-public final class PapiProbePlugin extends JavaPlugin {
-    private final Set<UUID> ready = new HashSet<>();
+public final class PapiProbePlugin extends JavaPlugin implements Listener {
+    private final Set<UUID> ready = ConcurrentHashMap.newKeySet();
+    private final Map<String, UUID> playersByName = new ConcurrentHashMap<>();
     private boolean armed;
 
     @Override
@@ -28,21 +31,26 @@ public final class PapiProbePlugin extends JavaPlugin {
             getLogger().severe("Placeholder probe disabled outside an isolated loopback TestLab instance.");
             return;
         }
+        getServer().getPluginManager().registerEvents(this, this);
         if (!new ProbeExpansion().register()) throw new IllegalStateException("Cannot register icprobe expansion");
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        playersByName.put(event.getPlayer().getName(), event.getPlayer().getUniqueId());
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!armed || !sender.equals(getServer().getConsoleSender()) || args.length != 2
             || !"ready".equals(args[0])) return false;
-        Player player = getServer().getPlayerExact(args[1]);
-        if (player == null) {
+        UUID playerId = playersByName.get(args[1]);
+        if (playerId == null) {
             sender.sendMessage("ICPROBE player-offline " + args[1]);
             return true;
         }
-        ready.add(player.getUniqueId());
-        sender.sendMessage("ICPROBE ready " + args[1] + " "
-            + PlaceholderAPI.setPlaceholders(player, "%icprobe_ready%"));
+        ready.add(playerId);
+        sender.sendMessage("ICPROBE ready " + args[1] + " yes");
         return true;
     }
 

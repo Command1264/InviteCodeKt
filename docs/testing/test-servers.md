@@ -209,6 +209,10 @@ node .\scripts\test-servers\synthetic-player\integration.cjs `
 
 只在已接受 Minecraft EULA 的測試環境使用 `-AcceptEula`。Vault 測試要求 Invitee 的 Vault 餘額從 0 變為 37.5，重啟並重新登入後仍為 37.5；Placeholder 測試要求切換前 Invitation 保持待資格、切換後重新登入才達資格並收到 Reward，重啟後維持已達資格。Paper 1.20.6 上 Mineflayer／protodef 可能輸出非致命封包解析警告，應與伺服器及 InviteCode log 分開判讀。再次執行須改用新實例名稱。
 
+Placeholder fixture 另可傳入 `-PlaceholderProfile folia-latest` 與指向 Folia 26.1.2 的 `-TestLabRoot`，再用相同 `integration.cjs ... Placeholder` 流程驗證。測試 probe 的玩家名稱快取與資格集合使用跨執行緒容器，並標記 `folia-supported: true`；Console 只切換測試值，實際 Placeholder 展開由 InviteCode 在玩家 entity scheduler 觸發。此結果僅涵蓋 PlaceholderAPI 2.12.3 與測試用 expansion。既有 Vault／EssentialsX 2.21.2 JAR 未宣告 Folia 支援，[EssentialsX 發行說明](https://github.com/EssentialsX/Essentials/releases)亦明確不支援 Folia，不能把 Paper 的存款測試推定為 Folia Vault 通過。
+
+`flow.cjs` 在 Folia 26.1.2 或 Paper 26.2 的全新實例上可設 `INVITECODE_DIALOG_PROTOCOL=1`，並將實例的 `input-mode` 設為 `DIALOG`。Runner 驗證收到兩次原生 `show_dialog` 封包、每次使用 `/ic cancel` 後 Invitation 仍不存在，再以 command 完成 Claim／Reward 與重啟流程。合成客戶端無法證明畫面、原生按鈕點擊與輸入提交正確；這些步驟見[最終真人驗收](./final-human-acceptance.md)。
+
 ## 自動檢查與最終真人驗收
 
 日常開發與各功能階段先由 Agent 執行不需要玩家判斷的檢查，包括 Gradle 測試、JAR 結構與 Java 8 bytecode、伺服器啟動與正常停機、log 錯誤掃描、UTF-8 解碼、SQLite／防濫用密鑰初始化，以及適用時的重啟持久化。這些結果須綁定受測 commit 與 JAR SHA-256。

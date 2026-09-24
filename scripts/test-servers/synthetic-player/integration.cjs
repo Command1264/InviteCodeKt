@@ -10,7 +10,7 @@ if (!['Vault', 'Placeholder'].includes(scenario)) {
   throw new Error('Usage: node integration.cjs <fresh TestLab instance> <Vault|Placeholder>')
 }
 const metadata = JSON.parse(fs.readFileSync(path.join(instancePath, 'workspace.json'), 'utf8'))
-const expectedProfile = scenario === 'Vault' ? 'paper-1.21.8' : 'paper-1.20.6'
+const expectedProfiles = scenario === 'Vault' ? ['paper-1.21.8'] : ['paper-1.20.6', 'folia-latest']
 const dataDirectory = path.join(instancePath, 'plugins', 'InviteCode')
 const properties = fs.readFileSync(path.join(instancePath, 'server.properties'), 'utf8')
 const pluginDirectory = path.join(instancePath, 'plugins')
@@ -18,7 +18,7 @@ const requiredJars = scenario === 'Vault'
   ? ['Vault.jar', 'EssentialsX.jar', 'InviteCodeVaultProbe.jar']
   : ['PlaceholderAPI.jar', 'InviteCodePapiProbe.jar']
 if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(instancePath) ||
-    !metadata.instance.startsWith('issue12-') || metadata.profile !== expectedProfile ||
+    !metadata.instance.startsWith('issue12-') || !expectedProfiles.includes(metadata.profile) ||
     !metadata.eulaAccepted || !/^server-ip=127\.0\.0\.1\s*$/m.test(properties) ||
     !/^online-mode=false\s*$/m.test(properties) ||
     !properties.includes(`server-port=${metadata.port}`) ||

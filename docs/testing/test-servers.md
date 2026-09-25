@@ -102,6 +102,8 @@ node .\scripts\test-servers\synthetic-player\flow.cjs `
 
 `-AcceptEula` 只能在使用者已接受 Minecraft EULA 的測試環境使用。Fixture 支援 Spigot 1.8.8、Paper 1.20.6、1.21.8、`paper-latest` 設為 26.2 時的獨立測試客戶端，以及 `folia-latest` 設為 26.1.2 時的實驗性測試；同一測試埠的實例須依序執行。準備腳本把測試實例設定為 `en_US`、`COMMAND_ONLY`、同 IP `ALLOW`，並以登入 1 天即符合資格的政策觸發預設 `MESSAGE` Reward。這些都是隔離測試設定，產品預設不變。Runner 要求資料庫與 key 尚不存在，完成後正常關閉自己啟動的伺服器；再次測試須使用新實例名稱。輸出 `PASS` 只證明這些指令與訊息路徑，不涵蓋原生 Dialog 視覺、Vault 金額或中斷於外部效果期間的 `UNCERTAIN` 復原。
 
+驗證聊天輸入與 `cancel` 時，可在**全新**實例首次啟動前把 `input-mode` 改成 `CHAT`，並設定 `INVITECODE_CHAT_INPUT=1` 執行同一 runner。它會先傳入大小寫混用的 `CaNcEl`，確認沒有建立 Invitation，再重新輸入邀請碼；同時確認複製入口與確認選項的文字已送達。元件的 ClickEvent 指令與舊版複製退回方式由單元測試檢查；剪貼簿和實際點擊效果仍須真人驗收。
+
 Folia 26.1.2 的實驗性 fixture 需使用已選到該版本的 TestLab root。本機 `TestLab/worktrees/fix-folia-stable-profile` 提供這個 profile；若它尚未整合到 TestLab `develop`，請明確傳入 `-TestLabRoot`。與其他版本一樣，先安裝 `scripts/test-servers/synthetic-player/` 的固定測試依賴，並為每次測試選全新 `issue12-*` 實例：
 
 ```powershell

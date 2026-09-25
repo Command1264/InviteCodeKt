@@ -8,9 +8,11 @@ runtime:
 command:
   code:
     value: "Your Invite Code is {code}"
+    copy: "Copy Invite Code"
+    select: "Select Invite Code to copy"
   claim:
     command-only: "Use /invitecode claim <code>."
-    chat-started: "Enter the Invite Code in chat within {seconds} seconds. It will not be published."
+    chat-started: "Enter the Invite Code in chat within {seconds} seconds. It will not be published. Type cancel to stop."
     chat-timeout: "Invite Code chat input expired. Run /invitecode claim again."
     dialog-title: "Enter Invite Code"
     dialog-label: "Six-character Invite Code"
@@ -21,6 +23,8 @@ command:
     unavailable: "That Invite Code does not exist, was rotated, or is no longer active."
     self: "You cannot use your own Invite Code."
     confirmation: "Inviter: {inviter}; Invite Code: {code}. Use /invitecode confirm within {seconds} seconds, or /invitecode cancel."
+    agree: "Agree"
+    disagree: "Disagree"
     confirmation-timeout: "The Claim Confirmation expired. Enter the Invite Code again."
     no-confirmation: "There is no Claim to confirm, or it has expired."
     claimed: "The Invitation has been created."

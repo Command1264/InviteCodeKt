@@ -5,6 +5,11 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
+sealed class ChatInputResult {
+    data class Code(val value: String) : ChatInputResult()
+    object Cancelled : ChatInputResult()
+}
+
 class ClaimInteractionSessions(
     private val now: () -> Instant = Instant::now,
 ) {
@@ -38,11 +43,13 @@ class ClaimInteractionSessions(
     }
 
     @Synchronized
-    fun consumeChatInput(playerId: UUID, message: String): String? {
+    fun consumeChatInput(playerId: UUID, message: String): ChatInputResult? {
         val session = sessions[playerId] as? Session.ChatInput ?: return null
         sessions.remove(playerId)
         if (now().isAfter(session.expiresAt)) return null
-        return message.trim()
+        val value = message.trim()
+        return if (value.equals("cancel", ignoreCase = true)) ChatInputResult.Cancelled
+        else ChatInputResult.Code(value)
     }
 
     @Synchronized

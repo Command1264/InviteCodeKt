@@ -52,8 +52,12 @@ class ClaimInteractionSessionsTest {
 
         sessions.startChatInput(playerId, Duration.ofSeconds(60))
         assertTrue(sessions.hasChatInput(playerId))
-        assertEquals("a1b2c3", sessions.consumeChatInput(playerId, "  a1b2c3  "))
+        assertEquals(ChatInputResult.Code("a1b2c3"), sessions.consumeChatInput(playerId, "  a1b2c3  "))
         assertNull(sessions.consumeChatInput(playerId, "second"))
+
+        sessions.startChatInput(playerId, Duration.ofSeconds(60))
+        assertEquals(ChatInputResult.Cancelled, sessions.consumeChatInput(playerId, "  CaNcEl  "))
+        assertNull(sessions.consumeChatInput(playerId, "A1B2C3"))
 
         sessions.startChatInput(playerId, Duration.ofSeconds(60))
         now = now.plusSeconds(61)

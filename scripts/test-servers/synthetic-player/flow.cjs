@@ -32,7 +32,8 @@ if (metadata.profile === 'paper-latest' &&
 const dataDirectory = path.join(instancePath, 'plugins', 'InviteCode')
 const config = fs.readFileSync(path.join(dataDirectory, 'config.yml'), 'utf8')
 const qualifications = fs.readFileSync(path.join(dataDirectory, 'qualifications.yml'), 'utf8')
-const chatMode = metadata.profile === 'folia-latest' && process.env.INVITECODE_FOLIA_CHAT === '1'
+const chatMode = process.env.INVITECODE_CHAT_INPUT === '1' ||
+  (metadata.profile === 'folia-latest' && process.env.INVITECODE_FOLIA_CHAT === '1')
 const dialogMode = ['folia-latest', 'paper-latest'].includes(metadata.profile) &&
   process.env.INVITECODE_DIALOG_PROTOCOL === '1'
 if (chatMode && dialogMode) throw new Error('Select either chat or dialog protocol input')
@@ -181,6 +182,9 @@ async function main() {
     }
     inviter = await createBot('IcTestA')
     const code = (await command(inviter, '/ic code', /Your Invite Code is ([A-F0-9]{6})/))[1]
+    await until(() => inviter.messages.some(message =>
+      message.includes(metadata.profile === 'spigot-1.8.8' ? 'Select Invite Code to copy' : 'Copy Invite Code')),
+    'clickable Invite Code label')
     inviter.bot.quit()
     inviter = null
     await delay(500)
@@ -199,6 +203,12 @@ async function main() {
       await command(invitee, `/ic claim ${code}`, /Inviter: IcTestA; Invite Code:/)
     } else if (chatMode) {
       await command(invitee, '/ic claim', /Enter the Invite Code in chat/)
+      const cancelStart = invitee.messages.length
+      invitee.bot.chat('CaNcEl')
+      await until(() => invitee.messages.slice(cancelStart).some(message => /cancelled/i.test(message)),
+        'private chat cancel')
+      await command(invitee, '/ic status', /Invitation=none/)
+      await command(invitee, '/ic claim', /Enter the Invite Code in chat/)
       const start = invitee.messages.length
       invitee.bot.chat(code)
       await until(() => invitee.messages.slice(start).some(message =>
@@ -206,6 +216,8 @@ async function main() {
     } else {
       await command(invitee, `/ic claim ${code}`, /Inviter: IcTestA; Invite Code:/)
     }
+    await until(() => invitee.messages.some(message => message.includes('[Agree]') &&
+      message.includes('[Disagree]')), 'clickable confirmation labels')
     await command(invitee, '/ic confirm', /The Invitation has been created\./)
     await until(() => invitee.messages.some(message => message.includes('You have qualified as an invitee.')), 'Invitee Reward')
     await doctor(server, /Reward backlog: PENDING=1, PROCESSING=0, UNCERTAIN=0/)
@@ -225,8 +237,10 @@ async function main() {
         ...(metadata.profile === 'folia-latest' && process.env.INVITECODE_FOLIA_MULTI_REGION === '1'
           ? ['separate-region-status'] : []),
         ...(chatMode ? ['private-chat-input'] : []),
+        ...(chatMode ? ['chat-cancel'] : []),
         ...(dialogMode ? ['dialog-packet', 'command-cancel-preserves-state'] : []),
-        'code', 'claim', 'confirm', 'qualification', 'pending-after-restart', 'offline-reward-on-login', 'stats'
+        'code', 'chat-action-labels', 'claim', 'confirm', 'qualification',
+        'pending-after-restart', 'offline-reward-on-login', 'stats'
       ]
     }
   } finally {

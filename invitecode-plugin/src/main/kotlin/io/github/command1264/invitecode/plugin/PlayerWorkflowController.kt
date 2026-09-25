@@ -33,6 +33,7 @@ import io.github.command1264.invitecode.platform.bukkit.EconomyRewardGateway
 import io.github.command1264.invitecode.platform.bukkit.AsyncOperationExecutor
 import io.github.command1264.invitecode.platform.bukkit.AtomicRuntimeSnapshot
 import io.github.command1264.invitecode.platform.bukkit.ClaimInteractionSessions
+import io.github.command1264.invitecode.platform.bukkit.ChatInputResult
 import io.github.command1264.invitecode.platform.bukkit.ClaimInputChannel
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeDisplayFormatter
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
@@ -193,10 +194,15 @@ class PlayerWorkflowController(
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onChat(event: AsyncPlayerChatEvent) {
         val playerId = event.player.uniqueId
-        val code = sessions.consumeChatInput(playerId, event.message) ?: return
+        val input = sessions.consumeChatInput(playerId, event.message) ?: return
         event.isCancelled = true
         tasks.player(event.player, operation = {
-            if (tasks.onlinePlayer(playerId) === event.player) beginClaim(event.player, code)
+            if (tasks.onlinePlayer(playerId) === event.player) {
+                when (input) {
+                    is ChatInputResult.Code -> beginClaim(event.player, input.value)
+                    ChatInputResult.Cancelled -> send(playerId, "command.claim.cancelled")
+                }
+            }
         })
     }
 
@@ -218,6 +224,14 @@ class PlayerWorkflowController(
             },
             onSuccess = { code ->
                 send(playerId, "command.code.value", mapOf("code" to display(code.code)))
+                val player = tasks.onlinePlayer(playerId) ?: return@submit
+                val messages = configuration.current().value.messages
+                val locale = BukkitLocaleCompatibility.locale(player)
+                player.spigot().sendMessage(PlayerChatActions.copyCode(
+                    code.code.displayValue(),
+                    messages.resolve(locale, "command.code.copy"),
+                    messages.resolve(locale, "command.code.select"),
+                ))
             },
         )
     }
@@ -320,6 +334,13 @@ class PlayerWorkflowController(
                                 "seconds" to snapshot.value.general.claim.confirmationTimeout.seconds.toString(),
                             ),
                         )
+                        val currentPlayer = tasks.onlinePlayer(playerId) ?: return@submit
+                        val messages = configuration.current().value.messages
+                        val locale = BukkitLocaleCompatibility.locale(currentPlayer)
+                        currentPlayer.spigot().sendMessage(*PlayerChatActions.confirmation(
+                            messages.resolve(locale, "command.claim.agree"),
+                            messages.resolve(locale, "command.claim.disagree"),
+                        ))
                     }
                 }
             },

@@ -223,11 +223,12 @@ class PlayerWorkflowController(
                 InviteCodeLifecycleService(store, generator, 64).assign(playerId, now())
             },
             onSuccess = { code ->
-                send(playerId, "command.code.value", mapOf("code" to display(code.code)))
                 val player = tasks.onlinePlayer(playerId) ?: return@submit
                 val messages = configuration.current().value.messages
                 val locale = BukkitLocaleCompatibility.locale(player)
-                player.spigot().sendMessage(PlayerChatActions.copyCode(
+                player.spigot().sendMessage(*PlayerChatActions.codeMessage(
+                    messages.resolve(locale, "command.code.value"),
+                    display(code.code),
                     code.code.displayValue(),
                     messages.resolve(locale, "command.code.copy"),
                     messages.resolve(locale, "command.code.select"),
@@ -238,19 +239,30 @@ class PlayerWorkflowController(
 
     private fun claim(player: Player, code: String?) {
         val playerId = player.uniqueId
-        if (code != null) {
-            beginClaim(player, code)
-            return
-        }
-        val runtime = configuration.current().value
-        val claim = runtime.general.claim
-        when (claim.inputMode.resolve(capabilities)) {
-            ClaimInputChannel.COMMAND_ONLY -> send(playerId, "command.claim.command-only")
-            ClaimInputChannel.DIALOG -> {
-                if (!startDialogInput(player, runtime)) startChatInput(player, claim.chatInputTimeout)
+        val snapshot = configuration.current()
+        submit(
+            player,
+            operation = { store ->
+                ClaimEligibilityPolicy(snapshot.value.general.claim.window).evaluate(store.claimState(playerId), now())
+            },
+            onSuccess = { eligibility ->
+                if (!eligibility.eligible) {
+                    sendEligibility(playerId, eligibility)
+                } else if (code != null) {
+                    beginClaim(player, code)
+                } else {
+                    val runtime = configuration.current().value
+                    val claim = runtime.general.claim
+                    when (claim.inputMode.resolve(capabilities)) {
+                        ClaimInputChannel.COMMAND_ONLY -> send(playerId, "command.claim.command-only")
+                        ClaimInputChannel.DIALOG -> {
+                            if (!startDialogInput(player, runtime)) startChatInput(player, claim.chatInputTimeout)
+                        }
+                        ClaimInputChannel.CHAT -> startChatInput(player, claim.chatInputTimeout)
+                    }
+                }
             }
-            ClaimInputChannel.CHAT -> startChatInput(player, claim.chatInputTimeout)
-        }
+        )
     }
 
     private fun startDialogInput(player: Player, runtime: InviteCodeRuntimeConfiguration): Boolean {
@@ -315,6 +327,7 @@ class PlayerWorkflowController(
             operation = { store -> prepareClaim(playerId, rawCode, snapshot.value, store) },
             onSuccess = { prepared ->
                 when (prepared) {
+                    is PreparedClaim.Ineligible -> sendEligibility(playerId, prepared.eligibility)
                     PreparedClaim.Invalid -> send(playerId, "command.claim.invalid-code")
                     PreparedClaim.Unavailable -> send(playerId, "command.claim.unavailable")
                     PreparedClaim.Self -> send(playerId, "command.claim.self")
@@ -353,6 +366,8 @@ class PlayerWorkflowController(
         runtime: InviteCodeRuntimeConfiguration,
         store: InviteCodeStorage,
     ): PreparedClaim {
+        val eligibility = ClaimEligibilityPolicy(runtime.general.claim.window).evaluate(store.claimState(inviteeId), now())
+        if (!eligibility.eligible) return PreparedClaim.Ineligible(eligibility)
         val format = runtime.general.inviteCode.format.parser()
         val code = try {
             InviteCode.parse(rawCode, format)
@@ -752,6 +767,7 @@ class PlayerWorkflowController(
     }
 
     private sealed class PreparedClaim {
+        data class Ineligible(val eligibility: ClaimEligibility) : PreparedClaim()
         object Invalid : PreparedClaim()
         object Unavailable : PreparedClaim()
         object Self : PreparedClaim()

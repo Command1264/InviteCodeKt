@@ -8,8 +8,8 @@ runtime:
 command:
   code:
     value: "你的邀請碼是 {code}"
-    copy: "複製邀請碼"
-    select: "選取邀請碼後複製"
+    copy: "點擊複製到剪貼簿"
+    select: "點擊將邀請碼填入聊天列，再手動複製"
   claim:
     command-only: "請使用 /invitecode claim <邀請碼>。"
     chat-started: "請在 {seconds} 秒內於聊天輸入邀請碼；內容不會公開。輸入 cancel 可取消。"

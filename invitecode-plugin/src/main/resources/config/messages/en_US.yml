@@ -8,8 +8,8 @@ runtime:
 command:
   code:
     value: "Your Invite Code is {code}"
-    copy: "Copy Invite Code"
-    select: "Select Invite Code to copy"
+    copy: "Click to copy to clipboard"
+    select: "Click to insert the Invite Code into chat, then copy it"
   claim:
     command-only: "Use /invitecode claim <code>."
     chat-started: "Enter the Invite Code in chat within {seconds} seconds. It will not be published. Type cancel to stop."

@@ -32,14 +32,21 @@ internal object PlayerChatActions {
         return TextComponent.fromLegacyText(before) + codeComponents + TextComponent.fromLegacyText(after)
     }
 
-    fun confirmation(agreeLabel: String, disagreeLabel: String): Array<TextComponent> = arrayOf(
+    fun confirmation(
+        agreeLabel: String,
+        disagreeLabel: String,
+        agreeHint: String,
+        disagreeHint: String,
+    ): Array<TextComponent> = arrayOf(
         TextComponent("[$agreeLabel]").apply {
             color = ChatColor.GREEN
             clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/invitecode confirm")
+            hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, arrayOf(TextComponent(agreeHint)))
         },
         TextComponent("  [$disagreeLabel]").apply {
             color = ChatColor.RED
             clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/invitecode cancel")
+            hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, arrayOf(TextComponent(disagreeHint)))
         },
     )
 }

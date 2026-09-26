@@ -25,17 +25,19 @@ class PlayerChatActionsTest {
 
     @Test
     fun `confirmation actions execute only their respective commands`() {
-        val buttons = PlayerChatActions.confirmation("同意", "不同意")
+        val buttons = PlayerChatActions.confirmation("同意", "不同意", "點擊同意並使用邀請碼", "點擊不同意並取消")
 
         assertEquals(2, buttons.size)
         assertEquals("[同意]", buttons[0].text)
         assertEquals(ChatColor.GREEN, buttons[0].color)
         assertEquals(ClickEvent.Action.RUN_COMMAND, buttons[0].clickEvent.action)
         assertEquals("/invitecode confirm", buttons[0].clickEvent.value)
+        assertEquals("點擊同意並使用邀請碼", buttons[0].hoverEvent.value.single().toPlainText())
         assertEquals("  [不同意]", buttons[1].text)
         assertEquals(ChatColor.RED, buttons[1].color)
         assertEquals(ClickEvent.Action.RUN_COMMAND, buttons[1].clickEvent.action)
         assertEquals("/invitecode cancel", buttons[1].clickEvent.value)
+        assertEquals("點擊不同意並取消", buttons[1].hoverEvent.value.single().toPlainText())
         assertFalse(buttons[0].clickEvent.value == buttons[1].clickEvent.value)
     }
 }

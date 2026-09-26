@@ -39,6 +39,7 @@ import io.github.command1264.invitecode.platform.bukkit.InviteCodeDisplayFormatt
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeRuntimeConfiguration
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogInput
+import io.github.command1264.invitecode.platform.bukkit.NativeDialogConfirmationRequest
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogRequest
 import io.github.command1264.invitecode.platform.bukkit.PlatformCapabilities
 import io.github.command1264.invitecode.platform.bukkit.generator
@@ -335,24 +336,63 @@ class PlayerWorkflowController(
                         sessions.startConfirmation(prepared.confirmation)
                         scheduleTimeout(player, snapshot.value.general.claim.confirmationTimeout) {
                             if (sessions.expireConfirmation(playerId)) {
+                                tasks.onlinePlayer(playerId)?.let(nativeDialogInput::cancel)
                                 send(playerId, "command.claim.confirmation-timeout")
                             }
                         }
-                        send(
-                            playerId,
+                        val currentPlayer = tasks.onlinePlayer(playerId) ?: return@submit
+                        val messages = configuration.current().value.messages
+                        val locale = BukkitLocaleCompatibility.locale(currentPlayer)
+                        if (snapshot.value.general.claim.inputMode.resolve(capabilities) == ClaimInputChannel.DIALOG) {
+                            val confirmation = prepared.confirmation
+                            val shown = nativeDialogInput.showConfirmation(
+                                currentPlayer,
+                                NativeDialogConfirmationRequest(
+                                    title = messages.resolve(locale, "command.claim.confirmation-title"),
+                                    inviterLine = messages.resolve(
+                                        locale, "command.claim.confirmation-inviter",
+                                        mapOf("inviter" to confirmation.inviterName),
+                                    ),
+                                    codeLabel = messages.resolve(locale, "command.claim.confirmation-code-label"),
+                                    code = confirmation.inviteCode.displayValue(),
+                                    codeRgb = confirmation.inviteCode.color?.rgb,
+                                    question = messages.resolve(locale, "command.claim.confirmation-question"),
+                                    timeoutPrompt = messages.resolve(
+                                        locale, "command.claim.confirmation-prompt",
+                                        mapOf("seconds" to snapshot.value.general.claim.confirmationTimeout.seconds.toString()),
+                                    ),
+                                    agree = messages.resolve(locale, "command.claim.agree"),
+                                    disagree = messages.resolve(locale, "command.claim.disagree"),
+                                    agreeHint = messages.resolve(locale, "command.claim.agree-hover"),
+                                    disagreeHint = messages.resolve(locale, "command.claim.disagree-hover"),
+                                ),
+                                onConfirm = {
+                                    tasks.player(currentPlayer, operation = {
+                                        if (tasks.onlinePlayer(playerId) === currentPlayer) confirm(currentPlayer)
+                                    })
+                                },
+                                onDecline = {
+                                    tasks.player(currentPlayer, operation = {
+                                        if (tasks.onlinePlayer(playerId) === currentPlayer) cancel(currentPlayer)
+                                    })
+                                },
+                            )
+                            if (shown) return@submit
+                        }
+                        messages.resolve(
+                            locale,
                             "command.claim.confirmation",
                             mapOf(
                                 "inviter" to prepared.confirmation.inviterName,
                                 "code" to display(prepared.confirmation.inviteCode),
                                 "seconds" to snapshot.value.general.claim.confirmationTimeout.seconds.toString(),
                             ),
-                        )
-                        val currentPlayer = tasks.onlinePlayer(playerId) ?: return@submit
-                        val messages = configuration.current().value.messages
-                        val locale = BukkitLocaleCompatibility.locale(currentPlayer)
+                        ).lines().forEach(currentPlayer::sendMessage)
                         currentPlayer.spigot().sendMessage(*PlayerChatActions.confirmation(
                             messages.resolve(locale, "command.claim.agree"),
                             messages.resolve(locale, "command.claim.disagree"),
+                            messages.resolve(locale, "command.claim.agree-hover"),
+                            messages.resolve(locale, "command.claim.disagree-hover"),
                         ))
                     }
                 }
@@ -396,6 +436,7 @@ class PlayerWorkflowController(
             send(playerId, "command.claim.no-confirmation")
             return
         }
+        nativeDialogInput.cancel(player)
         val snapshot = configuration.current()
         submit(
             player,

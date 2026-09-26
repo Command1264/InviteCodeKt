@@ -10,7 +10,7 @@ InviteCode 在一名 Inviter 與一名 Invitee 之間建立一筆持久的 Invit
 - 一名 Invitee 最多只能有一名 Inviter；一名 Inviter 可以有多名 Invitee。
 - 玩家只有在沒有 Invitation、尚未成為 Inviter，且仍在 Claim Window 內時才可 Claim。
 - First Seen At 是 InviteCode 首次觀察到該玩家的時間；Claim Window 預設為 24 小時。
-- Claim 必須經過 30 秒內完成的確認，確認畫面顯示目前的 Inviter 名稱與邀請碼。
+- Claim 必須經過預設 60 秒內完成的確認，確認畫面顯示目前的 Inviter 名稱與邀請碼；期限可在設定中調整，並由伺服器執行。
 - Claimed Invitation 只能成為 Qualified Invitation 一次；Qualification 為永久狀態。
 - 一般玩家不能撤銷 Invitation。可稽核的管理操作支援 Unlink、Eligibility Reset、未 qualified Invitation 的 Transfer，以及 Force Qualification。
 
@@ -19,7 +19,7 @@ InviteCode 在一名 Inviter 與一名 Invitee 之間建立一筆持久的 Invit
 - 預設使用唯一的六字元十六進位 Color Invite Code。
 - Minecraft 1.16 以上版本顯示邀請碼實際代表的 RGB 顏色；舊版 client 使用最接近的 legacy color。
 - 未來可選擇啟用 Crockford Base32 與經過驗證的 custom code。
-- 有對應能力的新版 Paper 與 Spigot 伺服器使用原生 Dialog 文字輸入。
+- 有對應能力的新版 Paper 與 Spigot 伺服器使用原生 Dialog 文字輸入，並以第二個 Dialog 顯示邀請摘要與同意／不同意選項。按鈕文字與提示可設色；原生按鈕底色由客戶端決定。確認畫面顯示期限，不逐秒刷新。
 - 舊版伺服器使用一次性的私密聊天輸入，timeout 為 60 秒。
 - 所有版本都保留 `/invitecode claim <code>`。
 

@@ -3,6 +3,7 @@ package io.github.command1264.invitecode.platform.modern
 import io.github.command1264.invitecode.core.InviteCode
 import io.github.command1264.invitecode.core.InviteCodeFormats
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogRequest
+import io.github.command1264.invitecode.platform.bukkit.NativeDialogConfirmationRequest
 import org.bukkit.entity.Player
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -103,6 +104,41 @@ class ReflectiveNativeDialogInputTest {
         assertTrue(submissions.isEmpty())
     }
 
+    @Test
+    fun `confirmation accepts only the matching dialog action once`() {
+        val backend = FakeDialogBackend()
+        val adapter = ReflectiveNativeDialogInput(backend, Logger.getAnonymousLogger())
+        val playerId = UUID.randomUUID()
+        val player = player(playerId)
+        var confirmations = 0
+        var declines = 0
+
+        assertTrue(adapter.showConfirmation(player, confirmationRequest, { confirmations++ }, { declines++ }))
+        backend.emit(DialogResponse.Submitted(playerId, "A1B2C3"))
+        backend.emit(DialogResponse.Confirmed(playerId))
+        backend.emit(DialogResponse.Confirmed(playerId))
+        assertEquals(1, confirmations)
+        assertEquals(0, declines)
+
+        assertTrue(adapter.showConfirmation(player, confirmationRequest, { confirmations++ }, { declines++ }))
+        backend.emit(DialogResponse.Declined(playerId))
+        assertEquals(1, confirmations)
+        assertEquals(1, declines)
+    }
+
+    @Test
+    fun `failed confirmation dialog does not leave an active callback`() {
+        val backend = FakeDialogBackend(failShow = true)
+        val adapter = ReflectiveNativeDialogInput(backend, Logger.getAnonymousLogger())
+        val playerId = UUID.randomUUID()
+        var confirmations = 0
+
+        assertFalse(adapter.showConfirmation(player(playerId), confirmationRequest, { confirmations++ }, {}))
+        backend.emit(DialogResponse.Confirmed(playerId))
+
+        assertEquals(0, confirmations)
+    }
+
     private fun player(playerId: UUID): Player = Proxy.newProxyInstance(
         javaClass.classLoader,
         arrayOf(Player::class.java),
@@ -129,6 +165,10 @@ class ReflectiveNativeDialogInputTest {
 
     private companion object {
         val request = NativeDialogRequest("Title", "Code", "Confirm", "Cancel", 64)
+        val confirmationRequest = NativeDialogConfirmationRequest(
+            "Confirm", "Inviter: Alice", "Code: ", "A1B2C3", 0xA1B2C3,
+            "Use this code?", "Choose within 60 seconds:", "Agree", "Disagree", "Click to agree", "Click to disagree",
+        )
     }
 }
 
@@ -145,6 +185,10 @@ private class FakeDialogBackend(
     }
 
     override fun show(player: Player, request: NativeDialogRequest) {
+        if (failShow) throw NoSuchMethodException("showDialog")
+    }
+
+    override fun showConfirmation(player: Player, request: NativeDialogConfirmationRequest) {
         if (failShow) throw NoSuchMethodException("showDialog")
     }
 

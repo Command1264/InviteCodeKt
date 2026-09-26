@@ -6,27 +6,27 @@ const { spawn, spawnSync } = require('node:child_process')
 const instancePath = path.resolve(process.argv[2] || '')
 const metadataPath = path.join(instancePath, 'workspace.json')
 const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
-const supportedProfiles = new Set(['spigot-1.8.8', 'paper-1.20.6', 'paper-1.21.8', 'paper-latest', 'folia-latest'])
+const supportedProfiles = new Set(['spigot-1.8.8', 'spigot-latest', 'paper-1.20.6', 'paper-1.21.8', 'paper-latest', 'folia-latest'])
 if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(instancePath) ||
     !metadata.instance.startsWith('issue12-') || !supportedProfiles.has(metadata.profile) ||
     !metadata.eulaAccepted) {
   throw new Error('Expected a prepared, EULA-accepted, isolated InviteCode synthetic-player instance')
 }
 const clientPath = process.env.INVITECODE_SYNTHETIC_CLIENT_262
-if (metadata.profile === 'paper-latest' && metadata.minecraftVersion !== '26.2') {
-  throw new Error('The pinned independent test client only supports Paper 26.2')
+if (['paper-latest', 'spigot-latest'].includes(metadata.profile) && metadata.minecraftVersion !== '26.2') {
+  throw new Error('The pinned independent test client only supports Minecraft 26.2')
 }
 if (metadata.profile === 'folia-latest' && metadata.minecraftVersion !== '26.1.2') {
   throw new Error('The pinned official test client only supports the selected Folia 26.1.2 fixture')
 }
-if (metadata.profile === 'paper-latest' &&
+if (['paper-latest', 'spigot-latest'].includes(metadata.profile) &&
     (!clientPath || !path.isAbsolute(clientPath) || !fs.existsSync(path.join(clientPath, 'package.json')))) {
-  throw new Error('Paper 26.2 needs an absolute test-only client path in INVITECODE_SYNTHETIC_CLIENT_262')
+  throw new Error('Minecraft 26.2 needs an absolute test-only client path in INVITECODE_SYNTHETIC_CLIENT_262')
 }
-const mineflayer = metadata.profile === 'paper-latest' ? require(clientPath) : require('mineflayer')
-if (metadata.profile === 'paper-latest' &&
+const mineflayer = ['paper-latest', 'spigot-latest'].includes(metadata.profile) ? require(clientPath) : require('mineflayer')
+if (['paper-latest', 'spigot-latest'].includes(metadata.profile) &&
     require(path.join(clientPath, 'package.json')).version !== '4.37.1+complexity.26.2.3') {
-  throw new Error('Unexpected Paper 26.2 test client version')
+  throw new Error('Unexpected Minecraft 26.2 test client version')
 }
 
 const dataDirectory = path.join(instancePath, 'plugins', 'InviteCode')
@@ -34,7 +34,7 @@ const config = fs.readFileSync(path.join(dataDirectory, 'config.yml'), 'utf8')
 const qualifications = fs.readFileSync(path.join(dataDirectory, 'qualifications.yml'), 'utf8')
 const chatMode = process.env.INVITECODE_CHAT_INPUT === '1' ||
   (metadata.profile === 'folia-latest' && process.env.INVITECODE_FOLIA_CHAT === '1')
-const dialogMode = ['folia-latest', 'paper-latest'].includes(metadata.profile) &&
+const dialogMode = ['folia-latest', 'paper-latest', 'spigot-latest'].includes(metadata.profile) &&
   process.env.INVITECODE_DIALOG_PROTOCOL === '1'
 if (chatMode && dialogMode) throw new Error('Select either chat or dialog protocol input')
 if (!/default: en_US/.test(config) || !/use-client-locale: false/.test(config) ||
@@ -182,9 +182,6 @@ async function main() {
     }
     inviter = await createBot('IcTestA')
     const code = (await command(inviter, '/ic code', /Your Invite Code is ([A-F0-9]{6})/))[1]
-    await until(() => inviter.messages.some(message =>
-      message.includes(metadata.profile === 'spigot-1.8.8' ? 'Select Invite Code to copy' : 'Copy Invite Code')),
-    'clickable Invite Code label')
     inviter.bot.quit()
     inviter = null
     await delay(500)
@@ -200,7 +197,8 @@ async function main() {
       await until(() => dialogs.length === 2, 'second native dialog packet')
       await command(invitee, '/ic cancel', /cancelled/i)
       await command(invitee, '/ic status', /Invitation=none/)
-      await command(invitee, `/ic claim ${code}`, /Inviter: IcTestA; Invite Code:/)
+      invitee.bot.chat(`/ic claim ${code}`)
+      await until(() => dialogs.length === 3, 'native confirmation dialog packet')
     } else if (chatMode) {
       await command(invitee, '/ic claim', /Enter the Invite Code in chat/)
       const cancelStart = invitee.messages.length
@@ -212,12 +210,14 @@ async function main() {
       const start = invitee.messages.length
       invitee.bot.chat(code)
       await until(() => invitee.messages.slice(start).some(message =>
-        /Inviter: IcTestA; Invite Code:/.test(message)), 'private chat claim confirmation')
+        /Inviter: IcTestA/.test(message)), 'private chat claim confirmation')
     } else {
-      await command(invitee, `/ic claim ${code}`, /Inviter: IcTestA; Invite Code:/)
+      await command(invitee, `/ic claim ${code}`, /Inviter: IcTestA/)
     }
-    await until(() => invitee.messages.some(message => message.includes('[Agree]') &&
-      message.includes('[Disagree]')), 'clickable confirmation labels')
+    if (!dialogMode) {
+      await until(() => invitee.messages.some(message => message.includes('[Agree]') &&
+        message.includes('[Disagree]')), 'clickable confirmation labels')
+    }
     await command(invitee, '/ic confirm', /The Invitation has been created\./)
     await until(() => invitee.messages.some(message => message.includes('You have qualified as an invitee.')), 'Invitee Reward')
     await doctor(server, /Reward backlog: PENDING=1, PROCESSING=0, UNCERTAIN=0/)
@@ -238,8 +238,8 @@ async function main() {
           ? ['separate-region-status'] : []),
         ...(chatMode ? ['private-chat-input'] : []),
         ...(chatMode ? ['chat-cancel'] : []),
-        ...(dialogMode ? ['dialog-packet', 'command-cancel-preserves-state'] : []),
-        'code', 'chat-action-labels', 'claim', 'confirm', 'qualification',
+        ...(dialogMode ? ['input-and-confirmation-dialog-packets', 'command-cancel-preserves-state'] : []),
+        'code', 'claim', 'confirm', 'qualification',
         'pending-after-restart', 'offline-reward-on-login', 'stats'
       ]
     }

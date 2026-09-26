@@ -46,4 +46,12 @@
 
 Paper 26.2、Spigot 26.2、Spigot 1.8.8 的隔離合成玩家流程已通過；前兩者收到了輸入與確認 Dialog 封包，三者完成 Claim、獎勵與重啟。這些證據不證明真人客戶端的按鈕點擊、剪貼簿或畫面顏色。測試實例均已由 runner 正常關閉。第三輪真人驗收須使用另外建立、雜湊相符的空白實例，不要沿用第二輪 JAR 或玩家資料。
 
+| 第三輪真人實例 | 連線位址 | 可見 PowerShell 7 視窗中的啟動指令 |
+| --- | --- | --- |
+| `issue12-ux3-human-paper-262` | Paper 26.2，`127.0.0.1:62620` | `& 'D:\Code\Java\Plugin\InviteCodeKt\worktrees\test-final-release-acceptance\scripts\test-servers\start.ps1' -Profile paper-latest -Instance issue12-ux3-human-paper-262` |
+| `issue12-ux3-human-spigot-188` | Spigot 1.8.8，`127.0.0.1:51888` | `& 'D:\Code\Java\Plugin\InviteCodeKt\worktrees\test-final-release-acceptance\scripts\test-servers\start.ps1' -Profile spigot-1.8.8 -Instance issue12-ux3-human-spigot-188` |
+| `issue12-ux3-human-folia-2612` | Folia 26.1.2，`127.0.0.1:63620` | `& 'D:\Code\Java\Plugin\InviteCodeKt\worktrees\test-final-release-acceptance\scripts\test-servers\start.ps1' -Profile folia-latest -Instance issue12-ux3-human-folia-2612 -TestLabRoot 'D:\Code\Java\Plugin\TestLab\worktrees\fix-folia-stable-profile'` |
+
+三者預設 `zh_TW` 且會跟隨玩家客戶端語系；驗收繁體中文時請將客戶端設為繁體中文。測試政策為同 IP `ALLOW`、登入 1 天達資格，且 `workspace.json` 的插件雜湊皆等於本節所列 JAR。請一次只開一台；看到 `Done` 與 InviteCode 已啟用後才連線，測完在該伺服器 Console 輸入 `stop`，確認結束後再啟動下一台。
+
 真人依序只開一台：A 執行 `/ic code`，滑鼠移到**六碼本身**應出現提示，點擊後新版剪貼簿應只有六碼，舊版則填入聊天列。B 執行 `/ic claim`，原生輸入 Dialog 送出碼後應顯示邀請人、顏色正確的邀請碼、問題與期限、綠色「同意」和紅色「不同意」；Spigot 1.8.8 應顯示相同語意的五行聊天確認。先點「不同意」確認沒有 Invitation，再以新流程點「同意」確認建立。另用已用碼、已成為 Inviter 或逾期的玩家試 `/ic claim`，應立即顯示原因且不出現輸入框。預期沒有 InviteCode exception；回覆各版本的「複製、資格預檢、Dialog／聊天確認、按鈕、繁體中文」結果與實際畫面差異。真人通過後，才繼續 Issue #12 的發行門檻判定；Folia Vault provider 仍未驗證。

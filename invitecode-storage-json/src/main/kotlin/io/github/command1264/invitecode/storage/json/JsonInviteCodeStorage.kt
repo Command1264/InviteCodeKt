@@ -6,6 +6,9 @@ import com.google.gson.JsonParser
 import com.google.gson.GsonBuilder
 import io.github.command1264.invitecode.core.*
 import io.github.command1264.invitecode.storage.sql.BlockingOperationGuard
+import io.github.command1264.invitecode.storage.sql.CodeReservationKey
+import io.github.command1264.invitecode.storage.sql.AnonymizationPreview
+import io.github.command1264.invitecode.storage.sql.AnonymizationResult
 import io.github.command1264.invitecode.storage.sql.SqliteInviteCodeStorage
 import io.github.command1264.invitecode.storage.sql.SqliteSchemaMigrator
 import io.github.command1264.invitecode.storage.sql.SqliteSnapshotAccess
@@ -96,6 +99,9 @@ class JsonInviteCodeStorage private constructor(
     override fun <T> atomically(playerIds: Set<UUID>, operation: (InvitationTransaction) -> T): T =
         persist { delegate.atomically(playerIds, operation) }
 
+    fun previewAnonymization(playerId: UUID): AnonymizationPreview = delegate.previewAnonymization(playerId)
+    fun anonymizePlayer(playerId: UUID): AnonymizationResult = persist { delegate.anonymizePlayer(playerId) }
+
     override fun close() = synchronized(this) {
         if (closed) return@synchronized
         closed = true
@@ -109,7 +115,51 @@ class JsonInviteCodeStorage private constructor(
     companion object {
         const val FORMAT_VERSION = 1
 
-        fun open(file: Path, guard: BlockingOperationGuard): JsonInviteCodeStorage {
+        /** Offline-only, explicit snapshot migration; the .previous file keeps the original snapshot. */
+        fun migrateV8ToV9(file: Path, guard: BlockingOperationGuard) {
+            guard.checkAllowed()
+            val target = file.toAbsolutePath().normalize()
+            require(Files.isRegularFile(target)) { "JSON storage must exist before migration." }
+            val lockChannel = FileChannel.open(target.resolveSibling("${target.fileName}.lock"), CREATE, WRITE)
+            val lock = try {
+                lockChannel.tryLock() ?: throw JsonStorageException("JSON storage is already open; stop every instance.")
+            } catch (error: Exception) {
+                lockChannel.close()
+                throw error
+            }
+            val workingDirectory = try { Files.createTempDirectory("invitecode-json-migrate-") } catch (error: Exception) {
+                lock.release()
+                lockChannel.close()
+                throw error
+            }
+            val database = workingDirectory.resolve("working.db")
+            try {
+                SqliteSchemaMigrator(database, guard, SqliteSchemaMigrator.DEFAULT_MIGRATIONS.take(8)).migrate()
+                importSnapshot(target, database, guard, expectedSchemaVersion = 8)
+                SqliteSchemaMigrator(database, guard).migrate()
+                writeSnapshot(target, exportSnapshot(database, guard))
+            } finally {
+                try {
+                    Files.deleteIfExists(database)
+                    Files.deleteIfExists(workingDirectory)
+                } finally {
+                    lock.release()
+                    lockChannel.close()
+                }
+            }
+        }
+
+        fun open(file: Path, guard: BlockingOperationGuard, reservationKey: CodeReservationKey? = null): JsonInviteCodeStorage =
+            openAfterLock(file, guard) { reservationKey }
+
+        /** Loads the shared key only after the JSON writer lock has been acquired. */
+        fun openWithKeyProvider(
+            file: Path, guard: BlockingOperationGuard, provider: () -> CodeReservationKey,
+        ): JsonInviteCodeStorage = openAfterLock(file, guard, provider)
+
+        private fun openAfterLock(
+            file: Path, guard: BlockingOperationGuard, provider: () -> CodeReservationKey?,
+        ): JsonInviteCodeStorage {
             guard.checkAllowed()
             val target = file.toAbsolutePath().normalize()
             Files.createDirectories(requireNotNull(target.parent))
@@ -133,7 +183,7 @@ class JsonInviteCodeStorage private constructor(
             try {
                 SqliteSchemaMigrator(database, guard).migrate()
                 if (Files.exists(target)) importSnapshot(target, database, guard)
-                val delegate = SqliteInviteCodeStorage.open(database, guard)
+                val delegate = SqliteInviteCodeStorage.open(database, guard, provider())
                 try {
                     if (!Files.exists(target)) writeSnapshot(target, exportSnapshot(database, guard))
                     return JsonInviteCodeStorage(
@@ -209,7 +259,10 @@ class JsonInviteCodeStorage private constructor(
             root
         }
 
-        private fun importSnapshot(file: Path, database: Path, guard: BlockingOperationGuard) {
+        private fun importSnapshot(
+            file: Path, database: Path, guard: BlockingOperationGuard,
+            expectedSchemaVersion: Int = SqliteSchemaMigrator.currentVersion,
+        ) {
             val root = try {
                 Files.newBufferedReader(file, StandardCharsets.UTF_8).use { JsonParser.parseReader(it).asJsonObject }
             } catch (error: Exception) {
@@ -224,8 +277,8 @@ class JsonInviteCodeStorage private constructor(
                     "JSON format version $format is unsupported; expected $FORMAT_VERSION. Preserve the file and upgrade InviteCode."
                 }
                 val schemaVersion = root.get("schema-version")?.asString?.takeIf { it.matches(Regex("[0-9]+")) }?.toIntOrNull()
-                require(schemaVersion == SqliteSchemaMigrator.currentVersion) {
-                    "JSON schema version $schemaVersion is unsupported; expected ${SqliteSchemaMigrator.currentVersion}. " +
+                require(schemaVersion == expectedSchemaVersion) {
+                    "JSON schema version $schemaVersion is unsupported; expected $expectedSchemaVersion. " +
                         "Preserve the file and run an explicit migration with a compatible InviteCode version."
                 }
                 require(root.keySet() == setOf("format-version", "schema-version", "tables")) {

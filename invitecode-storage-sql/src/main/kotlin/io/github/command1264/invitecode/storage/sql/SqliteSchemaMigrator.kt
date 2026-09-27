@@ -401,6 +401,18 @@ class SqliteSchemaMigrator(
                     """.trimIndent(),
                 ),
             ),
+            SqliteSchemaMigration(
+                version = 9,
+                description = "Reserve anonymized Invite Codes without storing their plaintext",
+                statements = listOf(
+                    """
+                    CREATE TABLE invitecode_reserved_code_hashes (
+                        code_hash TEXT PRIMARY KEY,
+                        key_id TEXT NOT NULL
+                    )
+                    """.trimIndent(),
+                ),
+            ),
         )
 
         val currentVersion: Int

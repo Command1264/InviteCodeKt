@@ -51,7 +51,7 @@ InviteCode 在一名 Inviter 與一名 Invitee 之間建立一筆持久的 Invit
 - 已存在 backend 的 schema 升級不得在一般啟動時自動執行。
 - Storage 發生錯誤時採拒絕操作的安全失敗模式；插件不得退回 memory 或其他 backend。
 - IP 防濫用機制保存 keyed hash 30 天，不保存原始位址。
-- Anonymization 移除名稱、IP hash 與顯示資料，同時保留歷史一致性。
+- Anonymization 只能在所有實例停止且完成備份後以離線工具執行；舊 Minecraft UUID 改為隨機歷史 ID，移除名稱、IP hash、登入日期及相關自由文字，保留歷史一致性。未處理獎勵會阻止操作；舊 Invite Code 以獨立用途的 keyed hash 保留防止重發，同一玩家再次加入視為新玩家。詳見 ADR 0005。
 - Log 不得包含憑證與 IP hash。
 
 ## 設定與維運

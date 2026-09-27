@@ -38,6 +38,7 @@ internal class JdbcInviteCodeStorage private constructor(
     private val database: Path?,
     private val mysqlSource: DataSource?,
     private val blockingOperationGuard: BlockingOperationGuard,
+    private val reservationKey: CodeReservationKey?,
 ) : InviteCodeStorage {
     override fun qualifiedInvitationCount(inviterId: UUID): Int = read {
         SqliteInvitationRecords.countQualifiedForInviter(it, inviterId)
@@ -90,7 +91,7 @@ internal class JdbcInviteCodeStorage private constructor(
     }
 
     override fun isInviteCodeReserved(code: InviteCode): Boolean = read {
-        SqliteInviteCodeRecords.isReserved(it, code)
+        SqliteInviteCodeRecords.isReserved(it, code, reservationKey)
     }
 
     override fun saveInvitation(invitation: Invitation) {
@@ -354,14 +355,16 @@ internal class JdbcInviteCodeStorage private constructor(
                 SqliteInviteCodeRecords.findActive(connection, inviterId)
 
             override fun isReserved(code: InviteCode): Boolean =
-                SqliteInviteCodeRecords.isReserved(connection, code)
+                SqliteInviteCodeRecords.isReserved(connection, code, reservationKey)
 
             override fun activate(activeInviteCode: ActiveInviteCode) {
+                check(!isReserved(activeInviteCode.code)) { "Invite Code has already been reserved." }
                 SqliteInviteCodeRecords.activate(connection, activeInviteCode)
             }
 
             override fun replace(previous: RetiredInviteCode, current: ActiveInviteCode) {
                 SqliteInviteCodeRecords.retire(connection, previous)
+                check(!isReserved(current.code)) { "Invite Code has already been reserved." }
                 SqliteInviteCodeRecords.activate(connection, current)
             }
 
@@ -413,6 +416,37 @@ internal class JdbcInviteCodeStorage private constructor(
     }
 
     override fun close() = Unit
+
+    fun previewAnonymization(playerId: UUID): AnonymizationPreview = read {
+        OfflinePlayerAnonymizer.preview(it, playerId)
+    }
+
+    fun anonymizePlayer(playerId: UUID): AnonymizationResult {
+        val key = requireNotNull(reservationKey) { "Anti-abuse secret is required for anonymization." }
+        val source = mysqlSource ?: return write { OfflinePlayerAnonymizer.anonymize(it, playerId, key.keyId, key::hash) }
+        // Maintenance tools share this schema-scoped lock across processes, including through commit.
+        return source.connection.use { lockConnection ->
+            val lockName = "ic-anon:" + lockConnection.createStatement().use { statement ->
+                statement.executeQuery("SELECT LEFT(SHA2(DATABASE(), 256), 40)").use { rows ->
+                    check(rows.next()) { "MySQL did not return the selected schema." }
+                    rows.getString(1)
+                }
+            }
+            val acquired = lockConnection.prepareStatement("SELECT GET_LOCK(?, 10)").use { statement ->
+                statement.setString(1, lockName)
+                statement.executeQuery().use { rows -> rows.next() && rows.getInt(1) == 1 }
+            }
+            check(acquired) { "MySQL anonymization lock timed out; check other maintenance processes." }
+            try {
+                write { OfflinePlayerAnonymizer.anonymize(it, playerId, key.keyId, key::hash) }
+            } finally {
+                lockConnection.prepareStatement("SELECT RELEASE_LOCK(?)").use { statement ->
+                    statement.setString(1, lockName)
+                    statement.executeQuery().close()
+                }
+            }
+        }
+    }
 
     private fun <T> read(operation: (Connection) -> T): T {
         blockingOperationGuard.checkAllowed()
@@ -512,6 +546,7 @@ internal class JdbcInviteCodeStorage private constructor(
         fun openSqlite(
             database: Path,
             blockingOperationGuard: BlockingOperationGuard,
+            reservationKey: CodeReservationKey? = null,
         ): JdbcInviteCodeStorage {
             blockingOperationGuard.checkAllowed()
             connect(database).use { connection ->
@@ -531,16 +566,35 @@ internal class JdbcInviteCodeStorage private constructor(
                             "${SqliteSchemaMigrator.currentVersion}; run the explicit schema migration.",
                     )
                 }
+                if (reservationKey != null) {
+                    val otherKey = connection.prepareStatement(
+                        "SELECT 1 FROM invitecode_reserved_code_hashes WHERE key_id <> ? LIMIT 1",
+                    ).use { statement ->
+                        statement.setString(1, reservationKey.keyId)
+                        statement.executeQuery().use { it.next() }
+                    }
+                    check(!otherKey) { "Reserved Invite Codes use another anti-abuse key; restore the original secret." }
+                }
             }
-            return JdbcInviteCodeStorage(database, null, blockingOperationGuard)
+            return JdbcInviteCodeStorage(database, null, blockingOperationGuard, reservationKey)
         }
 
-        fun openMysql(dataSource: DataSource, guard: BlockingOperationGuard): JdbcInviteCodeStorage {
+        fun openMysql(dataSource: DataSource, guard: BlockingOperationGuard, reservationKey: CodeReservationKey? = null): JdbcInviteCodeStorage {
             guard.checkAllowed()
             dataSource.connection.use { connection ->
                 MysqlSchemaMigrator.requireCurrent(connection)
+                if (reservationKey != null) {
+                    val storedKey = connection.createStatement().use { statement ->
+                        statement.executeQuery("SELECT network_key_id FROM invitecode_metadata WHERE singleton = 1").use { rows ->
+                            if (rows.next()) rows.getString(1) else null
+                        }
+                    }
+                    check(storedKey == reservationKey.keyId) {
+                        "MySQL anti-abuse secret does not match the database; restore the shared secret."
+                    }
+                }
             }
-            return JdbcInviteCodeStorage(null, dataSource, guard)
+            return JdbcInviteCodeStorage(null, dataSource, guard, reservationKey)
         }
 
         private fun configure(connection: Connection) {
@@ -556,10 +610,12 @@ class SqliteInviteCodeStorage private constructor(
     private val delegate: JdbcInviteCodeStorage,
 ) : InviteCodeStorage by delegate {
     override fun close() = delegate.close()
+    fun previewAnonymization(playerId: UUID): AnonymizationPreview = delegate.previewAnonymization(playerId)
+    fun anonymizePlayer(playerId: UUID): AnonymizationResult = delegate.anonymizePlayer(playerId)
 
     companion object {
-        fun open(database: Path, guard: BlockingOperationGuard): SqliteInviteCodeStorage =
-            SqliteInviteCodeStorage(JdbcInviteCodeStorage.openSqlite(database, guard))
+        fun open(database: Path, guard: BlockingOperationGuard, reservationKey: CodeReservationKey? = null): SqliteInviteCodeStorage =
+            SqliteInviteCodeStorage(JdbcInviteCodeStorage.openSqlite(database, guard, reservationKey))
     }
 }
 

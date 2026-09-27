@@ -42,6 +42,61 @@ class MysqlStorageContractTest : StorageContractTest() {
 
 class MysqlIntegrationTest {
     @Test
+    fun `MySQL anonymization preserves tombstone and permits a fresh player record`() = withMysqlSchema { _, pool ->
+        val guard = BlockingOperationGuard { }
+        MysqlSchemaMigrator(pool, guard).migrate()
+        val key = CodeReservationKey("a".repeat(64)) { "b".repeat(64) }
+        pool.connection.use { MysqlSchemaMigrator.bindNetworkKey(it, key.keyId) }
+        val oldId = UUID.randomUUID()
+        val inviteeId = UUID.randomUUID()
+        val invitationId = UUID.randomUUID()
+        val deliveryId = UUID.randomUUID()
+        val actionId = UUID.randomUUID()
+        MysqlInviteCodeStorage.open(pool, guard, key).use { storage ->
+            storage.savePlayer(StoredPlayer(oldId, Instant.parse("2026-01-01T00:00:00Z"), "Alice"))
+            storage.savePlayer(StoredPlayer(inviteeId, Instant.parse("2026-01-01T00:00:00Z"), "Bob"))
+            pool.connection.use { connection ->
+                fun insert(sql: String, vararg values: String) = connection.prepareStatement(sql).use { statement ->
+                    values.forEachIndexed { index, value -> statement.setString(index + 1, value) }
+                    statement.executeUpdate()
+                }
+                insert("INSERT INTO invitecode_codes(code, inviter_id, activated_at) VALUES (?, ?, ?)",
+                    "A1B2C3", oldId.toString(), "2026-01-01T00:00:00Z")
+                insert("""
+                    INSERT INTO invitecode_invitations(invitation_id, inviter_id, inviter_eligibility_generation,
+                        invitee_id, invitee_eligibility_generation, status, claimed_at)
+                    VALUES (?, ?, 0, ?, 0, 'CLAIMED', '2026-01-02T00:00:00Z')
+                """, invitationId.toString(), oldId.toString(), inviteeId.toString())
+                insert("""
+                    INSERT INTO invitecode_reward_deliveries(delivery_id, invitation_id, reward_id, status,
+                        idempotency_key, created_at, updated_at)
+                    VALUES (?, ?, 'Alice reward', 'DELIVERED', ?, '2026-01-03T00:00:00Z', '2026-01-03T00:00:00Z')
+                """, deliveryId.toString(), invitationId.toString(), "milestone:$oldId")
+                insert("""
+                    INSERT INTO invitecode_reward_actions(action_id, reward_delivery_id, invitation_id, recipient_id,
+                        position, action_type, payload, status, idempotency_key, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, 0, 'MESSAGE', 'Hello Alice', 'DELIVERED', ?,
+                        '2026-01-03T00:00:00Z', '2026-01-03T00:00:00Z')
+                """, actionId.toString(), deliveryId.toString(), invitationId.toString(), oldId.toString(), "action:$oldId")
+                insert("""
+                    INSERT INTO invitecode_reward_action_transitions(action_id, previous_status, current_status,
+                        occurred_at, actor, reason)
+                    VALUES (?, 'PENDING', 'DELIVERED', '2026-01-03T00:00:00Z', 'Alice', 'Alice approved')
+                """, actionId.toString())
+            }
+            val result = storage.anonymizePlayer(oldId)
+            assertEquals(null, storage.player(oldId))
+            assertEquals(null, storage.player(result.historicalId)?.lastKnownName)
+            assertEquals(result.historicalId, storage.invitation(invitationId)?.inviterId)
+            assertEquals(null, storage.rewardDelivery(deliveryId))
+            assertEquals(null, storage.rewardAction(actionId))
+            assertEquals(true, storage.isInviteCodeReserved(InviteCode.fromNormalized("A1B2C3")))
+            storage.savePlayer(StoredPlayer(oldId, Instant.now(), "Again"))
+            assertEquals("Again", storage.player(oldId)?.lastKnownName)
+        }
+    }
+
+    @Test
     fun `interrupted DDL resumes only after checking existing tables`() = withMysqlSchema { _, pool ->
         val guard = BlockingOperationGuard { }
         assertThrows(IllegalStateException::class.java) {
@@ -49,7 +104,7 @@ class MysqlIntegrationTest {
                 if (name == "invitecode_players") error("simulated power loss after committed DDL")
             }.migrate()
         }
-        assertEquals(1, MysqlSchemaMigrator(pool, guard).migrate())
+        assertEquals(2, MysqlSchemaMigrator(pool, guard).migrate())
         pool.connection.use(MysqlSchemaMigrator::requireCurrent)
     }
 

@@ -4,16 +4,19 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.github.command1264.invitecode.core.InviteCodeStorage
 import io.github.command1264.invitecode.core.MysqlConfiguration
+import java.util.UUID
 
 class MysqlInviteCodeStorage private constructor(
     private val pool: HikariDataSource,
     private val delegate: JdbcInviteCodeStorage,
 ) : InviteCodeStorage by delegate {
     override fun close() = pool.close()
+    fun previewAnonymization(playerId: UUID): AnonymizationPreview = delegate.previewAnonymization(playerId)
+    fun anonymizePlayer(playerId: UUID): AnonymizationResult = delegate.anonymizePlayer(playerId)
 
     companion object {
-        fun open(pool: HikariDataSource, guard: BlockingOperationGuard): MysqlInviteCodeStorage =
-            MysqlInviteCodeStorage(pool, JdbcInviteCodeStorage.openMysql(pool, guard))
+        fun open(pool: HikariDataSource, guard: BlockingOperationGuard, reservationKey: CodeReservationKey? = null): MysqlInviteCodeStorage =
+            MysqlInviteCodeStorage(pool, JdbcInviteCodeStorage.openMysql(pool, guard, reservationKey))
 
         fun createPool(config: MysqlConfiguration, password: String): HikariDataSource {
             val hikari = HikariConfig().apply {

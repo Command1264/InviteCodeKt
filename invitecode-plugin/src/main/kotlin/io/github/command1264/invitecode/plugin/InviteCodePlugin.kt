@@ -19,6 +19,7 @@ import io.github.command1264.invitecode.platform.bukkit.PluginRuntimeState
 import io.github.command1264.invitecode.platform.bukkit.RuntimePhase
 import io.github.command1264.invitecode.platform.bukkit.RuntimeConfigurationReload
 import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
+import io.github.command1264.invitecode.storage.sql.CodeReservationKey
 import io.github.command1264.invitecode.platform.bukkit.PlatformTaskDispatcher
 import io.github.command1264.invitecode.platform.modern.ModernPlatformCapabilities
 import io.github.command1264.invitecode.platform.modern.ModernPlatformIntegration
@@ -294,19 +295,23 @@ class InviteCodePlugin : JavaPlugin() {
                             "SQLite database path escapes the plugin data directory."
                         }
                         val version = SqliteSchemaMigrator(database, guard).migrate()
-                        val opened = SqliteInviteCodeStorage.open(database, guard)
                         var newHasher: NetworkAddressHasher? = null
+                        var opened: SqliteInviteCodeStorage? = null
                         try {
                             val loadedHasher = networkHasher.get()
                             newHasher = if (loadedHasher == null) {
                                 NetworkAddressHasher.loadOrCreate(dataDirectory.resolve(NETWORK_SECRET_FILE))
                             } else null
-                            opened.purgeNetworkHashesWithDifferentKey((loadedHasher ?: requireNotNull(newHasher)).keyId)
+                            val activeHasher = loadedHasher ?: requireNotNull(newHasher)
+                            opened = SqliteInviteCodeStorage.open(
+                                database, guard, CodeReservationKey(activeHasher.keyId, activeHasher::hashReservedCode),
+                            )
+                            opened.purgeNetworkHashesWithDifferentKey(activeHasher.keyId)
                             opened.saveAuditRecord(AuditRecord(UUID.randomUUID(), InvitationAuditAction.STORAGE_MIGRATED, actor, reason, Instant.now()))
                             StorageMigrationResult(version, opened, newHasher)
                         } catch (error: Exception) {
                             newHasher?.close()
-                            opened.close()
+                            opened?.close()
                             throw error
                         }
                     }

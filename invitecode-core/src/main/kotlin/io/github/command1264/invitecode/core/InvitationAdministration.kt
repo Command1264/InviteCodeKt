@@ -23,6 +23,7 @@ enum class InvitationAuditAction {
     ELIGIBILITY_RESET,
     CODE_ROTATED,
     STORAGE_MIGRATED,
+    PLAYER_ANONYMIZED,
 }
 
 data class AuditRecord(
@@ -107,7 +108,8 @@ data class AuditedInvitationTransition(
                 "Eligibility Reset cannot audit an Invitation transition.",
             )
             InvitationAuditAction.CODE_ROTATED,
-            InvitationAuditAction.STORAGE_MIGRATED -> throw IllegalArgumentException(
+            InvitationAuditAction.STORAGE_MIGRATED,
+            InvitationAuditAction.PLAYER_ANONYMIZED -> throw IllegalArgumentException(
                 "${auditRecord.action} cannot audit an Invitation transition.",
             )
         }

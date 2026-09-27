@@ -7,6 +7,7 @@ import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermission
 import java.security.SecureRandom
 import java.security.MessageDigest
+import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.crypto.Mac
@@ -37,6 +38,20 @@ class NetworkAddressHasher private constructor(
             mac.doFinal(normalized).joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
         } finally {
             normalized.fill(0)
+        }
+    }
+
+    /** Domain-separated digest for permanently reserved Invite Codes; never hash a short code without a key. */
+    fun hashReservedCode(normalizedCode: String): String {
+        check(!closed.get()) { "Network address hasher is closed." }
+        require(normalizedCode.isNotBlank()) { "Invite Code must not be blank." }
+        val mac = Mac.getInstance(ALGORITHM)
+        mac.init(SecretKeySpec(key, ALGORITHM))
+        val input = ("invitecode:reserved-code:v1:" + normalizedCode).toByteArray(StandardCharsets.UTF_8)
+        return try {
+            mac.doFinal(input).joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+        } finally {
+            input.fill(0)
         }
     }
 

@@ -50,4 +50,17 @@ class NetworkAddressHasherTest {
             NetworkAddressHasher.fromBase64(Base64.getEncoder().encodeToString(ByteArray(16)))
         }
     }
+
+    @Test
+    fun `reserved Invite Code HMAC is stable and separate from address digest`() {
+        val first = NetworkAddressHasher.loadOrCreate(temporaryDirectory.resolve("anti-abuse.key")).use {
+            it.hashReservedCode("A1B2C3") to it.hash(byteArrayOf(10, 0, 0, 1))
+        }
+        val second = NetworkAddressHasher.loadExisting(temporaryDirectory.resolve("anti-abuse.key")).use {
+            it.hashReservedCode("A1B2C3")
+        }
+        assertEquals(first.first, second)
+        assertNotEquals(first.first, first.second)
+        assertEquals(64, second.length)
+    }
 }

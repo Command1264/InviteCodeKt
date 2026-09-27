@@ -72,6 +72,8 @@ JSON 以版本化、可閱讀的資料快照作為持久化來源，沿用 SQLit
 
 Claim 防濫用只保存具期限的 HMAC-SHA-256 網路雜湊，不保存原始 IP；預設保留 30 天，並可設定相符時 `ALLOW`、`WARN` 或 `DENY`。SQLite 的 `anti-abuse.key` 由首次初始化建立，需隨 SQLite 備份且不得提交版本控制；MySQL 則使用所有實例共用的外部密鑰。
 
+玩家資料匿名化須在所有實例停止後，透過獨立維護工具預覽、備份並執行；它保留歷史關係，但同一 Minecraft UUID 再登入會視為新玩家。SQLite schema 9、MySQL schema 2 及 JSON snapshot schema 9 的既有資料升級方式與完整驗證步驟見 [`offline-anonymization.md`](./operations/offline-anonymization.md)。
+
 ## Qualification Policy
 
 `QualificationPolicy` 使用 OR group 包含 AND condition；每次解析都會依正規化內容產生不可變的 SHA-256 revision。`QualificationEvaluator` 對 condition 依序短路求值，provider 缺失或執行失敗時安全地產生 `UNKNOWN`／設定的 `UNSATISFIED`，不會因此讓 Invitation qualified。

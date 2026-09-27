@@ -5,6 +5,7 @@ import io.github.command1264.invitecode.core.InvitationAuditAction
 import io.github.command1264.invitecode.core.MysqlConfiguration
 import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
 import io.github.command1264.invitecode.storage.sql.BlockingOperationGuard
+import io.github.command1264.invitecode.storage.sql.CodeReservationKey
 import io.github.command1264.invitecode.storage.sql.MysqlInviteCodeStorage
 import io.github.command1264.invitecode.storage.sql.MysqlSchemaMigrator
 import io.github.command1264.invitecode.storage.sql.MysqlStorageException
@@ -47,7 +48,7 @@ internal class MysqlRuntimeBootstrap(
                 MysqlSchemaMigrator(pool, guard).migrate()
             }
             pool.connection.use { connection -> MysqlSchemaMigrator.bindNetworkKey(connection, hasher.keyId) }
-            storage = MysqlInviteCodeStorage.open(pool, guard)
+            storage = MysqlInviteCodeStorage.open(pool, guard, CodeReservationKey(hasher.keyId, hasher::hashReservedCode))
             if (!initializedBefore) {
                 storage.saveAuditRecord(
                     AuditRecord(

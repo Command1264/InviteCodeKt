@@ -54,7 +54,7 @@ class MysqlSchemaMigrator(
             connection.createStatement().use { statement -> statement.execute(LEDGER_DDL) }
         }
         val otherVersions = connection.createStatement().use { statement ->
-            statement.executeQuery("SELECT COUNT(*) FROM $LEDGER WHERE version <> $CURRENT_VERSION").use { rows ->
+            statement.executeQuery("SELECT COUNT(*) FROM $LEDGER WHERE version NOT IN (1, 2)").use { rows ->
                 rows.next()
                 rows.getInt(1)
             }
@@ -65,19 +65,25 @@ class MysqlSchemaMigrator(
         val state = connection.prepareStatement(
             "SELECT checksum, state FROM $LEDGER WHERE version = ?",
         ).use { statement ->
-            statement.setInt(1, CURRENT_VERSION)
+            statement.setInt(1, 1)
             statement.executeQuery().use { rows ->
                 if (rows.next()) rows.getString(1) to rows.getString(2) else null
             }
         }
         if (state == null) {
+            val hasLaterVersion = connection.createStatement().use { statement ->
+                statement.executeQuery("SELECT 1 FROM $LEDGER WHERE version = 2").use { it.next() }
+            }
+            if (hasLaterVersion) throw MysqlStorageException(
+                "MySQL migration ledger contains version 2 without version 1; preserve the database.",
+            )
             if (TABLES.any { tableExists(connection, schema, it.name) }) {
                 throw MysqlStorageException("MySQL schema ledger has no version record, but InviteCode tables exist; inspect manually.")
             }
             connection.prepareStatement(
                 "INSERT INTO $LEDGER(version, checksum, state) VALUES (?, ?, 'APPLYING')",
             ).use { statement ->
-                statement.setInt(1, CURRENT_VERSION)
+                statement.setInt(1, 1)
                 statement.setString(2, CHECKSUM)
                 statement.executeUpdate()
             }
@@ -99,14 +105,39 @@ class MysqlSchemaMigrator(
         }
         if (state?.second != "APPLIED") {
             connection.prepareStatement("UPDATE $LEDGER SET state = 'APPLIED' WHERE version = ? AND state = 'APPLYING'").use {
-                it.setInt(1, CURRENT_VERSION)
+                it.setInt(1, 1)
                 check(it.executeUpdate() == 1) { "MySQL schema ledger changed during migration." }
+            }
+        }
+        val second = connection.prepareStatement("SELECT checksum, state FROM $LEDGER WHERE version = 2").use { statement ->
+            statement.executeQuery().use { rows -> if (rows.next()) rows.getString(1) to rows.getString(2) else null }
+        }
+        if (second == null) {
+            if (tableExists(connection, schema, V2_TABLE.name)) throw MysqlStorageException(
+                "MySQL reserved-code table exists without a migration record; inspect the database.",
+            )
+            connection.prepareStatement("INSERT INTO $LEDGER(version, checksum, state) VALUES (2, ?, 'APPLYING')").use {
+                it.setString(1, V2_CHECKSUM)
+                it.executeUpdate()
+            }
+        } else if (second.first != V2_CHECKSUM || second.second !in setOf("APPLYING", "APPLIED")) {
+            throw MysqlStorageException("MySQL reserved-code migration checksum or state differs; preserve the database.")
+        }
+        if (!tableExists(connection, schema, V2_TABLE.name)) {
+            if (second?.second == "APPLIED") throw MysqlStorageException("MySQL reserved-code table is missing; preserve the database.")
+            connection.createStatement().use { it.execute(V2_TABLE.ddl) }
+            afterTable(V2_TABLE.name)
+        }
+        verifyTable(connection, schema, V2_TABLE)
+        if (second?.second != "APPLIED") {
+            connection.prepareStatement("UPDATE $LEDGER SET state = 'APPLIED' WHERE version = 2 AND state = 'APPLYING'").use {
+                check(it.executeUpdate() == 1) { "MySQL reserved-code migration ledger changed." }
             }
         }
     }
 
     companion object {
-        const val CURRENT_VERSION = 1
+        const val CURRENT_VERSION = 2
         private const val LEDGER = "invitecode_schema_migrations"
         private const val LEDGER_DDL = """
             CREATE TABLE invitecode_schema_migrations (
@@ -127,12 +158,20 @@ class MysqlSchemaMigrator(
                 TableDefinition(match.groupValues[1], ddl)
             }
         private val CHECKSUM = sha256(RESOURCE)
+        private val V2_RESOURCE = requireNotNull(MysqlSchemaMigrator::class.java.getResource("/mysql/V2__reserved_code_hashes.sql")) {
+            "Bundled MySQL reserved-code migration resource is missing."
+        }.readText(StandardCharsets.UTF_8)
+        private val V2_TABLE = TableDefinition(
+            "invitecode_reserved_code_hashes",
+            V2_RESOURCE.substringAfter("-- @table invitecode_reserved_code_hashes").trim().removeSuffix(";"),
+        )
+        private val V2_CHECKSUM = sha256(V2_RESOURCE)
 
         fun isInitialized(connection: Connection): Boolean {
             val schema = schemaName(connection)
             if (!tableExists(connection, schema, LEDGER)) return false
             return connection.prepareStatement("SELECT state FROM $LEDGER WHERE version = ?").use { statement ->
-                statement.setInt(1, CURRENT_VERSION)
+                statement.setInt(1, 1)
                 statement.executeQuery().use { rows -> rows.next() && rows.getString(1) == "APPLIED" }
             }
         }
@@ -143,7 +182,7 @@ class MysqlSchemaMigrator(
                 "MySQL schema is not initialized; run explicit storage migration or use an empty database for first startup.",
             )
             val otherVersions = connection.createStatement().use { statement ->
-                statement.executeQuery("SELECT COUNT(*) FROM $LEDGER WHERE version <> $CURRENT_VERSION").use { rows ->
+                statement.executeQuery("SELECT COUNT(*) FROM $LEDGER WHERE version NOT IN (1, 2)").use { rows ->
                     rows.next()
                     rows.getInt(1)
                 }
@@ -152,7 +191,7 @@ class MysqlSchemaMigrator(
                 "MySQL schema contains another version; use a matching InviteCode version or explicit migration.",
             )
             val row = connection.prepareStatement("SELECT checksum, state FROM $LEDGER WHERE version = ?").use { statement ->
-                statement.setInt(1, CURRENT_VERSION)
+                statement.setInt(1, 1)
                 statement.executeQuery().use { rows ->
                     if (rows.next()) rows.getString(1) to rows.getString(2) else null
                 }
@@ -161,6 +200,15 @@ class MysqlSchemaMigrator(
                 "MySQL schema version/checksum is not current; run explicit storage migration after inspecting the database.",
             )
             TABLES.forEach { verifyTable(connection, schema, it) }
+            val version2 = connection.prepareStatement("SELECT checksum, state FROM $LEDGER WHERE version = 2").use { statement ->
+                statement.executeQuery().use { rows ->
+                    if (rows.next()) rows.getString(1) to rows.getString(2) else null
+                }
+            }
+            if (version2 != (V2_CHECKSUM to "APPLIED")) throw MysqlStorageException(
+                "MySQL reserved-code migration is not current; run explicit migration after a backup.",
+            )
+            verifyTable(connection, schema, V2_TABLE)
         }
 
         fun bindNetworkKey(connection: Connection, keyId: String) {

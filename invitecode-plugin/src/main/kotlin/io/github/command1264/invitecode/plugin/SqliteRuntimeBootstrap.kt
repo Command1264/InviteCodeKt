@@ -4,6 +4,7 @@ import io.github.command1264.invitecode.core.AuditRecord
 import io.github.command1264.invitecode.core.InvitationAuditAction
 import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
 import io.github.command1264.invitecode.storage.sql.BlockingOperationGuard
+import io.github.command1264.invitecode.storage.sql.CodeReservationKey
 import io.github.command1264.invitecode.storage.sql.SqliteInviteCodeStorage
 import io.github.command1264.invitecode.storage.sql.SqliteSchemaMigrator
 import java.nio.file.Files
@@ -38,7 +39,9 @@ internal class SqliteRuntimeBootstrap(
             } else {
                 hasher = NetworkAddressHasher.loadExisting(networkSecret)
             }
-            storage = SqliteInviteCodeStorage.open(database, blockingOperationGuard)
+            storage = SqliteInviteCodeStorage.open(
+                database, blockingOperationGuard, CodeReservationKey(hasher.keyId, hasher::hashReservedCode),
+            )
             storage.purgeNetworkHashesWithDifferentKey(hasher.keyId)
             if (initialize) {
                 storage.saveAuditRecord(

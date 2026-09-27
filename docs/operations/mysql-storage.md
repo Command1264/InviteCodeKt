@@ -42,7 +42,7 @@ $env:INVITECODE_NETWORK_SECRET = [Convert]::ToBase64String(
 
 新 database 首次啟動時，插件會取得 MySQL advisory lock，寫入含 checksum 的 migration ledger，依序建立表並逐一檢查欄位、索引、外鍵與儲存引擎。MySQL DDL 無法像 SQLite 一樣完整交易回滾；若在建表途中中斷，ledger 會維持 `APPLYING`。下次啟動只在既有表通過結構檢查時建立剩餘的表；結構不同時進入維護模式，保留資料供人工檢查。完成後 ledger 為 `APPLIED`，後續啟動只檢查版本與結構。
 
-既有 schema 的版本更新須先備份、暫停所有使用同一 database 的插件實例，再執行 `/invitecode admin storage migrate MYSQL <reason>`。`doctor` 僅讀取健康狀態，不執行 migration。只有資料庫已建立而 schema 為全新的情況才會在一般啟動時自動建表；選擇不同 backend 並不搬移既有資料。不要在兩個 backend 同時收集正式玩家資料後直接改回設定。
+既有 schema 的版本更新須先備份、暫停所有使用同一 database 的插件實例，再執行 `/invitecode admin storage migrate MYSQL <reason>`；schema 1 升至 2 也可使用[離線維護工具](./offline-anonymization.md)與既有 dump。`doctor` 僅讀取健康狀態，不執行 migration。只有資料庫已建立而 schema 為全新的情況才會在一般啟動時自動建表；選擇不同 backend 並不搬移既有資料。不要在兩個 backend 同時收集正式玩家資料後直接改回設定。
 
 ## 驗證
 

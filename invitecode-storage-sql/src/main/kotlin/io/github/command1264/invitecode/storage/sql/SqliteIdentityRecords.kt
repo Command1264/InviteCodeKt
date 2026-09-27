@@ -272,11 +272,33 @@ internal object SqliteInviteCodeRecords {
             }
         }
 
-    fun isReserved(connection: Connection, code: InviteCode): Boolean =
-        connection.prepareStatement("SELECT 1 FROM invitecode_codes WHERE code = ?").use { statement ->
+    fun isReserved(connection: Connection, code: InviteCode, reservationKey: CodeReservationKey? = null): Boolean {
+        val existing = connection.prepareStatement("SELECT 1 FROM invitecode_codes WHERE code = ?").use { statement ->
             statement.setString(1, code.normalized)
             statement.executeQuery().use { it.next() }
         }
+        if (existing) return true
+        if (reservationKey == null) {
+            val tombstonesExist = connection.createStatement().use { statement ->
+                statement.executeQuery("SELECT 1 FROM invitecode_reserved_code_hashes LIMIT 1").use { it.next() }
+            }
+            check(!tombstonesExist) { "Reserved Invite Codes exist, but their secret is unavailable; code allocation is disabled." }
+            return false
+        }
+        val foreignKey = connection.prepareStatement(
+            "SELECT 1 FROM invitecode_reserved_code_hashes WHERE key_id <> ? LIMIT 1",
+        ).use { statement ->
+            statement.setString(1, reservationKey.keyId)
+            statement.executeQuery().use { it.next() }
+        }
+        check(!foreignKey) { "Reserved Invite Codes use another anti-abuse key; restore the original secret." }
+        return connection.prepareStatement(
+            "SELECT 1 FROM invitecode_reserved_code_hashes WHERE code_hash = ?",
+        ).use { statement ->
+            statement.setString(1, reservationKey.hash(code.normalized))
+            statement.executeQuery().use { it.next() }
+        }
+    }
 
     fun activate(connection: Connection, activeInviteCode: ActiveInviteCode) {
         connection.prepareStatement(

@@ -41,23 +41,35 @@ internal class MysqlRuntimeBootstrap(
             throw error
         }
         try {
-            val initializedBefore = pool.connection.use(MysqlSchemaMigrator::isInitialized)
-            if (initializedBefore && !explicitMigration) {
-                pool.connection.use(MysqlSchemaMigrator::requireCurrent)
-            } else {
-                MysqlSchemaMigrator(pool, guard).migrate()
-            }
-            pool.connection.use { connection -> MysqlSchemaMigrator.bindNetworkKey(connection, hasher.keyId) }
-            storage = MysqlInviteCodeStorage.open(pool, guard, CodeReservationKey(hasher.keyId, hasher::hashReservedCode))
-            if (!initializedBefore) {
-                storage.saveAuditRecord(
-                    AuditRecord(
-                        UUID.randomUUID(), InvitationAuditAction.STORAGE_MIGRATED,
-                        "system", "automatic first MySQL initialization", now(),
-                    ),
+            return MysqlTransferCoordinator.withLock(pool) { connection ->
+                val catalog = requireNotNull(connection.catalog) { "MySQL database is not selected." }
+                connection.metaData.getTables(catalog, null, "invitecode_transfer_guard", arrayOf("TABLE")).use { tables ->
+                    if (tables.next()) throw MysqlStorageException(
+                        "MySQL backend transfer is incomplete; keep InviteCode stopped, inspect the destination " +
+                            "and restore or restart the offline transfer before enabling this database.",
+                    )
+                }
+                val initializedBefore = MysqlSchemaMigrator.isInitialized(connection)
+                if (initializedBefore && !explicitMigration) {
+                    MysqlSchemaMigrator.requireCurrent(connection)
+                } else {
+                    MysqlSchemaMigrator(pool, guard).migrate()
+                }
+                MysqlSchemaMigrator.bindNetworkKey(connection, hasher.keyId)
+                val activeStorage = MysqlInviteCodeStorage.open(
+                    pool, guard, CodeReservationKey(hasher.keyId, hasher::hashReservedCode),
                 )
+                storage = activeStorage
+                if (!initializedBefore) {
+                    activeStorage.saveAuditRecord(
+                        AuditRecord(
+                            UUID.randomUUID(), InvitationAuditAction.STORAGE_MIGRATED,
+                            "system", "automatic first MySQL initialization", now(),
+                        ),
+                    )
+                }
+                MysqlBootstrapResult(activeStorage, hasher, !initializedBefore)
             }
-            return MysqlBootstrapResult(storage, hasher, !initializedBefore)
         } catch (error: Exception) {
             storage?.close() ?: pool.close()
             hasher.close()

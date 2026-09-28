@@ -42,6 +42,18 @@ class MysqlStorageContractTest : StorageContractTest() {
 
 class MysqlIntegrationTest {
     @Test
+    fun `schema migration accepts only the transfer guard before first initialization`() = withMysqlSchema { _, pool ->
+        pool.connection.use { OfflineStorageTransfer.createMysqlTransferGuard(it) }
+        assertEquals(MysqlSchemaMigrator.CURRENT_VERSION, MysqlSchemaMigrator(pool, BlockingOperationGuard { }).migrate())
+        pool.connection.use { connection ->
+            MysqlSchemaMigrator.requireCurrent(connection)
+            OfflineStorageTransfer.verifyMysqlTransferGuard(connection)
+            OfflineStorageTransfer.releaseMysqlTransferGuard(connection)
+            assertEquals(false, connection.metaData.getTables(connection.catalog, null, "invitecode_transfer_guard", arrayOf("TABLE")).use { it.next() })
+        }
+    }
+
+    @Test
     fun `MySQL anonymization preserves tombstone and permits a fresh player record`() = withMysqlSchema { _, pool ->
         val guard = BlockingOperationGuard { }
         MysqlSchemaMigrator(pool, guard).migrate()

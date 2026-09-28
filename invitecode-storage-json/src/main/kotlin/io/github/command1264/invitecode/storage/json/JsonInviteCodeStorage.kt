@@ -102,6 +102,15 @@ class JsonInviteCodeStorage private constructor(
     fun previewAnonymization(playerId: UUID): AnonymizationPreview = delegate.previewAnonymization(playerId)
     fun anonymizePlayer(playerId: UUID): AnonymizationResult = persist { delegate.anonymizePlayer(playerId) }
 
+    /** The file lock remains held while an offline migration reads the loaded snapshot. */
+    fun <T> inspectOffline(operation: (Connection) -> T): T = synchronized(this) {
+        check(!closed && !failed) { "JSON storage is closed or failed." }
+        SqliteSnapshotAccess.withConnection(database, guard) { connection ->
+            connection.createStatement().use { it.execute("PRAGMA query_only=ON") }
+            operation(connection)
+        }
+    }
+
     override fun close() = synchronized(this) {
         if (closed) return@synchronized
         closed = true
@@ -114,6 +123,49 @@ class JsonInviteCodeStorage private constructor(
 
     companion object {
         const val FORMAT_VERSION = 1
+
+        /** Publish a new JSON destination only after the imported SQLite image passes verification. */
+        fun createOfflineFromSqlite(
+            file: Path, guard: BlockingOperationGuard, importAndVerify: (Connection) -> Unit,
+        ) {
+            guard.checkAllowed()
+            val target = file.toAbsolutePath().normalize()
+            require(Files.isDirectory(requireNotNull(target.parent))) { "JSON destination directory must exist." }
+            require(!Files.exists(target)) { "JSON destination already exists; do not overwrite it." }
+            val lockChannel = FileChannel.open(target.resolveSibling("${target.fileName}.lock"), CREATE, WRITE)
+            val lock = try {
+                lockChannel.tryLock() ?: throw JsonStorageException("JSON destination is already open; stop every instance.")
+            } catch (error: Exception) {
+                lockChannel.close()
+                throw error
+            }
+            val workingDirectory = try { Files.createTempDirectory("invitecode-json-transfer-") } catch (error: Exception) {
+                lock.release()
+                lockChannel.close()
+                throw error
+            }
+            val database = workingDirectory.resolve("working.db")
+            var staged: Path? = null
+            try {
+                val stagedFile = Files.createTempFile(target.parent, ".${target.fileName}.", ".staging")
+                staged = stagedFile
+                SqliteSchemaMigrator(database, guard).migrate()
+                SqliteSnapshotAccess.withConnection(database, guard, importAndVerify)
+                writeSnapshot(stagedFile, exportSnapshot(database, guard))
+                require(!Files.exists(target)) { "JSON destination appeared while transfer was in progress." }
+                // The hard link publishes complete bytes and cannot replace a concurrently created target.
+                Files.createLink(target, stagedFile)
+            } finally {
+                try {
+                    staged?.let(Files::deleteIfExists)
+                    Files.deleteIfExists(database)
+                    Files.deleteIfExists(workingDirectory)
+                } finally {
+                    lock.release()
+                    lockChannel.close()
+                }
+            }
+        }
 
         /** Offline-only, explicit snapshot migration; the .previous file keeps the original snapshot. */
         fun migrateV8ToV9(file: Path, guard: BlockingOperationGuard) {

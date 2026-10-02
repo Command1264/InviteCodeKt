@@ -1,6 +1,6 @@
 # MySQL 8.4 儲存設定與復原
 
-InviteCode 的 MySQL backend 目前以 MySQL 8.4 LTS 為正式驗證目標。MariaDB 尚未列入相容性承諾。插件會在已存在、完全空白的 database 首次啟動時自行建立 schema；database 本身與專用帳號須先由管理員建立。本功能不搬移 SQLite 資料，也不會在 reload 時切換 backend。
+InviteCode 的 MySQL backend 目前以 MySQL 8.4 LTS 為正式驗證目標。MariaDB 尚未列入相容性承諾。插件會在已存在、完全空白的 database 首次啟動時自行建立 schema；database 本身與專用帳號須先由管理員建立。跨 backend 資料搬移須使用[離線工具](./cross-backend-transfer.md)，不會在 reload 時切換 backend。
 
 ## 準備 database 與設定
 
@@ -42,7 +42,7 @@ $env:INVITECODE_NETWORK_SECRET = [Convert]::ToBase64String(
 
 新 database 首次啟動時，插件會取得 MySQL advisory lock，寫入含 checksum 的 migration ledger，依序建立表並逐一檢查欄位、索引、外鍵與儲存引擎。MySQL DDL 無法像 SQLite 一樣完整交易回滾；若在建表途中中斷，ledger 會維持 `APPLYING`。下次啟動只在既有表通過結構檢查時建立剩餘的表；結構不同時進入維護模式，保留資料供人工檢查。完成後 ledger 為 `APPLIED`，後續啟動只檢查版本與結構。
 
-既有 schema 的版本更新須先備份、暫停所有使用同一 database 的插件實例，再執行 `/invitecode admin storage migrate MYSQL <reason>`；schema 1 升至 2 也可使用[離線維護工具](./offline-anonymization.md)與既有 dump。`doctor` 僅讀取健康狀態，不執行 migration。只有資料庫已建立而 schema 為全新的情況才會在一般啟動時自動建表；選擇不同 backend 並不搬移既有資料。不要在兩個 backend 同時收集正式玩家資料後直接改回設定。
+既有 schema 的版本更新須先備份、暫停所有使用同一 database 的插件實例，再執行 `/invitecode admin storage migrate MYSQL <reason>`；schema 1 升至 2 也可使用[離線維護工具](./offline-anonymization.md)與既有 dump。`doctor` 僅讀取健康狀態，不執行 migration。只有資料庫已建立而 schema 為全新的情況才會在一般啟動時自動建表；跨 backend 資料須明確停機、備份並搬移。若 `invitecode_transfer_guard` 留存，表示目的地搬移未完成，插件會拒絕啟用；不要直接刪除 guard 繞過檢查。不要在兩個 backend 同時收集正式玩家資料後直接改回設定。
 
 ## 驗證
 

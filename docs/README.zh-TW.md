@@ -74,6 +74,8 @@ Claim 防濫用只保存具期限的 HMAC-SHA-256 網路雜湊，不保存原始
 
 玩家資料匿名化須在所有實例停止後，透過獨立維護工具預覽、備份並執行；它保留歷史關係，但同一 Minecraft UUID 再登入會視為新玩家。SQLite schema 9、MySQL schema 2 及 JSON snapshot schema 9 的既有資料升級方式與完整驗證步驟見 [`offline-anonymization.md`](./operations/offline-anonymization.md)。
 
+SQLite、JSON 與 MySQL 之間的資料搬移須使用[離線跨 backend 搬移工具](./operations/cross-backend-transfer.md)，先停寫、核對相同防濫用密鑰與空白目的地，完成備份、全表驗證後才切換 `storage.yml`；一般啟動與 reload 不會自動搬移資料。
+
 ## Qualification Policy
 
 `QualificationPolicy` 使用 OR group 包含 AND condition；每次解析都會依正規化內容產生不可變的 SHA-256 revision。`QualificationEvaluator` 對 condition 依序短路求值，provider 缺失或執行失敗時安全地產生 `UNKNOWN`／設定的 `UNSATISFIED`，不會因此讓 Invitation qualified。

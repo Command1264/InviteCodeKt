@@ -4,7 +4,7 @@ InviteCode is a Kotlin invitation and referral rewards plugin for Spigot and Pap
 
 The project is currently `0.1.0-SNAPSHOT`. It builds one Java 8 compatible plugin JAR and keeps newer Minecraft APIs behind isolated adapters. SQLite and MySQL 8.4 are production storage backends; JSON is available for small single-instance installations. Cross-version, storage recovery, and optional integration checks are recorded in the [integrated artifact retest](docs/testing/evidence/2026-10-02-issue-12-final-artifact-retest.md). Folia remains experimental; automated checks and player acceptance are tracked separately.
 
-The complete maintainer guide is in [繁體中文](docs/README.zh-TW.md) and is the primary maintained documentation. See also the [product specification](docs/spec/invitecode-1.0.md), [Bukkit operations](docs/operations/bukkit-workflow.md), [JSON setup](docs/operations/json-storage.md), [MySQL setup](docs/operations/mysql-storage.md), and [offline anonymization](docs/operations/offline-anonymization.md). These documents are maintained in Traditional Chinese.
+The complete maintainer guide is in [繁體中文](docs/README.zh-TW.md) and is the primary maintained documentation. See also the [product specification](docs/spec/invitecode-1.0.md), [Bukkit operations](docs/operations/bukkit-workflow.md), [JSON setup](docs/operations/json-storage.md), [MySQL setup](docs/operations/mysql-storage.md), [offline anonymization](docs/operations/offline-anonymization.md), and [cross-backend transfer](docs/operations/cross-backend-transfer.md). These documents are maintained in Traditional Chinese.
 
 ## Build
 

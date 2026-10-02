@@ -42,6 +42,50 @@ class MysqlStorageContractTest : StorageContractTest() {
 
 class MysqlIntegrationTest {
     @Test
+    fun `export rejects orphaned MySQL rows even after foreign key checks are reenabled`() = withMysqlSchema { _, pool ->
+        MysqlSchemaMigrator(pool, BlockingOperationGuard { }).migrate()
+        val keyId = "a".repeat(64)
+        pool.connection.use { connection ->
+            MysqlSchemaMigrator.bindNetworkKey(connection, keyId)
+            connection.createStatement().use { it.execute("SET FOREIGN_KEY_CHECKS=0") }
+            try {
+                connection.prepareStatement(
+                    "INSERT INTO invitecode_codes(code, inviter_id, activated_at) VALUES (?, ?, ?)",
+                ).use { statement ->
+                    statement.setString(1, "A1B2C3")
+                    statement.setString(2, UUID.randomUUID().toString())
+                    statement.setString(3, "2026-01-01T00:00:00Z")
+                    statement.executeUpdate()
+                }
+            } finally {
+                connection.createStatement().use { it.execute("SET FOREIGN_KEY_CHECKS=1") }
+            }
+            val failure = assertThrows(StorageTransferException::class.java) {
+                OfflineStorageTransfer.export(connection, StorageDialect.MYSQL, keyId)
+            }
+            assertEquals(true, failure.message.orEmpty().contains("foreign-key"))
+            connection.createStatement().use { statement ->
+                statement.executeQuery("SELECT COUNT(*) FROM invitecode_codes").use { rows ->
+                    rows.next()
+                    assertEquals(1, rows.getInt(1))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `schema migration accepts only the transfer guard before first initialization`() = withMysqlSchema { _, pool ->
+        pool.connection.use { OfflineStorageTransfer.createMysqlTransferGuard(it) }
+        assertEquals(MysqlSchemaMigrator.CURRENT_VERSION, MysqlSchemaMigrator(pool, BlockingOperationGuard { }).migrate())
+        pool.connection.use { connection ->
+            MysqlSchemaMigrator.requireCurrent(connection)
+            OfflineStorageTransfer.verifyMysqlTransferGuard(connection)
+            OfflineStorageTransfer.releaseMysqlTransferGuard(connection)
+            assertEquals(false, connection.metaData.getTables(connection.catalog, null, "invitecode_transfer_guard", arrayOf("TABLE")).use { it.next() })
+        }
+    }
+
+    @Test
     fun `MySQL anonymization preserves tombstone and permits a fresh player record`() = withMysqlSchema { _, pool ->
         val guard = BlockingOperationGuard { }
         MysqlSchemaMigrator(pool, guard).migrate()

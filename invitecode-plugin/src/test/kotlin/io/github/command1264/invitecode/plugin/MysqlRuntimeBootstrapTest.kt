@@ -3,15 +3,23 @@ package io.github.command1264.invitecode.plugin
 import io.github.command1264.invitecode.core.MysqlConfiguration
 import io.github.command1264.invitecode.core.MysqlTlsMode
 import io.github.command1264.invitecode.storage.sql.BlockingOperationGuard
+import io.github.command1264.invitecode.storage.sql.MysqlInviteCodeStorage
 import io.github.command1264.invitecode.storage.sql.MysqlStorageException
+import io.github.command1264.invitecode.storage.sql.OfflineStorageTransfer
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.sql.DriverManager
 import java.time.Duration
 import java.util.Base64
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class MysqlRuntimeBootstrapTest {
     @Test
@@ -68,6 +76,34 @@ class MysqlRuntimeBootstrapTest {
                         if (name == "DB_PASSWORD") password else Base64.getEncoder()
                             .encodeToString(ByteArray(32) { 7 })
                     }).initializeOrOpen()
+                }
+                val executor = Executors.newSingleThreadExecutor()
+                try {
+                    val pool = MysqlInviteCodeStorage.createPool(config, password)
+                    pool.use {
+                        var attempt: java.util.concurrent.Future<*>? = null
+                        MysqlTransferCoordinator.withLock(pool) { connection ->
+                            val started = CountDownLatch(1)
+                            attempt = executor.submit {
+                                started.countDown()
+                                MysqlRuntimeBootstrap(config, guard, environment).initializeOrOpen()
+                            }
+                            assertTrue(started.await(5, TimeUnit.SECONDS))
+                            Thread.sleep(200)
+                            assertFalse(requireNotNull(attempt).isDone)
+                            OfflineStorageTransfer.createMysqlTransferGuard(connection)
+                        }
+                        val interrupted = assertThrows(ExecutionException::class.java) {
+                            requireNotNull(attempt).get(10, TimeUnit.SECONDS)
+                        }
+                        assertTrue(interrupted.cause is MysqlStorageException)
+                        assertTrue(interrupted.cause?.message.orEmpty().contains("transfer is incomplete"))
+                    }
+                } finally {
+                    executor.shutdownNow()
+                    DriverManager.getConnection("jdbc:mysql://$host:$port/$schema?sslMode=REQUIRED", user, password).use { connection ->
+                        connection.createStatement().use { it.execute("DROP TABLE invitecode_transfer_guard") }
+                    }
                 }
             } finally {
                 first.storage.close()

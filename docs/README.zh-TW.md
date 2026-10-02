@@ -102,4 +102,6 @@ Qualification Reward 與 Inviter Milestone Reward 會先以穩定冪等鍵保存
 
 ## 目前狀態
 
+最新 develop 產物、跨核心／backend 證據及固定 Human 部署狀態見[本輪驗證紀錄](./testing/evidence/2026-10-02-issue-12-current-artifact-retest.md)。真人驗收使用保留資料的三台固定測服，依[短版步驟](./testing/current-artifact-human-acceptance.md)補齊最終產物證據；歷史已通過項目保留，正式發行與遠端交付另依授權。
+
 實作工作記錄於本 repository 的 GitHub Issues。不規劃相容或匯入舊版 InviteCode 的資料與設定。

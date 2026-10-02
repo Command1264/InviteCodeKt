@@ -64,12 +64,20 @@ if (sha256(path.join(instancePath, 'server.jar')) !== metadata.serverSha256 ||
 }
 
 const mise = process.env.MISE_EXE || 'mise'
+const serverStartTimeoutMs = Number(process.env.INVITECODE_SERVER_START_TIMEOUT_MS || 180000)
+const serverStopTimeoutMs = Number(process.env.INVITECODE_SERVER_STOP_TIMEOUT_MS || 30000)
+for (const [name, timeout] of [['INVITECODE_SERVER_START_TIMEOUT_MS', serverStartTimeoutMs],
+  ['INVITECODE_SERVER_STOP_TIMEOUT_MS', serverStopTimeoutMs]]) {
+  if (!Number.isInteger(timeout) || timeout < 100 || timeout > 600000) {
+    throw new Error(`${name} must be an integer between 100 and 600000`)
+  }
+}
 let fatalError
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
-async function until(check, description, timeoutMs = 30000) {
+async function until(check, description, timeoutMs = 30000, failOnFatalError = true) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
-    if (fatalError) throw fatalError
+    if (failOnFatalError && fatalError) throw fatalError
     const result = check()
     if (result) return result
     await delay(100)
@@ -96,25 +104,50 @@ async function startServer() {
       }
     })
   }
-  await until(() => {
-    if (child.exitCode !== null) throw new Error(`Server exited before InviteCode was ready: ${child.exitCode}`)
-    return /InviteCode \S+ 已啟用/.test(state.output) && /Done \(/.test(state.output)
-  }, 'InviteCode ACTIVE', 100000)
+  try {
+    await until(() => {
+      if (child.exitCode !== null) throw new Error(`Server exited before InviteCode was ready: ${child.exitCode}`)
+      return /InviteCode \S+ 已啟用/.test(state.output) && /Done \(/.test(state.output)
+    }, 'InviteCode ACTIVE', serverStartTimeoutMs)
+  } catch (error) {
+    // main has not received this child yet; a failed startup must clean up its own process.
+    try { await stopServer(state) } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], 'Server startup failed and cleanup also failed')
+    }
+    throw error
+  }
   return state
 }
 
 async function stopServer(state) {
   if (!state || state.child.exitCode !== null) return
-  state.child.stdin.write('stop\n')
+  let inputError
+  const onInputError = error => { inputError = error }
+  state.child.stdin.on('error', onInputError)
   try {
-    await until(() => state.child.exitCode !== null, 'server stop', 30000)
+    await new Promise((resolve, reject) => {
+      state.child.stdin.write('stop\n', error => error ? reject(error) : resolve())
+    })
+    await until(() => {
+      if (inputError) throw inputError
+      return state.child.exitCode !== null
+    }, 'server stop', serverStopTimeoutMs, false)
   } catch (error) {
-    if (process.platform === 'win32' && state.child.pid) {
-      spawnSync('taskkill', ['/PID', String(state.child.pid), '/T', '/F'], { stdio: 'ignore' })
-    } else {
-      state.child.kill()
+    if (state.child.exitCode === null && state.child.pid) {
+      if (process.platform === 'win32') {
+        const killed = spawnSync('taskkill', ['/PID', String(state.child.pid), '/T', '/F'], { encoding: 'utf8' })
+        if (killed.error || killed.status !== 0) {
+          throw new AggregateError([error, killed.error || new Error(killed.stderr || `taskkill exit ${killed.status}`)],
+            'Owned server process could not be terminated')
+        }
+      } else if (!state.child.kill()) {
+        throw new AggregateError([error, new Error('kill returned false')], 'Owned server process could not be terminated')
+      }
+      await until(() => state.child.exitCode !== null, 'forced server stop', serverStopTimeoutMs, false)
     }
     throw error
+  } finally {
+    state.child.stdin.removeListener('error', onInputError)
   }
 }
 

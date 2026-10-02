@@ -1,0 +1,419 @@
+{
+  "schemaVersion": 1,
+  "sourceDevelop": "fb215c09ee4bbce96050ef4aebf97a1905ed984a",
+  "productSource": "418c8298e8deb6c7fdef66d6e0ff67f78d807a89",
+  "artifact": {
+    "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue26-418c829\\worktree\\invitecode-plugin\\build\\issue26-evidence\\InviteCode-418c829.jar",
+    "sha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C"
+  },
+  "startupMatrix": [
+    {
+      "profile": "spigot-1.8.8",
+      "port": 63801,
+      "javaAlias": "local-8",
+      "serverSha256": "6ED6046687CE9255228FE7BD31E097DA49BEFF2A0C577E7BE56D14F09753239C",
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "result": "PASS",
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-spigot-1.8.8.log"
+    },
+    {
+      "profile": "spigot-1.12.2",
+      "port": 63802,
+      "javaAlias": "local-8",
+      "serverSha256": "CA59A730F5B1C2E85A2ABE907D9689CC2636BE0200F333C1E1B87E2D620D8513",
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "result": "PASS",
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-spigot-1.12.2.log"
+    },
+    {
+      "profile": "spigot-1.16.5",
+      "port": 63803,
+      "javaAlias": "local-8",
+      "serverSha256": "C738DCB9AC8114228107BB4CDA97BFEC62A243C99FE0E7C6CAF9D424BD1EF93C",
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "result": "PASS",
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-spigot-1.16.5.log"
+    },
+    {
+      "profile": "spigot-latest",
+      "port": 63804,
+      "javaAlias": "local-25",
+      "serverSha256": "27A348344D42ED2BA76AAD6FCEEBB7A26365F09C9AC6EEA4C0918BA83BA7E3DD",
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "result": "PASS",
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-spigot-latest.log"
+    },
+    {
+      "profile": "paper-1.20.6",
+      "port": 63805,
+      "javaAlias": "local-21",
+      "serverSha256": "4B011F5ADB5F6C72007686A223174FCE82F31AEB4B34FAF4652ABC840B47E640",
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "result": "PASS",
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-paper-1.20.6.log"
+    },
+    {
+      "profile": "paper-1.21.8",
+      "port": 63806,
+      "javaAlias": "local-21",
+      "serverSha256": "8DE7C52C3B02403503D16FAC58003F1EFEF7DD7A0256786843927FA92EE57F1E",
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "result": "PASS",
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-paper-1.21.8.log"
+    },
+    {
+      "profile": "paper-latest",
+      "port": 63807,
+      "javaAlias": "local-25",
+      "serverSha256": "B1D8F6BFA1B6101FA8E947B53041CB3BDF5540E7B83B6547CA19BA7EDEFEB083",
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "result": "PASS",
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-paper-latest.log"
+    },
+    {
+      "profile": "folia-latest",
+      "port": 63808,
+      "javaAlias": "local-25",
+      "serverSha256": "607AFD1C3320008E1FFD2EAEE6780ACE4419D5F8C527B75E79F259BE79EBF57B",
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "result": "PASS",
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-folia-latest.log"
+    }
+  ],
+  "playerAndProviderFlows": [
+    {
+      "id": "spigot188",
+      "result": "PASS",
+      "checks": [
+        "private-chat-input",
+        "chat-cancel",
+        "code",
+        "claim",
+        "confirm",
+        "qualification",
+        "pending-after-restart",
+        "offline-reward-on-login",
+        "stats"
+      ]
+    },
+    {
+      "id": "paper262",
+      "result": "PASS",
+      "checks": [
+        "input-and-confirmation-dialog-packets",
+        "command-cancel-preserves-state",
+        "code",
+        "claim",
+        "confirm",
+        "qualification",
+        "pending-after-restart",
+        "offline-reward-on-login",
+        "stats"
+      ]
+    },
+    {
+      "id": "folia2612",
+      "result": "PASS",
+      "checks": [
+        "input-and-confirmation-dialog-packets",
+        "command-cancel-preserves-state",
+        "code",
+        "claim",
+        "confirm",
+        "qualification",
+        "pending-after-restart",
+        "offline-reward-on-login",
+        "stats"
+      ]
+    },
+    {
+      "id": "vault1218",
+      "result": "PASS",
+      "checks": [
+        "balance-before-0",
+        "qualification",
+        "vault-deposit-37.5",
+        "balance-after-restart-37.5"
+      ]
+    }
+  ],
+  "additionalBackendAndProviderGates": [
+    {
+      "name": "papi-placeholder-paper1206",
+      "result": "PASS",
+      "checks": [
+        "placeholder-unsatisfied",
+        "placeholder-ready",
+        "qualified-after-rejoin",
+        "qualified-after-restart"
+      ],
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\papi-flow.log"
+    },
+    {
+      "name": "json-playerflow-paper1206",
+      "result": "PASS",
+      "checks": [
+        "code",
+        "claim",
+        "confirm",
+        "qualification",
+        "pending-after-restart",
+        "offline-reward-on-login",
+        "stats"
+      ],
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\json-flow-final.log"
+    },
+    {
+      "name": "mysql-interrupted-migration-recovery",
+      "result": "PASS",
+      "checks": [
+        "malformed-table-fails-closed",
+        "checksum-mismatch-fails-closed",
+        "applying-ledger-resumes",
+        "sentinel-preserved",
+        "applied-ledger-durable",
+        "no-local-secret"
+      ],
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\mysql-migration-recovery-shortname.log"
+    },
+    {
+      "name": "actual-plugin-mysql-guard-lock",
+      "result": "PASS",
+      "checks": [
+        "empty-db-initializes-active",
+        "transfer-lock-contention-maintenance",
+        "release-lock-recovers-active",
+        "guard-fails-closed",
+        "drop-owned-fixture-guard-recovers-active",
+        "sentinel-preserved"
+      ],
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\actual-mysql-guard-lock-final.log"
+    }
+  ],
+  "recovery": [
+    {
+      "scenario": "sqlite",
+      "result": {
+        "result": "PASS",
+        "scenario": "sqlite-migration-recovery",
+        "instance": "issue12-current-recovery-sqlite",
+        "profile": "spigot-1.8.8",
+        "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+        "checks": [
+          "no-auto-upgrade",
+          "maintenance",
+          "ddl-rollback",
+          "sentinel-preserved",
+          "explicit-recovery",
+          "restart-durable",
+          "secret-preserved"
+        ]
+      },
+      "port": 63811,
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\sqlite.log"
+    },
+    {
+      "scenario": "mark-delivered",
+      "result": {
+        "result": "PASS",
+        "scenario": "reward-interruption",
+        "resolution": "mark-delivered",
+        "instance": "issue12-current-recovery-mark-delivered",
+        "profile": "spigot-1.8.8",
+        "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+        "markerCount": 1,
+        "checks": [
+          "effect-entered",
+          "abrupt-halt",
+          "restart-recovery",
+          "no-automatic-retry",
+          "admin-resolution",
+          "resolution-after-restart"
+        ]
+      },
+      "port": 63812,
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\mark-delivered.log"
+    },
+    {
+      "scenario": "retry",
+      "result": {
+        "result": "PASS",
+        "scenario": "reward-interruption",
+        "resolution": "retry",
+        "instance": "issue12-current-recovery-retry",
+        "profile": "spigot-1.8.8",
+        "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+        "markerCount": 2,
+        "checks": [
+          "effect-entered",
+          "abrupt-halt",
+          "restart-recovery",
+          "no-automatic-retry",
+          "admin-resolution",
+          "resolution-after-restart"
+        ]
+      },
+      "port": 63813,
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\retry.log"
+    }
+  ],
+  "runnerRegression": {
+    "tests": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\runner-tests-reviewed.log",
+    "postPatchRealFlowLog": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\runner-recheck.log"
+  },
+  "humanDeployment": [
+    {
+      "result": "PASS",
+      "name": "invitecode-spigot-1.8.8",
+      "instancePath": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-spigot-1.8.8",
+      "port": 10101,
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "schemaBefore": 8,
+      "schemaAfter": 9,
+      "keyUnchanged": true,
+      "worldUnchangedBeforeBoot": true,
+      "backupPath": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\human-issue12-fb215c0\\invitecode-spigot-1.8.8",
+      "stopped": true
+    },
+    {
+      "result": "PASS",
+      "name": "invitecode-paper-26.2",
+      "instancePath": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-paper-26.2",
+      "port": 20101,
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "schemaBefore": 8,
+      "schemaAfter": 9,
+      "keyUnchanged": true,
+      "worldUnchangedBeforeBoot": true,
+      "backupPath": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\human-issue12-fb215c0\\invitecode-paper-26.2",
+      "stopped": true
+    },
+    {
+      "result": "PASS",
+      "name": "invitecode-folia-26.1.2",
+      "instancePath": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2",
+      "port": 30101,
+      "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "schemaBefore": 8,
+      "schemaAfter": 9,
+      "keyUnchanged": true,
+      "worldUnchangedBeforeBoot": true,
+      "backupPath": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\human-issue12-fb215c0\\invitecode-folia-26.1.2",
+      "stopped": true
+    }
+  ],
+  "dataPreservation": [
+    {
+      "result": "PASS",
+      "name": "invitecode-spigot-1.8.8",
+      "schemaBefore": 8,
+      "schemaAfter": 9,
+      "allExistingBusinessRowsPreserved": true,
+      "preservedTables": [
+        "invitecode_players",
+        "invitecode_codes",
+        "invitecode_invitations",
+        "invitecode_qualification_facts",
+        "invitecode_reward_deliveries",
+        "invitecode_reward_actions",
+        "invitecode_reward_delivery_transitions",
+        "invitecode_reward_action_transitions",
+        "invitecode_player_login_days",
+        "invitecode_player_network_hashes"
+      ],
+      "previousAuditRowsPreserved": true,
+      "newMigrationAuditCount": 1,
+      "reservedCodeHashesEmpty": true,
+      "integrityCheck": "ok",
+      "foreignKeyCheck": "ok",
+      "unchangedWorldUids": [
+        "world\\uid.dat"
+      ],
+      "worldPlayerFilesPreservedCount": 0
+    },
+    {
+      "result": "PASS",
+      "name": "invitecode-paper-26.2",
+      "schemaBefore": 8,
+      "schemaAfter": 9,
+      "allExistingBusinessRowsPreserved": true,
+      "preservedTables": [
+        "invitecode_players",
+        "invitecode_codes",
+        "invitecode_invitations",
+        "invitecode_qualification_facts",
+        "invitecode_reward_deliveries",
+        "invitecode_reward_actions",
+        "invitecode_reward_delivery_transitions",
+        "invitecode_reward_action_transitions",
+        "invitecode_player_login_days",
+        "invitecode_player_network_hashes"
+      ],
+      "previousAuditRowsPreserved": true,
+      "newMigrationAuditCount": 1,
+      "reservedCodeHashesEmpty": true,
+      "integrityCheck": "ok",
+      "foreignKeyCheck": "ok",
+      "unchangedWorldUids": [],
+      "worldPlayerFilesPreservedCount": 8
+    },
+    {
+      "result": "PASS",
+      "name": "invitecode-folia-26.1.2",
+      "schemaBefore": 8,
+      "schemaAfter": 9,
+      "allExistingBusinessRowsPreserved": true,
+      "preservedTables": [
+        "invitecode_players",
+        "invitecode_codes",
+        "invitecode_invitations",
+        "invitecode_qualification_facts",
+        "invitecode_reward_deliveries",
+        "invitecode_reward_actions",
+        "invitecode_reward_delivery_transitions",
+        "invitecode_reward_action_transitions",
+        "invitecode_player_login_days",
+        "invitecode_player_network_hashes"
+      ],
+      "previousAuditRowsPreserved": true,
+      "newMigrationAuditCount": 1,
+      "reservedCodeHashesEmpty": true,
+      "integrityCheck": "ok",
+      "foreignKeyCheck": "ok",
+      "unchangedWorldUids": [],
+      "worldPlayerFilesPreservedCount": 8
+    }
+  ],
+  "rawManifests": [
+    {
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\matrix.json",
+      "sha256": "6979BB046DB9DE8AB655A85CCEE49A29730732F0428F7C8652FE01A6C3CF786B"
+    },
+    {
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-20261002-run1\\results.json",
+      "sha256": "A4848B4BAAF5C7BB167470DCD52AC5B2925246EB67DDFF6F80923EDAACAEE715"
+    },
+    {
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\evidence-summary.json",
+      "sha256": "EEB130DB1D895D3FD4824F525C314C589BD214A0FED57746276907090C1C5D9A"
+    },
+    {
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\results.json",
+      "sha256": "5252EE904494D22AD7ADDAC164CF95D26648B799B26FD2991282ACDD56BB0115"
+    },
+    {
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\human\\deployment.json",
+      "sha256": "468DE7A620BD09B6120D40D72C6BA9C16969C4DDC48CE4815570A3C59578F050"
+    },
+    {
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\human\\data-preservation.json",
+      "sha256": "B0FE6096503A3D456B9AA6872B5BBE3843FFD1ECEEF24AB66A94D05C10893605"
+    }
+  ],
+  "humanClientAcceptance": "PENDING",
+  "remoteWritesPerformed": false
+}

@@ -45,12 +45,13 @@ class MysqlSchemaMigrator(
     private fun migrateLocked(connection: Connection, schema: String) {
         val ledgerExists = tableExists(connection, schema, LEDGER)
         if (!ledgerExists) {
-            val existing = connection.metaData.getTables(schema, null, "%", arrayOf("TABLE", "VIEW")).use { rows ->
-                rows.next()
+            val existingObjects = connection.metaData.getTables(schema, null, "%", arrayOf("TABLE", "VIEW")).use { rows ->
+                buildSet { while (rows.next()) add(rows.getString("TABLE_NAME")) }
             }
-            if (existing) throw MysqlStorageException(
+            if (existingObjects.isNotEmpty() && existingObjects != setOf(TRANSFER_GUARD)) throw MysqlStorageException(
                 "MySQL database is not empty and has no migration ledger; preserve the database and inspect it manually.",
             )
+            if (existingObjects == setOf(TRANSFER_GUARD)) OfflineStorageTransfer.verifyMysqlTransferGuard(connection)
             connection.createStatement().use { statement -> statement.execute(LEDGER_DDL) }
         }
         val otherVersions = connection.createStatement().use { statement ->
@@ -138,6 +139,7 @@ class MysqlSchemaMigrator(
 
     companion object {
         const val CURRENT_VERSION = 2
+        internal const val TRANSFER_GUARD = "invitecode_transfer_guard"
         private const val LEDGER = "invitecode_schema_migrations"
         private const val LEDGER_DDL = """
             CREATE TABLE invitecode_schema_migrations (

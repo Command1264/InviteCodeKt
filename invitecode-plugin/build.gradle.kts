@@ -149,6 +149,7 @@ val verifyPluginJar by tasks.registering(VerifyPluginJar::class) {
             "config/messages/en_US.yml",
             "io/github/command1264/invitecode/plugin/InviteCodePlugin.class",
             "io/github/command1264/invitecode/plugin/OfflineAnonymizeMain.class",
+            "io/github/command1264/invitecode/plugin/OfflineStorageTransferMain.class",
             "org/sqlite/JDBC.class",
             "com/mysql/cj/jdbc/Driver.class",
             "com/zaxxer/hikari/HikariDataSource.class",

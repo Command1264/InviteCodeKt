@@ -8,7 +8,7 @@ param(
     [AllowNull()][string] $VaultJar,
     [AllowNull()][string] $EconomyJar,
     [AllowNull()][string] $PlaceholderApiJar,
-    [AllowNull()][string] $TestLabRoot,
+    [Alias("TestLabRoot")][AllowNull()][string] $InstanceHarborRoot,
     [switch] $AcceptEula
 )
 
@@ -24,11 +24,11 @@ foreach ($candidate in $required) {
         throw "缺少測試依賴 JAR：$candidate"
     }
 }
-$lab = Resolve-PluginTestLabRoot -ExplicitRoot $TestLabRoot
+$lab = Resolve-PluginInstanceHarborRoot -ExplicitRoot $InstanceHarborRoot
 & (Join-Path $PSScriptRoot 'prepare-synthetic-player.ps1') -Profile $profile -Instance $Instance `
-    -Artifact $Artifact -TestLabRoot $lab -AcceptEula:$AcceptEula
-Import-Module (Join-Path $lab 'scripts\TestLab.psm1') -Force
-$instancePath = Get-TestLabInstancePath -Project 'InviteCode' -Instance $Instance
+    -Artifact $Artifact -InstanceHarborRoot $lab -AcceptEula:$AcceptEula
+Import-Module (Join-Path $lab 'scripts\InstanceHarbor.psm1') -Force
+$instancePath = Get-InstanceHarborInstancePath -Project 'InviteCode' -Audience Agent -Instance $Instance
 $plugins = Join-Path $instancePath 'plugins'
 $data = Join-Path $plugins 'InviteCode'
 $probe = Join-Path $PSScriptRoot 'synthetic-player\integration-probe'

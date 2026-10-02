@@ -15,12 +15,23 @@ public final class VaultProbePlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        File instance = getDataFolder().getAbsoluteFile().getParentFile().getParentFile();
-        armed = instance.getName().startsWith("issue12-")
+        File instance;
+        try {
+            instance = getDataFolder().getCanonicalFile().getParentFile().getParentFile();
+        } catch (java.io.IOException error) {
+            throw new IllegalStateException("Cannot resolve isolated Agent instance", error);
+        }
+        File project = instance.getParentFile();
+        File audience = project == null ? null : project.getParentFile();
+        File instances = audience == null ? null : audience.getParentFile();
+        armed = project != null && "InviteCode".equals(project.getName())
+            && audience != null && "Agent".equals(audience.getName())
+            && instances != null && "instances".equals(instances.getName())
+            && instance.getName().startsWith("issue12-")
             && new File(instance, "workspace.json").isFile()
             && "127.0.0.1".equals(getServer().getIp())
             && !getServer().getOnlineMode();
-        if (!armed) getLogger().severe("Vault probe disabled outside an isolated loopback TestLab instance.");
+        if (!armed) getLogger().severe("Vault probe disabled outside an isolated loopback InstanceHarbor Agent instance.");
     }
 
     @Override

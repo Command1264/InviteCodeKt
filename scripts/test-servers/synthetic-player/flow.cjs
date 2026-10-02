@@ -2,13 +2,14 @@ const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
 const { spawn, spawnSync } = require('node:child_process')
+const { assertAgentInstance } = require('./instance-boundary.cjs')
 
-const instancePath = path.resolve(process.argv[2] || '')
+let instancePath = path.resolve(process.argv[2] || '')
 const metadataPath = path.join(instancePath, 'workspace.json')
 const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+instancePath = assertAgentInstance(instancePath, metadata)
 const supportedProfiles = new Set(['spigot-1.8.8', 'spigot-latest', 'paper-1.20.6', 'paper-1.21.8', 'paper-latest', 'folia-latest'])
-if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(instancePath) ||
-    !metadata.instance.startsWith('issue12-') || !supportedProfiles.has(metadata.profile) ||
+if (!supportedProfiles.has(metadata.profile) ||
     !metadata.eulaAccepted) {
   throw new Error('Expected a prepared, EULA-accepted, isolated InviteCode synthetic-player instance')
 }
@@ -59,7 +60,7 @@ function sha256(file) {
 }
 if (sha256(path.join(instancePath, 'server.jar')) !== metadata.serverSha256 ||
     sha256(path.join(instancePath, 'plugins', metadata.pluginFile)) !== metadata.pluginSha256) {
-  throw new Error('TestLab server or plugin artifact differs from workspace.json')
+  throw new Error('InstanceHarbor server or plugin artifact differs from workspace.json')
 }
 
 const mise = process.env.MISE_EXE || 'mise'

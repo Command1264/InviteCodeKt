@@ -1,11 +1,11 @@
 [CmdletBinding()]
-param([AllowNull()][string] $TestLabRoot)
+param([Alias("TestLabRoot")][AllowNull()][string] $InstanceHarborRoot)
 
 . (Join-Path $PSScriptRoot "common.ps1")
-$lab = Resolve-PluginTestLabRoot -ExplicitRoot $TestLabRoot
+$lab = Resolve-PluginInstanceHarborRoot -ExplicitRoot $InstanceHarborRoot
 $matrix = Get-InviteCodeTestMatrix
-Import-Module (Join-Path $lab "scripts\TestLab.psm1") -Force
-$labProfiles = @(Get-TestLabProfiles)
+Import-Module (Join-Path $lab "scripts\InstanceHarbor.psm1") -Force
+$labProfiles = @(Get-InstanceHarborProfiles)
 
 $rows = foreach ($profile in $matrix.profiles) {
     $labProfile = @($labProfiles | Where-Object id -CEQ $profile.id)
@@ -20,14 +20,14 @@ $rows = foreach ($profile in $matrix.profiles) {
         Profile = $profile.id
         Purpose = $profile.purpose
         Required = $profile.requiredForRelease
-        TestLab = $labProfile.Count -eq 1
+        InstanceHarbor = $labProfile.Count -eq 1
         Java = $javaAvailable
         Runtime = $javaDetail
     }
 }
 
-Write-Host "TestLab：$lab"
+Write-Host "InstanceHarbor：$lab"
 $rows | Format-Table -AutoSize
-if (@($rows | Where-Object { -not $_.TestLab -or -not $_.Java }).Count -gt 0) {
-    throw "InviteCode 測試矩陣仍有缺少的 TestLab profile 或 Java runtime。"
+if (@($rows | Where-Object { -not $_.InstanceHarbor -or -not $_.Java }).Count -gt 0) {
+    throw "InviteCode 測試矩陣仍有缺少的 InstanceHarbor profile 或 Java runtime。"
 }

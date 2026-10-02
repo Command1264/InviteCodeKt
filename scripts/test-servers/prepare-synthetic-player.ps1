@@ -7,27 +7,27 @@ param(
     [Parameter(Mandatory = $true)][string] $Artifact,
     [switch] $AcceptEula,
     [switch] $RewardInterruption,
-    [AllowNull()][string] $TestLabRoot
+    [Alias("TestLabRoot")][AllowNull()][string] $InstanceHarborRoot
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
 
-if ($Instance -cnotmatch '^issue12-[a-zA-Z0-9-]{1,72}$') {
-    throw '合成玩家測試需要新的 issue12-* TestLab instance 名稱。'
+if ($Instance -cnotmatch '^issue12-[a-zA-Z0-9-]{1,56}$') {
+    throw '合成玩家測試需要新的 issue12-* InstanceHarbor instance 名稱。'
 }
 if ($RewardInterruption -and $Profile -cne 'spigot-1.8.8') {
     throw 'Reward 中斷測試目前只在 Spigot 1.8.8 的隔離實例執行。'
 }
-$lab = Resolve-PluginTestLabRoot -ExplicitRoot $TestLabRoot
-Import-Module (Join-Path $lab 'scripts\TestLab.psm1') -Force
-$instancePath = Get-TestLabInstancePath -Project 'InviteCode' -Instance $Instance
+$lab = Resolve-PluginInstanceHarborRoot -ExplicitRoot $InstanceHarborRoot
+Import-Module (Join-Path $lab 'scripts\InstanceHarbor.psm1') -Force
+$instancePath = Get-InstanceHarborInstancePath -Project 'InviteCode' -Audience Agent -Instance $Instance
 if (Test-Path -LiteralPath $instancePath) {
     throw "合成玩家測試必須使用全新隔離實例；目標已存在：$instancePath"
 }
 & (Join-Path $PSScriptRoot 'prepare.ps1') -Profile $Profile -Instance $Instance `
-    -Artifact $Artifact -TestLabRoot $lab -AcceptEula:$AcceptEula
+    -Artifact $Artifact -InstanceHarborRoot $lab -AcceptEula:$AcceptEula
 
 $data = Join-Path $instancePath 'plugins\InviteCode'
 New-Item -ItemType Directory -Path $data -Force | Out-Null

@@ -1,5 +1,11 @@
 # InviteCode 最終真人驗收
 
+## 同產物自動複驗
+
+2026-10-02 的整合候選自動結果見[同 JAR 複驗紀錄](./evidence/2026-10-02-issue-12-final-artifact-retest.md)。該輪僅使用新的 InstanceHarbor Agent 實例，沒有部署至下述固定 Human 測服。下述使用者已確認的真人結果維持有效，但受測產物不同；不可將自動封包檢查稱為整合 JAR 的真人畫面驗收。本輪只修正測試 runner 與文件，沒有改動產品 runtime，無須重做剛通過的完整三台 UX 流程。
+
+歷史區段中的 `start.ps1`／TestLab 路徑僅供追溯，現在專案 runner 明確只操作 Agent 實例。固定 Human 測服的操作依 InstanceHarbor 現行管理入口與本節核對過的 `instances/Human/InviteCode` 路徑進行，不使用自動測試腳本。
+
 ## 2026-10-02 固定測服複驗回饋
 
 目前真人操作使用 InstanceHarbor 的 `D:\Code\Java\Plugin\InstanceHarbor\instances\Human\InviteCode\` 下三台固定測服：`invitecode-spigot-1.8.8`、`invitecode-paper-26.2`、`invitecode-folia-26.1.2`，各自保留原有世界與插件資料；下方舊 TestLab 路徑是歷史紀錄。

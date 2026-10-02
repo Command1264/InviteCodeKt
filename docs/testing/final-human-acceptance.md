@@ -1,5 +1,13 @@
 # InviteCode 最終真人驗收
 
+## 2026-10-02 固定測服複驗回饋
+
+目前真人操作使用 InstanceHarbor 的 `D:\Code\Java\Plugin\InstanceHarbor\instances\Human\InviteCode\` 下三台固定測服：`invitecode-spigot-1.8.8`、`invitecode-paper-26.2`、`invitecode-folia-26.1.2`，各自保留原有世界與插件資料；下方舊 TestLab 路徑是歷史紀錄。
+
+使用者在同一台電腦以兩個帳號操作時回報同網路 Claim 被拒絕；Folia 當次 log 亦有相符拒絕紀錄，因此同網路 `DENY` 拒絕項目記為真人通過，不推論其他網路策略或三台完整功能均通過。三台固定測服的 `config.yml` 已備份並暫時改成 `anti-abuse.matching-ip-action: ALLOW`，供單機雙帳號後續驗收；產品預設保持 `DENY`。完成測試後把此值改回 `DENY` 並執行 `/ic reload`。
+
+確認期限文字移除中文及英文末尾冒號，包含聊天確認與原生 Dialog 的 prompt。既有測服的 `messages/zh_TW.yml`、`messages/en_US.yml` 先備份再同步修正；這些文字和網路策略可透過 `/ic reload` 套用，無須替換運行中的 JAR。真人仍須重新開啟 `/ic claim` 流程，複驗沒有同網路拒絕、期限文字無冒號，以及同意／不同意與逾時行為；原本已開啟的 Dialog 不會重新排版。這些複驗與其餘 Issue #12 項目尚未通過，不代表合併或發行授權。
+
 此清單處理合成玩家無法判斷的畫面與互動。Issue #12 的自動證據見[測試矩陣](./evidence/2026-09-24-issue-12-startup-matrix.md)。使用者已於三個版本完成第一輪真人功能測試，回報主要流程大致正常，並提出下方 UX 修正；新版本仍待真人驗收，不宣稱 1.0 發行門檻完成，也不更新 `main` 或發布 JAR。
 
 目前依使用者決定，第三輪與後續真人驗收暫緩，待多插件、多伺服器的真人驗收管理方案就緒後集中執行。自動驗證的通過結果與真人驗收狀態分開記錄；這項暫緩不阻擋獨立的本機開發與自動檢查，也不表示 Issue #12 已完成驗收。下列實例與步驟保留作為當前版本的交接資料；正式開始真人驗收前，須先核對當時的分支 HEAD、JAR 雜湊、實例內容與新方案的啟動／路由方式，再決定是否沿用這些實例。

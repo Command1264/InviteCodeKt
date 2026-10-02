@@ -5,7 +5,7 @@ param(
     [ValidateSet('SQLITE', 'JSON', 'MYSQL')][string] $Backend = 'SQLITE',
     [switch] $ExpectPlaceholderApi,
     [switch] $ExpectVaultEconomy,
-    [AllowNull()][string] $TestLabRoot,
+    [Alias("TestLabRoot")][AllowNull()][string] $InstanceHarborRoot,
     [ValidateRange(10, 600)][int] $TimeoutSeconds = 180
 )
 
@@ -13,29 +13,37 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "common.ps1")
 
-# Only operate on an already prepared, isolated TestLab instance. EULA acceptance
+# Only operate on an already prepared, isolated InstanceHarbor instance. EULA acceptance
 # and replacement remain explicit prepare-instance operations.
-if ($Instance -cnotmatch '^[a-zA-Z0-9][a-zA-Z0-9-]{0,79}$') {
-    throw "無效的 TestLab instance 名稱：$Instance"
+if ($Instance -cnotmatch '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$') {
+    throw "無效的 InstanceHarbor instance 名稱：$Instance"
 }
 [void] (Get-InviteCodeTestProfile -Id $Profile)
-$lab = Resolve-PluginTestLabRoot -ExplicitRoot $TestLabRoot
-Import-Module (Join-Path $lab 'scripts\TestLab.psm1') -Force
-$instancePath = Get-TestLabInstancePath -Project 'InviteCode' -Instance $Instance
+$lab = Resolve-PluginInstanceHarborRoot -ExplicitRoot $InstanceHarborRoot
+Import-Module (Join-Path $lab 'scripts\InstanceHarbor.psm1') -Force
+$instancePath = Get-InstanceHarborInstancePath -Project 'InviteCode' -Audience Agent -Instance $Instance
 $metadataPath = Join-Path $instancePath 'workspace.json'
 if (-not (Test-Path -LiteralPath $metadataPath -PathType Leaf)) {
-    throw "找不到 TestLab instance：$metadataPath"
+    throw "找不到 InstanceHarbor instance：$metadataPath"
 }
 $metadata = Get-Content -LiteralPath $metadataPath -Raw -Encoding UTF8 | ConvertFrom-Json
+Assert-InviteCodeAgentInstance -Path $instancePath -InstancesRoot (Get-InstanceHarborContext).InstancesRoot -Metadata $metadata -Profile $Profile
 if ($metadata.project -cne 'InviteCode' -or $metadata.instance -cne $Instance -or
     $metadata.profile -cne $Profile -or -not $metadata.eulaAccepted) {
-    throw "TestLab metadata 不符，或尚未記錄 EULA 接受狀態：$Instance"
+    throw "InstanceHarbor metadata 不符，或尚未記錄 EULA 接受狀態：$Instance"
 }
 $pluginPath = Join-Path (Join-Path $instancePath 'plugins') $metadata.pluginFile
 $serverPath = Join-Path $instancePath 'server.jar'
+$properties = Get-Content -LiteralPath (Join-Path $instancePath 'server.properties') -Raw -Encoding UTF8
+if ($properties -notmatch '(?m)^server-ip=127\.0\.0\.1\s*$' -or
+    $properties -notmatch '(?m)^online-mode=false\s*$' -or
+    $properties -notmatch "(?m)^server-port=$($metadata.port)\s*$" -or
+    @(Get-NetTCPConnection -LocalPort $metadata.port -State Listen -ErrorAction SilentlyContinue).Count -gt 0) {
+    throw 'Smoke 需要 loopback、offline mode、正確且未被監聽的 port。'
+}
 if (-not (Test-Path -LiteralPath $serverPath -PathType Leaf) -or
     -not (Test-Path -LiteralPath $pluginPath -PathType Leaf)) {
-    throw "TestLab instance 缺少 server.jar 或插件 JAR：$Instance"
+    throw "InstanceHarbor instance 缺少 server.jar 或插件 JAR：$Instance"
 }
 $pluginSha = (Get-FileHash -LiteralPath $pluginPath -Algorithm SHA256).Hash
 if ($pluginSha -cne $metadata.pluginSha256) {
@@ -81,6 +89,8 @@ $commandsSent = $false
 $stopped = $false
 $placeholderExpected = $ExpectPlaceholderApi.IsPresent.ToString().ToLowerInvariant()
 $vaultExpected = $ExpectVaultEconomy.IsPresent.ToString().ToLowerInvariant()
+$integrationPattern = '(?:Integration：|Integrations: )PlaceholderAPI=(true|false)(?:，|, )Vault Economy=(true|false)'
+$expectedIntegrationPattern = "(?:Integration：|Integrations: )PlaceholderAPI=$placeholderExpected(?:，|, )Vault Economy=$vaultExpected"
 $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
 $utf8Strict = [System.Text.UTF8Encoding]::new($false, $true)
 function Read-LiveLog {
@@ -95,7 +105,7 @@ function Read-LiveLog {
 }
 try {
     $runStartedAt = [DateTime]::UtcNow
-    if (-not $process.Start()) { throw "無法啟動 TestLab instance：$Instance" }
+    if (-not $process.Start()) { throw "無法啟動 InstanceHarbor instance：$Instance" }
     $started = $true
     while ([DateTime]::UtcNow -lt $deadline) {
         if ($process.HasExited) { break }
@@ -112,8 +122,8 @@ try {
             throw "Folia 拒絕載入尚未宣告支援的 InviteCode：$Instance"
         }
         if ($doctorSent -and
-            $log -match 'Integration：PlaceholderAPI=(true|false)，Vault Economy=(true|false)' -and
-            $log -notmatch "Integration：PlaceholderAPI=$placeholderExpected，Vault Economy=$vaultExpected") {
+            $log -match $integrationPattern -and
+            $log -notmatch $expectedIntegrationPattern) {
             throw "外部整合診斷與預期不符：PlaceholderAPI=$placeholderExpected，Vault Economy=$vaultExpected；$Instance"
         }
         if (-not $doctorSent -and $log -match 'Done \(' -and
@@ -123,16 +133,16 @@ try {
             $doctorSent = $true
         }
         if ($doctorSent -and $log -match 'Runtime=ACTIVE' -and
-            $log -match "Integration：PlaceholderAPI=$placeholderExpected，Vault Economy=$vaultExpected" -and
-            $log -match "$Backend 儲存版本=" -and
+            $log -match $expectedIntegrationPattern -and
+            $log -match "$Backend (?:儲存版本|storage version)=" -and
             -not $commandsSent) {
             $process.StandardInput.WriteLine('ic help')
             $process.StandardInput.WriteLine('ic reload')
             $process.StandardInput.Flush()
             $commandsSent = $true
         }
-        if ($commandsSent -and $log -match 'InviteCode 可用指令：' -and
-            $log -match 'InviteCode 設定已完整驗證並套用。') {
+        if ($commandsSent -and $log -match '(?:InviteCode 可用指令：|Available InviteCode commands:)' -and
+            $log -match '(?:InviteCode 設定已完整驗證並套用。|InviteCode validated and applied the complete configuration snapshot\.)') {
             $process.StandardInput.WriteLine('stop')
             $process.StandardInput.Flush()
             $stopped = $true

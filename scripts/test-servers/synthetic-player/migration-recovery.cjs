@@ -3,16 +3,15 @@ const path = require('node:path')
 const crypto = require('node:crypto')
 const { spawn, spawnSync } = require('node:child_process')
 
-const instancePath = path.resolve(process.argv[2] || '')
-const metadata = JSON.parse(fs.readFileSync(path.join(instancePath, 'workspace.json'), 'utf8'))
+const { assertAgentInstance } = require('./instance-boundary.cjs')
+const requestedPath = path.resolve(process.argv[2] || '')
+const metadata = JSON.parse(fs.readFileSync(path.join(requestedPath, 'workspace.json'), 'utf8'))
+const instancePath = assertAgentInstance(requestedPath, metadata)
 const properties = fs.readFileSync(path.join(instancePath, 'server.properties'), 'utf8')
 const dataPath = path.join(instancePath, 'plugins', 'InviteCode')
 const dbPath = path.join(dataPath, 'invitecode.db')
 const keyPath = path.join(dataPath, 'anti-abuse.key')
 if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(instancePath) ||
-    path.basename(path.dirname(instancePath)) !== 'InviteCode' ||
-    path.basename(path.dirname(path.dirname(instancePath))) !== 'instances' ||
-    path.basename(path.dirname(path.dirname(path.dirname(instancePath)))) !== 'TestLab' ||
     !metadata.instance.startsWith('issue12-') || metadata.profile !== 'spigot-1.8.8' ||
     metadata.port !== 51888 ||
     !metadata.eulaAccepted || !/^server-ip=127\.0\.0\.1\s*$/m.test(properties) ||
@@ -33,9 +32,10 @@ mode, filename = sys.argv[1:]
 con = sqlite3.connect(filename)
 try:
     if mode == 'downgrade':
-        assert con.execute('SELECT version FROM invitecode_schema_version').fetchone()[0] == 8
+        assert con.execute('SELECT version FROM invitecode_schema_version').fetchone()[0] == 9
         with con:
             con.execute('DROP TABLE invitecode_player_network_hashes')
+            con.execute('DROP TABLE invitecode_reserved_code_hashes')
             con.execute('UPDATE invitecode_schema_version SET version=7')
             con.execute('INSERT INTO invitecode_players(player_id, first_seen_at, last_known_name) VALUES (?, ?, ?)',
                         ('00000000-0000-0000-0000-000000000012', '2026-09-24T00:00:00Z', 'MigrationSentinel'))
@@ -45,14 +45,17 @@ try:
         with con:
             con.execute('DROP INDEX invitecode_network_hash_expiry')
     elif mode in ('assert-old', 'assert-current'):
-        expected = 8 if mode == 'assert-current' else 7
+        expected = 9 if mode == 'assert-current' else 7
         assert con.execute('SELECT version FROM invitecode_schema_version').fetchone()[0] == expected
         assert con.execute("SELECT last_known_name FROM invitecode_players WHERE player_id='00000000-0000-0000-0000-000000000012'").fetchone() == ('MigrationSentinel',)
         table = con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='invitecode_player_network_hashes'").fetchone()
+        reserved = con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='invitecode_reserved_code_hashes'").fetchone()
         index = con.execute("SELECT tbl_name FROM sqlite_master WHERE type='index' AND name='invitecode_network_hash_expiry'").fetchone()
         if expected == 7:
+            assert reserved is None
             assert table is None and index == ('invitecode_players',), (table, index)
         else:
+            assert reserved == (1,)
             assert table == (1,) and index == ('invitecode_player_network_hashes',), (table, index)
         assert con.execute('PRAGMA integrity_check').fetchone() == ('ok',)
     else:
@@ -148,7 +151,7 @@ async function main() {
     sqlite('repair')
     server = start()
     await ready(server, 'MAINTENANCE')
-    await command(server, 'ic admin storage migrate SQLITE repaired-index-conflict', /Storage schema migration 已完成，目前版本為 8/)
+    await command(server, 'ic admin storage migrate SQLITE repaired-index-conflict', /Storage schema migration 已完成，目前版本為 9/)
     await command(server, 'ic admin doctor', /Runtime=ACTIVE/)
     await stop(server)
     sqlite('assert-current')

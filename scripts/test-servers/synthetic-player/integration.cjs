@@ -3,22 +3,23 @@ const path = require('node:path')
 const crypto = require('node:crypto')
 const { spawn, spawnSync } = require('node:child_process')
 const mineflayer = require('mineflayer')
+const { assertAgentInstance } = require('./instance-boundary.cjs')
 
-const instancePath = path.resolve(process.argv[2] || '')
+let instancePath = path.resolve(process.argv[2] || '')
 const scenario = process.argv[3]
 if (!['Vault', 'Placeholder'].includes(scenario)) {
-  throw new Error('Usage: node integration.cjs <fresh TestLab instance> <Vault|Placeholder>')
+  throw new Error('Usage: node integration.cjs <fresh InstanceHarbor Agent instance> <Vault|Placeholder>')
 }
 const metadata = JSON.parse(fs.readFileSync(path.join(instancePath, 'workspace.json'), 'utf8'))
-const expectedProfile = scenario === 'Vault' ? 'paper-1.21.8' : 'paper-1.20.6'
+instancePath = assertAgentInstance(instancePath, metadata)
+const expectedProfiles = scenario === 'Vault' ? ['paper-1.21.8'] : ['paper-1.20.6', 'folia-latest']
 const dataDirectory = path.join(instancePath, 'plugins', 'InviteCode')
 const properties = fs.readFileSync(path.join(instancePath, 'server.properties'), 'utf8')
 const pluginDirectory = path.join(instancePath, 'plugins')
 const requiredJars = scenario === 'Vault'
   ? ['Vault.jar', 'EssentialsX.jar', 'InviteCodeVaultProbe.jar']
   : ['PlaceholderAPI.jar', 'InviteCodePapiProbe.jar']
-if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(instancePath) ||
-    !metadata.instance.startsWith('issue12-') || metadata.profile !== expectedProfile ||
+if (!expectedProfiles.includes(metadata.profile) ||
     !metadata.eulaAccepted || !/^server-ip=127\.0\.0\.1\s*$/m.test(properties) ||
     !/^online-mode=false\s*$/m.test(properties) ||
     !properties.includes(`server-port=${metadata.port}`) ||
@@ -157,7 +158,10 @@ async function main() {
     if (scenario === 'Vault') {
       await balance(server, inviteeName, 0)
     }
-    await playerCommand(invitee, `/ic claim ${code}`, new RegExp(`Inviter: ${inviterName}; Invite Code:`))
+    await playerCommand(invitee, `/ic claim ${code}`, new RegExp(`Inviter: ${inviterName}`))
+    await until(() => invitee.messages.some(message => message.includes(`Invite Code: ${code}`)) &&
+      invitee.messages.some(message => message.includes('[Agree]') && message.includes('[Disagree]')),
+    'multiline claim confirmation')
     await playerCommand(invitee, '/ic confirm', /The Invitation has been created\./)
     if (scenario === 'Vault') {
       await balance(server, inviteeName, 37.5)

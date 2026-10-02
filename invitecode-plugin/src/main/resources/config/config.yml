@@ -11,7 +11,7 @@ invite-code:
 claim:
   window: 24h
   input-mode: AUTO
-  confirmation-timeout: 30s
+  confirmation-timeout: 60s
   chat-input-timeout: 60s
   existing-player-policy: START_WINDOW
 

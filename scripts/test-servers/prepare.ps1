@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true)][string] $Profile,
     [AllowNull()][string] $Artifact,
-    [AllowNull()][string] $TestLabRoot,
+    [Alias("TestLabRoot")][AllowNull()][string] $InstanceHarborRoot,
     [AllowNull()][string] $Instance,
     [switch] $AcceptEula,
     [switch] $Replace
@@ -10,12 +10,12 @@ param(
 
 . (Join-Path $PSScriptRoot "common.ps1")
 $matrixProfile = Get-InviteCodeTestProfile -Id $Profile
-$lab = Resolve-PluginTestLabRoot -ExplicitRoot $TestLabRoot
+$lab = Resolve-PluginInstanceHarborRoot -ExplicitRoot $InstanceHarborRoot
 $jar = Resolve-InviteCodePluginArtifact -ExplicitArtifact $Artifact
 $instanceName = if ([string]::IsNullOrWhiteSpace($Instance)) { "invitecode-$Profile" } else { $Instance }
 
 & (Join-Path $lab "scripts\prepare-instance.ps1") `
-    -Project "InviteCode" `
+    -Project "InviteCode" -Audience Agent `
     -Instance $instanceName `
     -Profile $Profile `
     -PluginJar $jar `
@@ -23,5 +23,5 @@ $instanceName = if ([string]::IsNullOrWhiteSpace($Instance)) { "invitecode-$Prof
     -AcceptEula:$AcceptEula `
     -Replace:$Replace
 if ($LASTEXITCODE -ne 0) {
-    throw "TestLab prepare-instance 失敗，結束碼為 $LASTEXITCODE。"
+    throw "InstanceHarbor prepare-instance 失敗，結束碼為 $LASTEXITCODE。"
 }

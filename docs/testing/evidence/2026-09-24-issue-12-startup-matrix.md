@@ -106,9 +106,26 @@ UUID 由測試程式透過 Python 標準 `sqlite3` 唯讀查得，斷言仍透�
 | `issue12-folia-regions-3`、`issue12-folia-chat-1`／`89DE0B80DD950EE2942766F11E1B4EB3B0B6F0FE3EBAF5984BE36BB525BF0BAC` | 兩個獨立實例通過；前者設定 Folia 2 條 region 排程執行緒，將兩名玩家傳送至相距約兩萬格的區域後並行執行 `/ic status`，再完成原本 Claim／Reward 流程；後者使用私密聊天輸入完成同一流程，log 未刊出邀請碼聊天內容 |
 | `issue12-folia-final4`／`FF187679BD246A30BC76A573C16179363D3A79909C0595FF97F25A13065661BC` | 最終 JAR 在同一全新實例結合 Folia 2 條 region 執行緒、相距約兩萬格玩家的並行 `/ic status`、私密聊天輸入、Claim／Qualification、重啟後離線 Reward 補發與 Stats；runner 回報 `PASS`，正常停機 |
 
-較早同一個 `89DE0B80...` JAR 在全新的 `issue12-final-spigot-188` 與 `issue12-final-paper-262` 實例通過相同 Code、Claim、Confirmation、Qualification、重啟、離線 Reward 與 Stats 流程。最後的 `FF187679...` JAR 亦在全新 `issue12-spigot-final4` 與 `issue12-paper-final4` 實例完成上述完整流程，兩者 runner 均回報 `PASS`。以上皆使用 loopback、offline、已接受 EULA 的 TestLab 實例及 SQLite。各 runner 正常關閉自己啟動的服務。尚未驗證 Folia 上的原生 Dialog 畫面、Vault／PlaceholderAPI 與第三方 provider 的執行緒相容性，也未涵蓋不同 Folia 版本或長時間負載。這些限制不能由合成玩家 `PASS` 推定通過；發行文件只能稱 **Folia 26.1.2 實驗性 smoke 通過**。
+較早同一個 `89DE0B80...` JAR 在全新的 `issue12-final-spigot-188` 與 `issue12-final-paper-262` 實例通過相同 Code、Claim、Confirmation、Qualification、重啟、離線 Reward 與 Stats 流程。最後的 `FF187679...` JAR 亦在全新 `issue12-spigot-final4` 與 `issue12-paper-final4` 實例完成上述完整流程，兩者 runner 均回報 `PASS`。以上皆使用 loopback、offline、已接受 EULA 的 TestLab 實例及 SQLite。各 runner 正常關閉自己啟動的服務。當時尚未驗證 Folia 上的原生 Dialog 畫面、Vault／PlaceholderAPI 與第三方 provider 的執行緒相容性，也未涵蓋不同 Folia 版本或長時間負載；下節補記 PlaceholderAPI 與 Dialog 封包的有限驗證。這些限制不能由合成玩家 `PASS` 推定通過；發行文件只能稱 **Folia 26.1.2 實驗性 smoke 通過**。
 
 Spigot／Paper 26.2 的 log 有 Windows Perflib／OSHI／JNA 讀取系統計數器失敗及衍生的 system-report `NullPointerException`；堆疊未涉及 InviteCode，伺服器與插件仍可啟動、診斷並正常停機。這是測試主機／伺服器層級的已知雜訊，不能用它替代插件無錯誤的判定。
+
+### 最終 Folia Placeholder 與原生 Dialog 封包補驗
+
+受測產品為已合併至 `develop` 的 `57b0f5d`，同一份 JAR SHA-256 `FF187679BD246A30BC76A573C16179363D3A79909C0595FF97F25A13065661BC`。這輪只調整測試 fixture 與驗收文件，沒有修改產品 JAR。各測試使用新的 loopback／offline TestLab 實例，runner 完成後停止自己啟動的伺服器。
+
+| 全新實例 | Profile／情境 | 自動驗證結果 |
+| --- | --- | --- |
+| `issue12-folia-papi-final1` | Folia 26.1.2、PlaceholderAPI 2.12.3、測試 expansion | `PASS`：未達資格、Console 切換值、重新登入後達資格、重啟後維持資格 |
+| `issue12-paper-papi-regression1` | Paper 1.20.6、同一 Placeholder fixture | `PASS`：同上四項；客戶端仍有已知非致命 protodef 解析警告 |
+| `issue12-folia-dialog-protocol3` | Folia 26.1.2、`input-mode: DIALOG` | `PASS`：兩次收到原生 `show_dialog` 封包，各次 `/ic cancel` 後 Invitation 仍不存在；接續 command Claim／Confirm、資格、重啟後離線 Reward 與 Stats |
+| `issue12-paper-dialog-protocol1` | Paper 26.2、`input-mode: DIALOG` | `PASS`：同上；伺服器另有既知 Windows OSHI／Perflib 雜訊，未見 InviteCode exception |
+
+Folia 的 Placeholder 測試 probe 將玩家名稱與 UUID 於登入事件快取，Console 只切換 thread-safe 測試值；實際 Placeholder 展開由 InviteCode 在玩家 entity scheduler 觸發。這支持上述特定組合，不能推定任意 Placeholder expansion 都具 Folia 相容性。現有 Vault 1.7.3-b131 與 EssentialsX 2.21.2 JAR 未宣告 Folia 支援，[EssentialsX 官方發行說明](https://github.com/EssentialsX/Essentials/releases)亦明示不支援 Folia，因此沒有在 Folia 強行執行 Vault 存款測試。
+
+曾嘗試由合成客戶端送出自造的 Dialog submit 封包，Folia 因封包格式不合法踢出客戶端。這只能歸類為測試客戶端限制，不能當成 InviteCode 缺陷或原生提交成功的證據；最終 runner 改為只驗證伺服器送出的 Dialog 封包和 command 取消後的狀態，並在伺服器停止後才輸出 `PASS`。原生按鈕、Esc、輸入與視覺呈現仍列入[最終真人驗收](../final-human-acceptance.md)。
+
+已準備 `issue12-human-paper-262`、`issue12-human-spigot-188`、`issue12-human-folia-2612` 三個獨立實例。它們的 JAR 雜湊均與上述基線相符，`AUTO` 輸入模式、繁體中文、同 IP 測試例外與登入一天資格設定已核對；三者未啟動、未建立玩家 DB，62620／51888／63620 埠均未在監聽。這只是待測環境準備完成，不能計入真人驗收通過。
 
 ## SQLite 遷移故障與復原（伺服器層級）
 
@@ -126,4 +143,4 @@ Spigot／Paper 26.2 的 log 有 Windows Perflib／OSHI／JNA 讀取系統計數�
 
 這是**合成的已提交 DDL 中斷狀態**，不是在 MySQL 實際執行 DDL 時殺掉 JVM；它證明產品在該持久化邊界的安全拒絕、續建與重啟持久性，不證明任意時間點的 crash 都能復原。測試採本機 `tls-mode: REQUIRED`，仍未驗證 `VERIFY_IDENTITY`。兩次 Paper 及隔離 MySQL 服務均已正常關閉，62060／63384 埠已釋放；專用 database 保留作為測試證據。
 
-目前 Spigot／Paper 的啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console 指令、外部服務偵測，以及 Spigot 1.8.8、Paper 1.20.6／1.21.8／26.2 的合成玩家 Claim／離線 `MESSAGE` Reward 已有證據。Spigot 1.8.8 通過 Reward 中斷後的 `UNCERTAIN` 復原與兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款；SQLite 與 MySQL 也完成上述伺服器層級遷移復原測試。Folia 26.1.2 的實驗性啟動、玩家 Claim／Chat、跨 region 狀態查詢及三種 Reward Action smoke 已通過；原生 Dialog 視覺、Folia 第三方整合及最終人工觀感仍未驗證，不得據此宣布 1.0 發行 gate 通過。
+目前 Spigot／Paper 的啟動、SQLite／JSON／MySQL 代表性初始化、重啟一致性、Console 指令、外部服務偵測，以及 Spigot 1.8.8、Paper 1.20.6／1.21.8／26.2 的合成玩家 Claim／離線 `MESSAGE` Reward 已有證據。Spigot 1.8.8 通過 Reward 中斷後的 `UNCERTAIN` 復原與兩種管理員決定；Paper 1.20.6／1.21.8 分別通過 Placeholder 資格與 Vault 實際存款；SQLite 與 MySQL 也完成上述伺服器層級遷移復原測試。Folia 26.1.2 的實驗性啟動、玩家 Claim／Chat、跨 region 狀態查詢、三種 Reward Action smoke、特定 PlaceholderAPI expansion，以及原生 Dialog 開啟封包均已通過；原生 Dialog 畫面與按鈕、Folia Vault provider 及最終人工觀感仍未驗證，不得據此宣布 1.0 發行 gate 通過。

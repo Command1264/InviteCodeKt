@@ -31,7 +31,7 @@ Tab 建議會依發送者身分、權限與當前參數位置篩選。已完成�
 | `/invitecode status` | `invitecode.command.status` | 顯示 Claim Eligibility、Invitation 狀態與待補發 Reward 數。 |
 | `/invitecode stats` | `invitecode.command.stats` | 顯示等待資格與已達資格的邀請數。 |
 
-聊天輸入會先取消公開聊天，再送入背景流程；原始訊息不會寫入 log。Dialog 提交後沿用同一組格式、資格與限時確認流程；取消按鈕、`/invitecode cancel`、登出或逾時只會清除短期 Session，不會建立或修改 Invitation。輸入、確認、逾時、成功、取消、登出或停用插件後，短期 Session 都會失效。玩家一旦建立 Invite Code、已有 Invitation，或超過 Claim Window，就不能使用他人的 Invite Code。
+聊天輸入會先取消公開聊天，再送入背景流程；原始訊息不會寫入 log。此時輸入 `cancel`（不分大小寫）也會私密取消，不會當作邀請碼解析。邀請碼訊息另外提供可點擊的複製入口：新版聊天 API 直接複製至剪貼簿，Spigot 1.8.8 則把原始碼填入聊天列，玩家可自行選取複製。確認摘要下方有綠色「同意」與紅色「不同意」，分別執行 `/invitecode confirm` 與 `/invitecode cancel`。Dialog 提交後沿用同一組格式、資格與限時確認流程；取消按鈕、`/invitecode cancel`、登出或逾時只會清除短期 Session，不會建立或修改 Invitation。輸入、確認、逾時、成功、取消、登出或停用插件後，短期 Session 都會失效。玩家一旦建立 Invite Code、已有 Invitation，或超過 Claim Window，就不能使用他人的 Invite Code。
 
 玩家登入時，插件會以 SQLite 的 `anti-abuse.key` 或 MySQL 多實例共用的外部密鑰，對正規化網路位址執行 HMAC-SHA-256。資料庫只保存雜湊、密鑰識別碼與觀察／到期時間，絕不保存原始 IP。`anti-abuse.ip-hash-retention` 預設為 30 天；到期資料會在玩家登入時清除。邀請人與受邀人有尚未到期的相同雜湊時，`matching-ip-action` 的行為如下：
 
@@ -76,7 +76,7 @@ Invitation、Eligibility、Code Rotation 與 Storage Migration 會留下 actor�
 
 玩家登入會補發自己的 `PENDING` Reward。玩家離線或 Vault Economy 不可用時維持 `PENDING`。插件啟動會先把上次中斷於 `PROCESSING` 的 Action 轉成 `UNCERTAIN`；這類外部結果不得自動重試，必須由管理員檢查後決定。
 
-背景 executor 執行 SQLite／MySQL 與 Qualification／Reward orchestration；Bukkit、聊天、指令、訊息與 Vault 操作只在 server main thread 執行。停用時會停止接受新工作並有界等待，不會讓背景執行緒同步等待主執行緒。
+背景 executor 執行 SQLite／MySQL 與 Qualification／Reward orchestration。Spigot／Paper 的 Bukkit 工作回到主執行緒；Folia 的全域工作走 global scheduler，玩家互動與資格取值走玩家 entity scheduler。Vault 的 Folia provider 相容性仍須個別驗證。停用時會停止接受新工作並有界等待，不會讓背景執行緒同步等待伺服器工作執行緒。
 
 ## 人工驗收
 

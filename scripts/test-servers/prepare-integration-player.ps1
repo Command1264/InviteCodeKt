@@ -4,10 +4,11 @@ param(
     [Parameter(Mandatory = $true)][string] $Instance,
     [Parameter(Mandatory = $true)][string] $Artifact,
     [Parameter(Mandatory = $true)][string] $SpigotApiJar,
+    [ValidateSet('paper-1.20.6', 'folia-latest')][string] $PlaceholderProfile = 'paper-1.20.6',
     [AllowNull()][string] $VaultJar,
     [AllowNull()][string] $EconomyJar,
     [AllowNull()][string] $PlaceholderApiJar,
-    [AllowNull()][string] $TestLabRoot,
+    [Alias("TestLabRoot")][AllowNull()][string] $InstanceHarborRoot,
     [switch] $AcceptEula
 )
 
@@ -15,7 +16,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
 
-$profile = if ($Scenario -ceq 'Vault') { 'paper-1.21.8' } else { 'paper-1.20.6' }
+$profile = if ($Scenario -ceq 'Vault') { 'paper-1.21.8' } else { $PlaceholderProfile }
 $required = if ($Scenario -ceq 'Vault') { @($SpigotApiJar, $VaultJar, $EconomyJar) } `
     else { @($SpigotApiJar, $PlaceholderApiJar) }
 foreach ($candidate in $required) {
@@ -23,11 +24,11 @@ foreach ($candidate in $required) {
         throw "缺少測試依賴 JAR：$candidate"
     }
 }
-$lab = Resolve-PluginTestLabRoot -ExplicitRoot $TestLabRoot
+$lab = Resolve-PluginInstanceHarborRoot -ExplicitRoot $InstanceHarborRoot
 & (Join-Path $PSScriptRoot 'prepare-synthetic-player.ps1') -Profile $profile -Instance $Instance `
-    -Artifact $Artifact -TestLabRoot $lab -AcceptEula:$AcceptEula
-Import-Module (Join-Path $lab 'scripts\TestLab.psm1') -Force
-$instancePath = Get-TestLabInstancePath -Project 'InviteCode' -Instance $Instance
+    -Artifact $Artifact -InstanceHarborRoot $lab -AcceptEula:$AcceptEula
+Import-Module (Join-Path $lab 'scripts\InstanceHarbor.psm1') -Force
+$instancePath = Get-InstanceHarborInstancePath -Project 'InviteCode' -Audience Agent -Instance $Instance
 $plugins = Join-Path $instancePath 'plugins'
 $data = Join-Path $plugins 'InviteCode'
 $probe = Join-Path $PSScriptRoot 'synthetic-player\integration-probe'

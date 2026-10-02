@@ -2,20 +2,19 @@ const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
 const { spawn, spawnSync } = require('node:child_process')
+const { assertAgentInstance } = require('./instance-boundary.cjs')
 
-const instancePath = path.resolve(process.argv[2] || '')
+let instancePath = path.resolve(process.argv[2] || '')
 const metadata = JSON.parse(fs.readFileSync(path.join(instancePath, 'workspace.json'), 'utf8'))
+instancePath = assertAgentInstance(instancePath, metadata)
 const properties = fs.readFileSync(path.join(instancePath, 'server.properties'), 'utf8')
 const dataPath = path.join(instancePath, 'plugins', 'InviteCode')
 const jarPath = path.join(instancePath, 'plugins', metadata.pluginFile)
 const database = `invitecode_issue12_test_${metadata.instance.replace(/^issue12-/, '').replace(/-/g, '_')}`
-const mysqlExe = path.join(path.dirname(path.dirname(path.dirname(instancePath))),
+const instanceHarborRoot = path.resolve(instancePath, '..', '..', '..', '..')
+const mysqlExe = path.join(instanceHarborRoot,
   'artifacts', 'invitecode-issue12-mysql-8.4.11', 'mysql-8.4.11-winx64', 'bin', 'mysql.exe')
-if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(instancePath) ||
-    path.basename(path.dirname(instancePath)) !== 'InviteCode' ||
-    path.basename(path.dirname(path.dirname(instancePath))) !== 'instances' ||
-    path.basename(path.dirname(path.dirname(path.dirname(instancePath)))) !== 'TestLab' ||
-    !/^issue12-[a-z0-9-]+$/.test(metadata.instance) || metadata.profile !== 'paper-1.20.6' ||
+if (metadata.schemaVersion !== 2 || metadata.profile !== 'paper-1.20.6' ||
     metadata.port !== 62060 || !metadata.eulaAccepted ||
     !/^server-ip=127\.0\.0\.1\s*$/m.test(properties) ||
     !/^online-mode=false\s*$/m.test(properties) ||
@@ -25,7 +24,7 @@ if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(ins
     fs.existsSync(path.join(dataPath, 'invitecode.db')) ||
     fs.existsSync(path.join(dataPath, 'anti-abuse.key')) ||
     !fs.existsSync(mysqlExe)) {
-  throw new Error('Expected a fresh, EULA-accepted, loopback-only MySQL TestLab instance')
+  throw new Error('Expected a fresh, EULA-accepted, loopback-only MySQL Agent instance')
 }
 for (const name of ['INVITECODE_TEST_MYSQL_ROOT_PASSWORD', 'INVITECODE_DB_PASSWORD', 'INVITECODE_NETWORK_SECRET']) {
   if (!process.env[name]) throw new Error(`Missing test-only environment variable ${name}`)
@@ -40,6 +39,11 @@ if (resource.status !== 0 || !resource.stdout.startsWith('-- @table invitecode_p
   throw new Error('Cannot read the bundled MySQL schema resource')
 }
 const checksum = hash(Buffer.from(resource.stdout, 'utf8'))
+const v2Resource = spawnSync('tar', ['-xOf', jarPath, 'mysql/V2__reserved_code_hashes.sql'], { encoding: 'utf8' })
+if (v2Resource.status !== 0 || !v2Resource.stdout.startsWith('-- @table invitecode_reserved_code_hashes')) {
+  throw new Error('Cannot read the bundled MySQL V2 schema resource')
+}
+const v2Checksum = hash(Buffer.from(v2Resource.stdout, 'utf8'))
 const firstTable = resource.stdout.match(/^-- @table invitecode_players\s*\r?\n([\s\S]*?)(?=^-- @table invitecode_metadata)/m)
 if (!firstTable) throw new Error('Bundled MySQL schema has no players table')
 const playersDdl = firstTable[1].trim().replace(/;$/, '')
@@ -57,12 +61,15 @@ function sql(statement) {
   if (result.error || result.status !== 0) {
     throw new Error(`Isolated MySQL fixture query failed: ${result.error?.message || result.stderr}`)
   }
-  return result.stdout.trim()
+  return result.stdout.trim().replace(/\r\n/g, '\n')
 }
 function db(statement) { return sql(`USE ${database}; ${statement}`) }
 function state(expectedState, expectedTables) {
-  const summary = db("SELECT CONCAT(version, ':', state, ':', checksum) FROM invitecode_schema_migrations")
-  if (summary !== `1:${expectedState}:${checksum}`) throw new Error(`Unexpected migration ledger: ${summary}`)
+  const summary = db("SELECT CONCAT(version, ':', state, ':', checksum) FROM invitecode_schema_migrations ORDER BY version")
+  const expectedLedger = expectedState === 'APPLYING'
+    ? `1:APPLYING:${checksum}`
+    : `1:APPLIED:${checksum}\n2:APPLIED:${v2Checksum}`
+  if (summary !== expectedLedger) throw new Error(`Unexpected migration ledger: ${summary}`)
   const tables = Number(sql(`SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${database}'`))
   if (tables !== expectedTables) throw new Error(`Expected ${expectedTables} tables, got ${tables}`)
   const player = db(`SELECT last_known_name FROM invitecode_players WHERE player_id='${sentinel}'`)
@@ -194,13 +201,13 @@ mysql:
     await ready(server, 'ACTIVE')
     await command(server, 'ic admin doctor', /Runtime=ACTIVE/)
     await stop(server)
-    state('APPLIED', 13)
+    state('APPLIED', 14)
 
     server = start()
     await ready(server, 'ACTIVE')
     await command(server, 'ic admin doctor', /Runtime=ACTIVE/)
     await stop(server)
-    state('APPLIED', 13)
+    state('APPLIED', 14)
     if (fs.existsSync(path.join(dataPath, 'anti-abuse.key')) || fs.existsSync(path.join(dataPath, 'invitecode.db'))) {
       throw new Error('MySQL mode unexpectedly created local SQLite files')
     }

@@ -33,11 +33,13 @@ import io.github.command1264.invitecode.platform.bukkit.EconomyRewardGateway
 import io.github.command1264.invitecode.platform.bukkit.AsyncOperationExecutor
 import io.github.command1264.invitecode.platform.bukkit.AtomicRuntimeSnapshot
 import io.github.command1264.invitecode.platform.bukkit.ClaimInteractionSessions
+import io.github.command1264.invitecode.platform.bukkit.ChatInputResult
 import io.github.command1264.invitecode.platform.bukkit.ClaimInputChannel
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeDisplayFormatter
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeRuntimeConfiguration
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogInput
+import io.github.command1264.invitecode.platform.bukkit.NativeDialogConfirmationRequest
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogRequest
 import io.github.command1264.invitecode.platform.bukkit.PlatformCapabilities
 import io.github.command1264.invitecode.platform.bukkit.generator
@@ -193,10 +195,15 @@ class PlayerWorkflowController(
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onChat(event: AsyncPlayerChatEvent) {
         val playerId = event.player.uniqueId
-        val code = sessions.consumeChatInput(playerId, event.message) ?: return
+        val input = sessions.consumeChatInput(playerId, event.message) ?: return
         event.isCancelled = true
         tasks.player(event.player, operation = {
-            if (tasks.onlinePlayer(playerId) === event.player) beginClaim(event.player, code)
+            if (tasks.onlinePlayer(playerId) === event.player) {
+                when (input) {
+                    is ChatInputResult.Code -> beginClaim(event.player, input.value)
+                    ChatInputResult.Cancelled -> send(playerId, "command.claim.cancelled")
+                }
+            }
         })
     }
 
@@ -217,26 +224,46 @@ class PlayerWorkflowController(
                 InviteCodeLifecycleService(store, generator, 64).assign(playerId, now())
             },
             onSuccess = { code ->
-                send(playerId, "command.code.value", mapOf("code" to display(code.code)))
+                val player = tasks.onlinePlayer(playerId) ?: return@submit
+                val messages = configuration.current().value.messages
+                val locale = BukkitLocaleCompatibility.locale(player)
+                player.spigot().sendMessage(*PlayerChatActions.codeMessage(
+                    messages.resolve(locale, "command.code.value"),
+                    display(code.code),
+                    code.code.displayValue(),
+                    messages.resolve(locale, "command.code.copy"),
+                    messages.resolve(locale, "command.code.select"),
+                ))
             },
         )
     }
 
     private fun claim(player: Player, code: String?) {
         val playerId = player.uniqueId
-        if (code != null) {
-            beginClaim(player, code)
-            return
-        }
-        val runtime = configuration.current().value
-        val claim = runtime.general.claim
-        when (claim.inputMode.resolve(capabilities)) {
-            ClaimInputChannel.COMMAND_ONLY -> send(playerId, "command.claim.command-only")
-            ClaimInputChannel.DIALOG -> {
-                if (!startDialogInput(player, runtime)) startChatInput(player, claim.chatInputTimeout)
+        val snapshot = configuration.current()
+        submit(
+            player,
+            operation = { store ->
+                ClaimEligibilityPolicy(snapshot.value.general.claim.window).evaluate(store.claimState(playerId), now())
+            },
+            onSuccess = { eligibility ->
+                if (!eligibility.eligible) {
+                    sendEligibility(playerId, eligibility)
+                } else if (code != null) {
+                    beginClaim(player, code)
+                } else {
+                    val runtime = configuration.current().value
+                    val claim = runtime.general.claim
+                    when (claim.inputMode.resolve(capabilities)) {
+                        ClaimInputChannel.COMMAND_ONLY -> send(playerId, "command.claim.command-only")
+                        ClaimInputChannel.DIALOG -> {
+                            if (!startDialogInput(player, runtime)) startChatInput(player, claim.chatInputTimeout)
+                        }
+                        ClaimInputChannel.CHAT -> startChatInput(player, claim.chatInputTimeout)
+                    }
+                }
             }
-            ClaimInputChannel.CHAT -> startChatInput(player, claim.chatInputTimeout)
-        }
+        )
     }
 
     private fun startDialogInput(player: Player, runtime: InviteCodeRuntimeConfiguration): Boolean {
@@ -301,6 +328,7 @@ class PlayerWorkflowController(
             operation = { store -> prepareClaim(playerId, rawCode, snapshot.value, store) },
             onSuccess = { prepared ->
                 when (prepared) {
+                    is PreparedClaim.Ineligible -> sendEligibility(playerId, prepared.eligibility)
                     PreparedClaim.Invalid -> send(playerId, "command.claim.invalid-code")
                     PreparedClaim.Unavailable -> send(playerId, "command.claim.unavailable")
                     PreparedClaim.Self -> send(playerId, "command.claim.self")
@@ -308,18 +336,64 @@ class PlayerWorkflowController(
                         sessions.startConfirmation(prepared.confirmation)
                         scheduleTimeout(player, snapshot.value.general.claim.confirmationTimeout) {
                             if (sessions.expireConfirmation(playerId)) {
+                                tasks.onlinePlayer(playerId)?.let(nativeDialogInput::cancel)
                                 send(playerId, "command.claim.confirmation-timeout")
                             }
                         }
-                        send(
-                            playerId,
+                        val currentPlayer = tasks.onlinePlayer(playerId) ?: return@submit
+                        val messages = configuration.current().value.messages
+                        val locale = BukkitLocaleCompatibility.locale(currentPlayer)
+                        if (snapshot.value.general.claim.inputMode.resolve(capabilities) == ClaimInputChannel.DIALOG) {
+                            val confirmation = prepared.confirmation
+                            val shown = nativeDialogInput.showConfirmation(
+                                currentPlayer,
+                                NativeDialogConfirmationRequest(
+                                    title = messages.resolve(locale, "command.claim.confirmation-title"),
+                                    inviterLine = messages.resolve(
+                                        locale, "command.claim.confirmation-inviter",
+                                        mapOf("inviter" to confirmation.inviterName),
+                                    ),
+                                    codeLabel = messages.resolve(locale, "command.claim.confirmation-code-label"),
+                                    code = confirmation.inviteCode.displayValue(),
+                                    codeRgb = confirmation.inviteCode.color?.rgb,
+                                    question = messages.resolve(locale, "command.claim.confirmation-question"),
+                                    timeoutPrompt = messages.resolve(
+                                        locale, "command.claim.confirmation-prompt",
+                                        mapOf("seconds" to snapshot.value.general.claim.confirmationTimeout.seconds.toString()),
+                                    ),
+                                    agree = messages.resolve(locale, "command.claim.agree"),
+                                    disagree = messages.resolve(locale, "command.claim.disagree"),
+                                    agreeHint = messages.resolve(locale, "command.claim.agree-hover"),
+                                    disagreeHint = messages.resolve(locale, "command.claim.disagree-hover"),
+                                ),
+                                onConfirm = {
+                                    tasks.player(currentPlayer, operation = {
+                                        if (tasks.onlinePlayer(playerId) === currentPlayer) confirm(currentPlayer)
+                                    })
+                                },
+                                onDecline = {
+                                    tasks.player(currentPlayer, operation = {
+                                        if (tasks.onlinePlayer(playerId) === currentPlayer) cancel(currentPlayer)
+                                    })
+                                },
+                            )
+                            if (shown) return@submit
+                        }
+                        messages.resolve(
+                            locale,
                             "command.claim.confirmation",
                             mapOf(
                                 "inviter" to prepared.confirmation.inviterName,
                                 "code" to display(prepared.confirmation.inviteCode),
                                 "seconds" to snapshot.value.general.claim.confirmationTimeout.seconds.toString(),
                             ),
-                        )
+                        ).lines().forEach(currentPlayer::sendMessage)
+                        currentPlayer.spigot().sendMessage(*PlayerChatActions.confirmation(
+                            messages.resolve(locale, "command.claim.agree"),
+                            messages.resolve(locale, "command.claim.disagree"),
+                            messages.resolve(locale, "command.claim.agree-hover"),
+                            messages.resolve(locale, "command.claim.disagree-hover"),
+                        ))
                     }
                 }
             },
@@ -332,6 +406,8 @@ class PlayerWorkflowController(
         runtime: InviteCodeRuntimeConfiguration,
         store: InviteCodeStorage,
     ): PreparedClaim {
+        val eligibility = ClaimEligibilityPolicy(runtime.general.claim.window).evaluate(store.claimState(inviteeId), now())
+        if (!eligibility.eligible) return PreparedClaim.Ineligible(eligibility)
         val format = runtime.general.inviteCode.format.parser()
         val code = try {
             InviteCode.parse(rawCode, format)
@@ -360,6 +436,7 @@ class PlayerWorkflowController(
             send(playerId, "command.claim.no-confirmation")
             return
         }
+        nativeDialogInput.cancel(player)
         val snapshot = configuration.current()
         submit(
             player,
@@ -731,6 +808,7 @@ class PlayerWorkflowController(
     }
 
     private sealed class PreparedClaim {
+        data class Ineligible(val eligibility: ClaimEligibility) : PreparedClaim()
         object Invalid : PreparedClaim()
         object Unavailable : PreparedClaim()
         object Self : PreparedClaim()

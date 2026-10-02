@@ -3,19 +3,20 @@ const path = require('node:path')
 const crypto = require('node:crypto')
 const { spawn, spawnSync } = require('node:child_process')
 const mineflayer = require('mineflayer')
+const { assertAgentInstance } = require('./instance-boundary.cjs')
 
-const instancePath = path.resolve(process.argv[2] || '')
+let instancePath = path.resolve(process.argv[2] || '')
 const resolution = process.argv[3]
 if (!['mark-delivered', 'retry'].includes(resolution)) {
-  throw new Error('Usage: node uncertain.cjs <fresh Spigot 1.8.8 TestLab instance> <mark-delivered|retry>')
+  throw new Error('Usage: node uncertain.cjs <fresh Spigot 1.8.8 Agent instance> <mark-delivered|retry>')
 }
 const metadata = JSON.parse(fs.readFileSync(path.join(instancePath, 'workspace.json'), 'utf8'))
+instancePath = assertAgentInstance(instancePath, metadata)
 const dataDirectory = path.join(instancePath, 'plugins', 'InviteCode')
 const marker = path.join(instancePath, 'plugins', 'InviteCodeFaultProbe', 'effect-entered.log')
 const properties = fs.readFileSync(path.join(instancePath, 'server.properties'), 'utf8')
 const rewardConfig = fs.readFileSync(path.join(dataDirectory, 'rewards.yml'), 'utf8')
-if (metadata.project !== 'InviteCode' || metadata.instance !== path.basename(instancePath) ||
-    !metadata.instance.startsWith('issue12-') || metadata.profile !== 'spigot-1.8.8' ||
+if (metadata.profile !== 'spigot-1.8.8' ||
     !metadata.eulaAccepted || !/^server-ip=127\.0\.0\.1\s*$/m.test(properties) ||
     !/^online-mode=false\s*$/m.test(properties) ||
     !properties.includes(`server-port=${metadata.port}`) ||
@@ -147,7 +148,10 @@ async function main() {
     inviter = null
     await delay(500)
     invitee = await bot('IcFaultB')
-    await playerCommand(invitee, `/ic claim ${code}`, /Inviter: IcFaultA; Invite Code:/)
+    await playerCommand(invitee, `/ic claim ${code}`, /Inviter: IcFaultA/)
+    await until(() => invitee.messages.some(message => message.includes(`Invite Code: ${code}`)) &&
+      invitee.messages.some(message => message.includes('[Agree]') && message.includes('[Disagree]')),
+    'multiline claim confirmation')
     expectedCrash = true
     invitee.client.chat('/ic confirm')
     await until(() => server.child.exitCode !== null, 'deliberate JVM halt', 30000)

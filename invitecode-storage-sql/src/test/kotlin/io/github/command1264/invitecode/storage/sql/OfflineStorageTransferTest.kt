@@ -14,6 +14,34 @@ class OfflineStorageTransferTest {
     private val keyId = "a".repeat(64)
 
     @Test
+    fun `export rejects historical check constraint violations without repairing the source`() {
+        val source = database("invalid-generation.db")
+        SqliteSchemaMigrator(source, BlockingOperationGuard { }).migrate()
+        connect(source).use { connection ->
+            connection.createStatement().use { it.execute("PRAGMA ignore_check_constraints=ON") }
+            connection.prepareStatement(
+                "INSERT INTO invitecode_players(player_id, first_seen_at, eligibility_generation) VALUES (?, ?, -1)",
+            ).use { statement ->
+                statement.setString(1, UUID.randomUUID().toString())
+                statement.setString(2, "2026-01-01T00:00:00Z")
+                statement.executeUpdate()
+            }
+        }
+        connect(source).use { connection ->
+            val failure = assertThrows(StorageTransferException::class.java) {
+                OfflineStorageTransfer.export(connection, StorageDialect.SQLITE, keyId)
+            }
+            assertEquals(true, failure.message.orEmpty().contains("integrity check failed"))
+            connection.createStatement().use { statement ->
+                statement.executeQuery("SELECT eligibility_generation FROM invitecode_players").use { rows ->
+                    rows.next()
+                    assertEquals(-1, rows.getInt(1))
+                }
+            }
+        }
+    }
+
+    @Test
     fun `sqlite transfer preserves all business rows including rewards transitions and reserved hashes`() {
         val source = database("source.db")
         val destination = database("destination.db")

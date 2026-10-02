@@ -7,7 +7,7 @@
 1. 停止**所有**使用來源與目的 backend 的 InviteCode 實例及其他維護程序。MySQL 需專用 database 與帳號；目的 database 必須完全空白。SQLite／JSON 目的檔必須不存在。確認沒有 SQLite `-wal`／`-shm` 留存；不要直接刪除仍可能含有資料的檔案。
 2. 確認來源版本為 SQLite schema 9、JSON snapshot schema 9 或 MySQL schema 2。舊版本先依既有離線 schema 升級流程升級。事先準備**相同的 32-byte anti-abuse 密鑰**：SQLite／JSON 的 `--from-secret-file`、`--to-secret-file` 指向已存在的二進位密鑰檔；MySQL 的 Base64 密鑰從 `--mysql-secret-env` 指定的環境變數取得。不要重新產生密鑰；否則 IP hash 與已匿名化邀請碼的保留值會失效。
 3. 備份原始設定及密鑰。若來源是 MySQL，另以一致性方式完成可還原的 database dump；`--backup` 指向該 dump。若來源是 SQLite／JSON，`--backup` 指向尚不存在的檔案，工具在正式搬移時複製並核對 SHA-256。MySQL dump 的內容與可還原性須由管理員自行確認，工具只檢查非空。
-4. 先執行不加 `--apply` 的預檢，確認每張表的資料筆數、版本、目的地空白及密鑰一致；再加 `--apply --backup <路徑>` 正式執行。過程中不得重啟任何實例。CLI 回報成功後，檢查目的地資料、Reward 未完成狀態、舊碼保留值及稽核，再把 `plugins/InviteCode/storage.yml` 只改為目的 backend，啟動一組伺服器並做唯讀 `doctor` 檢查。
+4. 先執行不加 `--apply` 的預檢，確認來源完整性、每張表的資料筆數、版本、目的地空白及密鑰一致；再加 `--apply --backup <路徑>` 正式執行。SQLite 預檢包含 CHECK／外鍵與檔案完整性，MySQL 包含既有孤立紀錄檢查；曾停用外鍵檢查的來源不會只因重新啟用外鍵而視為完整。若回報 `Source integrity check failed` 或 `Source foreign-key integrity check failed`，保持停機，先在經驗證的備份上調查或還原缺失資料；工具不會自動修補或刪除來源。過程中不得重啟任何實例。CLI 回報成功後，檢查目的地資料、Reward 未完成狀態、舊碼保留值及稽核，再把 `plugins/InviteCode/storage.yml` 只改為目的 backend，啟動一組伺服器並做唯讀 `doctor` 檢查。
 
 以下範例的 `$JAR` 應為已驗證的 InviteCode JAR；所有路徑、主機、database 及環境變數名稱均須換成實際值。MySQL 密碼與密鑰不得放在指令參數、log 或 Git。
 

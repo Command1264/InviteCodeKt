@@ -55,9 +55,9 @@ object OfflineStorageTransfer {
             }
         }
         validateKeyId(keyId)
+        requireSourceIntegrity(connection, dialect)
         val tables = BUSINESS_TABLES.map { spec -> readTable(connection, spec) }
-        requireKeyedRowsMatch(tables, keyId)
-        PortableStorageSnapshot(dialect, currentVersion(dialect), keyId, tables)
+        PortableStorageSnapshot(dialect, currentVersion(dialect), keyId, tables).also(::validateSnapshot)
     }
 
     /** Imports atomically into an empty business schema; identical pre-bound MySQL key metadata is allowed. */
@@ -238,6 +238,54 @@ object OfflineStorageTransfer {
                 }
             }
             StorageDialect.MYSQL -> MysqlSchemaMigrator.requireCurrent(connection)
+        }
+    }
+
+    private fun requireSourceIntegrity(connection: Connection, dialect: StorageDialect) {
+        if (dialect == StorageDialect.SQLITE) {
+            connection.createStatement().use { statement ->
+                statement.executeQuery("PRAGMA integrity_check").use { rows ->
+                    check(rows.next() && rows.getString(1) == "ok" && !rows.next()) {
+                        "Source integrity check failed; keep the source offline and restore or repair a verified backup."
+                    }
+                }
+                statement.executeQuery("PRAGMA foreign_key_check").use { rows ->
+                    check(!rows.next()) {
+                        "Source foreign-key integrity check failed; restore or repair missing related records before transfer."
+                    }
+                }
+            }
+            return
+        }
+        // Re-enabling FOREIGN_KEY_CHECKS does not validate rows previously written while disabled.
+        // Use the current schema's relationships; never interpolate unchecked metadata as SQL names.
+        BUSINESS_TABLES.forEach { child ->
+            val keys = connection.metaData.getImportedKeys(connection.catalog, null, child.name).use { rows ->
+                buildList {
+                    while (rows.next()) add(Triple(
+                        rows.getString("FKCOLUMN_NAME"), rows.getString("PKTABLE_NAME"), rows.getString("PKCOLUMN_NAME"),
+                    ))
+                }
+            }
+            keys.forEach { (childColumn, parentName, parentColumn) ->
+                val parent = BUSINESS_TABLES.singleOrNull { it.name == parentName }
+                check(child.columns.any { it.name == childColumn } &&
+                    parent != null && parent.columns.any { it.name == parentColumn }) {
+                    "Source foreign-key layout is unsupported; inspect the schema before transfer."
+                }
+                connection.createStatement().use { statement ->
+                    statement.executeQuery(
+                        "SELECT 1 FROM ${child.name} child LEFT JOIN $parentName parent " +
+                            "ON child.$childColumn = parent.$parentColumn " +
+                            "WHERE child.$childColumn IS NOT NULL AND parent.$parentColumn IS NULL LIMIT 1",
+                    ).use { rows ->
+                        check(!rows.next()) {
+                            "Source foreign-key integrity check failed in ${child.name}; " +
+                                "restore or repair missing related records before transfer."
+                        }
+                    }
+                }
+            }
         }
     }
 

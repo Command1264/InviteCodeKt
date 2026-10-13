@@ -86,6 +86,10 @@ Runner 核對實體 Agent 路徑、`workspace.json` schema 2／audience、profil
 
 ## 無真人的合成玩家流程
 
+`flow.cjs` 的伺服器啟動等待預設為 180 秒，正常停止等待為 30 秒；可在測試程序設定 `INVITECODE_SERVER_START_TIMEOUT_MS`／`INVITECODE_SERVER_STOP_TIMEOUT_MS`，兩者只接受 100–600000 的整數毫秒。首次啟動超時也會清理自己啟動的程序；正常 `stop` 失敗時驗證程序樹終止結果並回報失敗，不把強制清理算成流程通過。這些環境變數只影響測試 runner，不改變插件設定。
+
+本機 Windows 已準備 InstanceHarbor 及固定 Node 依賴時，可執行 `node --test .\scripts\test-servers\synthetic-player\instance-boundary.test.cjs .\scripts\test-servers\synthetic-player\startup-cleanup.test.cjs`。後者透過 runner CLI 與假的外部 Java 程序驗證啟動期限、正常停止及停止失敗的清理，不啟動 Minecraft；只建立自己的唯一 Agent fixture，保留證據至 Worktree `invitecode-plugin/build/current-artifact/startup-cleanup-fixtures/` 後移除該精確葉目錄，不累積假測服。真實核心與玩家結果仍須另外驗證，見[最新產物紀錄](./evidence/2026-10-02-issue-12-current-artifact-retest.md)。
+
 Issue #12 的測試專用 fixture 以 Mineflayer 建立兩名離線模式的本機合成玩家，透過正式玩家指令與 Console doctor 驗證 Invite Code、Claim Confirmation、Qualification、離線 Reward 跨重啟補發與 Stats。先用 `npm.cmd ci --ignore-scripts --prefix .\scripts\test-servers\synthetic-player` 安裝固定版本的測試依賴；這些套件不會封裝進插件 JAR。
 
 使用同一份待驗證的插件 JAR，為每次執行建立全新的 `issue12-*` InstanceHarbor instance。例如：

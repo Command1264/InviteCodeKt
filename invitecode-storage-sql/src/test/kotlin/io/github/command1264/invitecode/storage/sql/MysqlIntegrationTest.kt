@@ -322,7 +322,7 @@ class MysqlIntegrationTest {
     }
 }
 
-private fun withMysqlSchema(test: (MysqlConfiguration, HikariDataSource) -> Unit) {
+internal fun withMysqlSchema(test: (MysqlConfiguration, HikariDataSource) -> Unit) {
     val host = System.getenv("INVITECODE_TEST_MYSQL_HOST")
     assumeTrue(!host.isNullOrBlank(), "MySQL integration requires explicit test server environment variables.")
     val port = System.getenv("INVITECODE_TEST_MYSQL_PORT")?.toIntOrNull() ?: 3306

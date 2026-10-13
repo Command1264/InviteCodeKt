@@ -43,6 +43,8 @@ mise exec -- java -cp $JAR io.github.command1264.invitecode.plugin.OfflineAnonym
 
 ## 驗證與復原
 
+SQLite／JSON／MySQL 的匿名化、重新開啟、未處理獎勵拒絕、並行維護與失敗復原，以及離線 CLI 安全拒絕的補充自動證據見 [Issue #25 複驗紀錄](../testing/evidence/2026-10-14-issue-25-anonymization-retest.md)。這些測試使用合成資料；不能用其結果證明既有備份或外部資料也已匿名化。
+
 工具顯示受影響的邀請、獎勵與舊碼數量。執行後確認：原 UUID 在 Player 查詢中不存在；歷史 ID 保留舊邀請關係；舊碼不能 Claim 或重新配發；資料可重新開啟；同 UUID 再加入會是新玩家。不要公開歷史 ID 與備份對照。交易失敗時 SQL 會回滾；若回滾狀態不明，停止所有寫入並檢查。JSON 快照失敗會停止當次寫入；檢查原檔與 `.previous` 後再處理。
 
 匿名化不能刪除既有備份、log、終端機歷史、程序參數、第三方插件或玩家自行保存的資料。精確的歷史時間及關係仍可能被持有外部對照的人推測身分；備份與操作紀錄應依獨立保留政策保護與清除。工具不輸出新舊 ID 的對照。每次操作會新增固定理由的 `PLAYER_ANONYMIZED` 稽核事件，不在資料庫保留可能含身分的自由文字理由。

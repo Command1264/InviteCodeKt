@@ -5,7 +5,7 @@
 InviteCode 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件；`InviteCodeKt` 是 repository 名稱，`Kt` 只表示實作使用 Kotlin。單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並以隔離 adapter 實驗性支援 Folia 26.1.2。
 
 > [!IMPORTANT]
-> 這個 repository 目前是 `0.1.0-SNAPSHOT`。舊版相容的 Bukkit 指令、聊天輸入、SQLite lifecycle、Qualification、可復原 Reward Delivery 與新版原生 Dialog adapter 已完成串接；Folia 26.1.2 的隔離合成玩家 smoke 也已通過。Folia 上的第三方整合與原生 Dialog 畫面、以及最終玩家體驗仍未完成驗收。
+> 這個 repository 目前是 `0.1.0-SNAPSHOT`。跨版本、儲存與復原自動證據已完成；使用者於 2026-10-13 確認 `1405745` 在 Spigot 1.8.8、Paper 26.2、Folia 26.1.2 的人工驗收通過，並已透過 PR #30 合併至 `develop`。完整範圍見[發行門檻結論](./testing/issue-12-release-gates.md)。Folia 維持實驗性，其第三方整合不能由 Paper 的結果推定；尚未正式發布 1.0。
 
 ## 專案目標
 
@@ -43,7 +43,7 @@ mise exec java@local-8 -- .\gradlew.bat clean check shadowJar
 
 `local-8` 與 `local-11` 由開發機的 mise 設定連結至既有 JDK。GitHub Actions 沒有這些本機 alias，因此 CI 透過 `MISE_JAVA_VERSION` 改用對應的 Temurin Java 8 與 Java 11。
 
-可安裝的骨架 JAR 會輸出至：
+可安裝的插件 JAR 會輸出至：
 
 ```text
 invitecode-plugin/build/libs/InviteCode-0.1.0-SNAPSHOT.jar
@@ -102,6 +102,6 @@ Qualification Reward 與 Inviter Milestone Reward 會先以穩定冪等鍵保存
 
 ## 目前狀態
 
-最新 develop 產物、跨核心／backend 證據及固定 Human 部署狀態見[本輪驗證紀錄](./testing/evidence/2026-10-02-issue-12-current-artifact-retest.md)。真人驗收使用保留資料的三台固定測服，依[短版步驟](./testing/current-artifact-human-acceptance.md)補齊最終產物證據；歷史已通過項目保留，正式發行與遠端交付另依授權。
+目前以[Issue #12 發行門檻結論](./testing/issue-12-release-gates.md)為驗證狀態入口；[自動紀錄](./testing/evidence/2026-10-02-issue-12-current-artifact-retest.md)與[真人驗收紀錄](./testing/current-artifact-human-acceptance.md)分開保存。三台固定測服的本次人工驗收已通過，不再列為待驗收。文件收尾、GitHub Issue 結案及正式發行是不同階段，遠端操作另依授權。
 
 實作工作記錄於本 repository 的 GitHub Issues。不規劃相容或匯入舊版 InviteCode 的資料與設定。

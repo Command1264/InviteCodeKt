@@ -2,7 +2,7 @@
 
 ## 最新 develop 產物
 
-最新 `fb215c0` 產品來源的同 JAR 證據及固定 Human 部署狀態見[本輪驗證紀錄](./evidence/2026-10-02-issue-12-current-artifact-retest.md)。本輪真人操作依[短版驗收清單](./current-artifact-human-acceptance.md)，保留既有世界、玩家與已通過的歷史結果，不因測服不存在而暫緩。下列 BA2D48 與 889DAD 產物區段是歷史證據，不能代替最終 D6AF 產物的當次驗收。
+使用者於 2026-10-13 確認 `1405745` 在 Spigot 1.8.8、Paper 26.2、Folia 26.1.2 人工驗收通過；PR #30 已合併至 `develop` 的 `1b46780`。最新 D6AF 固定 JAR 的版本與確認原文見[短版真人紀錄](./current-artifact-human-acceptance.md)，完整門檻結論見[Issue #12 收尾文件](./issue-12-release-gates.md)。下列 BA2D48 與 889DAD 產物區段及「待／暫緩」描述保留為歷史時點，不是目前待辦事項，也不能代替最終 D6AF 產物的證據。
 
 ## 同產物自動複驗（先前產物）
 

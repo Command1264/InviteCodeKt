@@ -47,4 +47,4 @@ MySQL → SQLite／JSON 時，將 MySQL 設為 `--from-backend mysql`，目的�
 - MySQL 初始化或匯入中斷：目的 database 保留 `invitecode_transfer_guard`，插件會拒絕啟用。不要手工刪除 guard 來繞過檢查；先保留事故證據，使用全新空白 database 重試，或從經驗證的備份還原後再處理。MySQL DDL 不能靠交易回滾清除。
 - 若切換設定後需要回復來源，先停止目的地所有寫入者；目的地啟用後新增的資料不會自動回流，須先人工核對差異。不得同時讓來源與目的地接受新 Claim 或獎勵交付。
 
-真人遊戲內操作驗收依 Issue #12 延後。隔離測試與 dump 不得使用正式玩家資料。
+三核心遊戲內人工驗收已於 2026-10-13 由使用者確認通過，範圍見 [Issue #12 發行門檻結論](../testing/issue-12-release-gates.md)；此確認不新增跨 backend 搬移的真人測試主張。搬移仍以本文件的隔離自動證據為據；隔離測試與 dump 不得使用正式玩家資料。

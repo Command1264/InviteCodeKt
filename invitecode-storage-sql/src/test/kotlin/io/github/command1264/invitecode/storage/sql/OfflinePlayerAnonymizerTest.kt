@@ -15,6 +15,11 @@ import java.nio.file.Path
 import java.security.MessageDigest
 import java.sql.Connection
 import java.util.UUID
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class OfflinePlayerAnonymizerTest {
     @TempDir lateinit var directory: Path
@@ -77,20 +82,122 @@ class OfflinePlayerAnonymizerTest {
         }
     }
 
-    @Test
-    fun `unresolved reward fails before any identity mutation`() {
+    @ParameterizedTest
+    @ValueSource(strings = ["PENDING", "PROCESSING", "UNCERTAIN"])
+    fun `unresolved reward fails before any identity mutation`(status: String) {
         val database = directory.resolve("unresolved.db")
         SqliteSchemaMigrator(database, guard).migrate()
         val inviter = UUID.randomUUID()
         val invitee = UUID.randomUUID()
         val invitation = UUID.randomUUID()
-        seed(database, inviter, invitee, invitation, UUID.randomUUID(), UUID.randomUUID(), "PENDING")
+        seed(database, inviter, invitee, invitation, UUID.randomUUID(), UUID.randomUUID(), status)
+        val before = snapshot(database)
         SqliteInviteCodeStorage.open(database, guard, key).use { storage ->
             assertThrows(IllegalStateException::class.java) { storage.anonymizePlayer(inviter) }
             assertNotNull(storage.player(inviter))
             assertFalse(storage.isInviteCodeReserved(InviteCode.fromNormalized("FFFFFF")))
             assertNotNull(storage.activeInviteCode(InviteCode.fromNormalized("A1B2C3")))
         }
+        assertEquals(before, snapshot(database))
+    }
+
+    @Test
+    fun `anonymized history remains private and linked after reopening`() {
+        val database = directory.resolve("restart.db")
+        SqliteSchemaMigrator(database, guard).migrate()
+        val inviter = UUID.randomUUID()
+        val invitee = UUID.randomUUID()
+        val invitation = UUID.randomUUID()
+        seed(database, inviter, invitee, invitation, UUID.randomUUID(), UUID.randomUUID(), "DELIVERED")
+        val fact = io.github.command1264.invitecode.core.QualificationFact(
+            UUID.randomUUID(), invitation, "policy", "revision", "condition",
+            io.github.command1264.invitecode.core.QualificationFactOutcome.SATISFIED,
+            Instant.parse("2026-01-03T00:00:00Z"),
+        )
+        val historical = SqliteInviteCodeStorage.open(database, guard, key).use { storage ->
+            storage.saveQualifiedInvitation(requireNotNull(storage.invitation(invitation)).qualify(fact.recordedAt, fact.policyId, fact.qualificationRevision), listOf(fact))
+            storage.anonymizePlayer(inviter).historicalId
+        }
+        SqliteInviteCodeStorage.open(database, guard, key).use { storage ->
+            assertNull(storage.player(inviter))
+            assertEquals(historical, storage.invitation(invitation)?.inviterId)
+            assertEquals(Instant.parse("2026-01-02T00:00:00Z"), storage.invitation(invitation)?.claimedAt)
+            assertEquals(fact.recordedAt, storage.invitation(invitation)?.qualifiedAt)
+            assertEquals(fact.id, storage.qualificationFacts(invitation).single().id)
+            assertEquals(fact.recordedAt, storage.qualificationFacts(invitation).single().recordedAt)
+            assertNull(storage.player(historical)?.lastKnownName)
+            assertTrue(storage.isInviteCodeReserved(InviteCode.fromNormalized("A1B2C3")))
+            assertTrue(storage.pendingRewardActions(historical).isEmpty())
+            assertTrue(storage.auditHistoryByPlayer(historical, 10).any { it.action.name == "PLAYER_ANONYMIZED" })
+        }
+        val exported = snapshot(database).toString()
+        assertFalse(exported.contains(inviter.toString()))
+        assertFalse(exported.contains("Alice"))
+        assertFalse(exported.contains("A1B2C3"))
+    }
+
+    @Test
+    fun `write failure rolls back identity history and code reservation`() {
+        val database = directory.resolve("failed.db")
+        SqliteSchemaMigrator(database, guard).migrate()
+        val inviter = UUID.randomUUID()
+        seed(database, inviter, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "DELIVERED")
+        connect(database).use { connection ->
+            connection.createStatement().use { it.execute("CREATE TRIGGER fail_anonymization BEFORE DELETE ON invitecode_players BEGIN SELECT RAISE(ABORT, 'injected anonymization failure'); END") }
+        }
+        val before = snapshot(database)
+        SqliteInviteCodeStorage.open(database, guard, key).use { storage ->
+            val failure = assertThrows(SqliteStorageException::class.java) { storage.anonymizePlayer(inviter) }
+            assertTrue(generateSequence<Throwable>(failure) { it.cause }.any {
+                it.message.orEmpty().contains("injected anonymization failure")
+            })
+        }
+        assertEquals(before, snapshot(database))
+        connect(database).use { it.createStatement().use { statement -> statement.execute("DROP TRIGGER fail_anonymization") } }
+        SqliteInviteCodeStorage.open(database, guard, key).use { storage ->
+            storage.anonymizePlayer(inviter)
+            assertNull(storage.player(inviter))
+        }
+    }
+
+    @Test
+    fun `two SQLite maintenance connections cannot anonymize a player twice`() {
+        val database = directory.resolve("parallel.db")
+        SqliteSchemaMigrator(database, guard).migrate()
+        val inviter = UUID.randomUUID()
+        seed(database, inviter, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "DELIVERED")
+        val start = CountDownLatch(1)
+        val ready = CountDownLatch(2)
+        val executor = Executors.newFixedThreadPool(2)
+        try {
+            val attempts = (1..2).map {
+                executor.submit<Boolean> {
+                    SqliteInviteCodeStorage.open(database, guard, key).use { storage ->
+                        ready.countDown()
+                        check(start.await(10, TimeUnit.SECONDS))
+                        try { storage.anonymizePlayer(inviter); true } catch (failure: IllegalStateException) {
+                            assertTrue(failure.message.orEmpty().contains("absent"), failure.message)
+                            false
+                        }
+                    }
+                }
+            }
+            assertTrue(ready.await(10, TimeUnit.SECONDS))
+            start.countDown()
+            assertEquals(1, attempts.count { it.get(20, TimeUnit.SECONDS) })
+            SqliteInviteCodeStorage.open(database, guard, key).use { storage ->
+                assertNull(storage.player(inviter))
+                assertTrue(storage.isInviteCodeReserved(InviteCode.fromNormalized("A1B2C3")))
+            }
+        } finally {
+            start.countDown()
+            executor.shutdownNow()
+            assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS))
+        }
+    }
+
+    private fun snapshot(database: Path): PortableStorageSnapshot = connect(database).use {
+        OfflineStorageTransfer.export(it, StorageDialect.SQLITE, key.keyId)
     }
 
     @Test

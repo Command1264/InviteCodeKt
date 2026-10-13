@@ -8,7 +8,7 @@
 D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C
 ```
 
-JAR：`D:\Code\Java\Plugin\InviteCodeKt\artifacts\merged-issue26-418c829\worktree\invitecode-plugin\build\issue26-evidence\InviteCode-418c829.jar`。原始 runtime log、runner 輸出與 manifest 保留在本 Worktree 的 `invitecode-plugin/build/current-artifact/`。
+JAR：`D:\Code\Java\Plugin\InviteCodeKt\artifacts\merged-issue26-418c829\worktree\invitecode-plugin\build\issue26-evidence\InviteCode-418c829.jar`。原始 runtime log、runner 輸出與 manifest 於合併後封存至 `D:\Code\Java\Plugin\InviteCodeKt\artifacts\merged-issue12-1405745\`；`archive-manifest.json` 記錄逐檔 SHA-256 與原來源位置。原 Worktree 已移除，證據索引已改指向封存路徑；可重建的依賴與隔離 MySQL 資料目錄不納入封存。
 
 自動測試僅操作本輪新建的 `InstanceHarbor/instances/Agent/InviteCode/` 隔離實例，不接入人工 Velocity，不把 Human 世界或玩家資料當成 fixture。沿用 InstanceHarbor 的持續 EULA 授權、已編譯 BuildTools 核心與既有測試依賴。JDK 由 mise 的已安裝 local alias 選擇，未安裝新 Java 或新增 production dependency。
 
@@ -43,8 +43,10 @@ JAR：`D:\Code\Java\Plugin\InviteCodeKt\artifacts\merged-issue26-418c829\worktre
 
 ## 真人與交付狀態
 
-使用者先前已確認三台的確認畫面、同意／不同意、逾時與重啟全部通過，見[真人紀錄](../final-human-acceptance.md)。本輪不抹除那些結果，也不因測服不足而暫緩。最終產物部署、遷移、自動矩陣及資料比對已完成。TUI 再次發現三台且皆已停止，共用 lobby／Velocity 仍監聽。接下來依[短版真人步驟](../current-artifact-human-acceptance.md)驗證實際客戶端的六碼 hover／複製、繁體中文、資格預檢與重啟狀態。37 個相關 UI class bytes 與歷史受測 JAR 相同；另一個 RuntimeCommandExecutor 的 javap 方法反組譯相同，保留歷史確認畫面與按鈕驗收，但不冒稱本輪已有真人登入。
+使用者先前已確認三台的確認畫面、同意／不同意、逾時與重啟全部通過，見[真人紀錄](../final-human-acceptance.md)。最終產物部署、遷移、自動矩陣及資料比對已完成；當時 TUI 發現三台且皆已停止，共用入口狀態只代表該次核對，不代表目前仍運行。37 個相關 UI class bytes 與歷史受測 JAR 相同；另一個 RuntimeCommandExecutor 的 javap 方法反組譯相同，保留歷史確認畫面與按鈕驗收。
+
+2026-10-13 使用者明確確認 `1405745` 在 Folia 26.1.2、Paper 26.2、Spigot 1.8.8 人工驗收通過並授權合併；確認原文與範圍見[短版真人紀錄](../current-artifact-human-acceptance.md)。此為使用者確認，與自動封包結果分開，不補造逐項真人 log。
 
 Folia 保持實驗性；Paper 的第三方結果不代表 Folia 第三方已驗證。未執行的真人畫面及按鈕不可用合成封包取代。
 
-本輪未 push、建立 PR、merge、tag 或發布。依 [Issue #12 驗收條件](https://github.com/Command1264/InviteCodeKt/issues/12)與 [Roadmap #1 發行門檻](https://github.com/Command1264/InviteCodeKt/issues/1)，下一步是由使用者回覆固定 Human 短版真人驗收；驗收通過後才整理 Issue #12 的發行門檻結論，遠端交付與正式發行仍需明確授權。
+PR #30 的五項 CI 全部通過，已將 `1405745c6fc049c7df2217304e8df801c728fb68` 合併至 `develop` 的 `1b46780ccc5bfbbe4ff63898999852f61e5fa218`。尚未建立 tag 或正式發布。依 [Issue #12 驗收條件](https://github.com/Command1264/InviteCodeKt/issues/12)與 [Roadmap #1 發行門檻](https://github.com/Command1264/InviteCodeKt/issues/1)，後續是[門檻結論及文件收尾](../issue-12-release-gates.md)，不再要求本次三台重做真人驗收。

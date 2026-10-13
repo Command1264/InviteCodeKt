@@ -14,7 +14,7 @@
       "serverSha256": "6ED6046687CE9255228FE7BD31E097DA49BEFF2A0C577E7BE56D14F09753239C",
       "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
       "result": "PASS",
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-spigot-1.8.8.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-startup-matrix-20261002\\smoke-spigot-1.8.8.log"
     },
     {
       "profile": "spigot-1.12.2",
@@ -23,7 +23,7 @@
       "serverSha256": "CA59A730F5B1C2E85A2ABE907D9689CC2636BE0200F333C1E1B87E2D620D8513",
       "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
       "result": "PASS",
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-spigot-1.12.2.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-startup-matrix-20261002\\smoke-spigot-1.12.2.log"
     },
     {
       "profile": "spigot-1.16.5",
@@ -32,7 +32,7 @@
       "serverSha256": "C738DCB9AC8114228107BB4CDA97BFEC62A243C99FE0E7C6CAF9D424BD1EF93C",
       "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
       "result": "PASS",
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-spigot-1.16.5.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-startup-matrix-20261002\\smoke-spigot-1.16.5.log"
     },
     {
       "profile": "spigot-latest",
@@ -41,7 +41,7 @@
       "serverSha256": "27A348344D42ED2BA76AAD6FCEEBB7A26365F09C9AC6EEA4C0918BA83BA7E3DD",
       "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
       "result": "PASS",
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-spigot-latest.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-startup-matrix-20261002\\smoke-spigot-latest.log"
     },
     {
       "profile": "paper-1.20.6",
@@ -50,7 +50,7 @@
       "serverSha256": "4B011F5ADB5F6C72007686A223174FCE82F31AEB4B34FAF4652ABC840B47E640",
       "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
       "result": "PASS",
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-paper-1.20.6.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-startup-matrix-20261002\\smoke-paper-1.20.6.log"
     },
     {
       "profile": "paper-1.21.8",
@@ -59,7 +59,7 @@
       "serverSha256": "8DE7C52C3B02403503D16FAC58003F1EFEF7DD7A0256786843927FA92EE57F1E",
       "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
       "result": "PASS",
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-paper-1.21.8.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-startup-matrix-20261002\\smoke-paper-1.21.8.log"
     },
     {
       "profile": "paper-latest",
@@ -68,7 +68,7 @@
       "serverSha256": "B1D8F6BFA1B6101FA8E947B53041CB3BDF5540E7B83B6547CA19BA7EDEFEB083",
       "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
       "result": "PASS",
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-paper-latest.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-startup-matrix-20261002\\smoke-paper-latest.log"
     },
     {
       "profile": "folia-latest",
@@ -77,7 +77,7 @@
       "serverSha256": "607AFD1C3320008E1FFD2EAEE6780ACE4419D5F8C527B75E79F259BE79EBF57B",
       "pluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
       "result": "PASS",
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\smoke-folia-latest.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-startup-matrix-20261002\\smoke-folia-latest.log"
     }
   ],
   "playerAndProviderFlows": [
@@ -147,7 +147,7 @@
         "qualified-after-rejoin",
         "qualified-after-restart"
       ],
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\papi-flow.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-current-artifact-verification-20261002\\papi-flow.log"
     },
     {
       "name": "json-playerflow-paper1206",
@@ -161,7 +161,7 @@
         "offline-reward-on-login",
         "stats"
       ],
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\json-flow-final.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-current-artifact-verification-20261002\\json-flow-final.log"
     },
     {
       "name": "mysql-interrupted-migration-recovery",
@@ -174,7 +174,7 @@
         "applied-ledger-durable",
         "no-local-secret"
       ],
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\mysql-migration-recovery-shortname.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-current-artifact-verification-20261002\\mysql-migration-recovery-shortname.log"
     },
     {
       "name": "actual-plugin-mysql-guard-lock",
@@ -187,7 +187,7 @@
         "drop-owned-fixture-guard-recovers-active",
         "sentinel-preserved"
       ],
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\actual-mysql-guard-lock-final.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-current-artifact-verification-20261002\\actual-mysql-guard-lock-final.log"
     }
   ],
   "recovery": [
@@ -210,7 +210,7 @@
         ]
       },
       "port": 63811,
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\sqlite.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\recovery\\sqlite.log"
     },
     {
       "scenario": "mark-delivered",
@@ -232,7 +232,7 @@
         ]
       },
       "port": 63812,
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\mark-delivered.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\recovery\\mark-delivered.log"
     },
     {
       "scenario": "retry",
@@ -254,7 +254,7 @@
         ]
       },
       "port": 63813,
-      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\retry.log"
+      "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\recovery\\retry.log"
     }
   ],
   "runnerRegression": {
@@ -262,8 +262,8 @@
     "passed": 7,
     "failed": 0,
     "skipped": 0,
-    "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\runner-tests-reviewed.log",
-    "postPatchRealFlowLog": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\runner-recheck.log"
+    "log": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\runner-tests-reviewed.log",
+    "postPatchRealFlowLog": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\recovery\\runner-recheck.log"
   },
   "humanDeployment": [
     {
@@ -390,30 +390,53 @@
   ],
   "rawManifests": [
     {
-      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-startup-matrix-20261002\\matrix.json",
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-startup-matrix-20261002\\matrix.json",
       "sha256": "6979BB046DB9DE8AB655A85CCEE49A29730732F0428F7C8652FE01A6C3CF786B"
     },
     {
-      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-20261002-run1\\results.json",
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-current-artifact-20261002-run1\\results.json",
       "sha256": "A4848B4BAAF5C7BB167470DCD52AC5B2925246EB67DDFF6F80923EDAACAEE715"
     },
     {
-      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\issue12-current-artifact-verification-20261002\\evidence-summary.json",
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\issue12-current-artifact-verification-20261002\\evidence-summary.json",
       "sha256": "EEB130DB1D895D3FD4824F525C314C589BD214A0FED57746276907090C1C5D9A"
     },
     {
-      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\recovery\\results.json",
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\recovery\\results.json",
       "sha256": "5252EE904494D22AD7ADDAC164CF95D26648B799B26FD2991282ACDD56BB0115"
     },
     {
-      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\human\\deployment.json",
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\human\\deployment.json",
       "sha256": "468DE7A620BD09B6120D40D72C6BA9C16969C4DDC48CE4815570A3C59578F050"
     },
     {
-      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\test-issue-12-current-artifact\\invitecode-plugin\\build\\current-artifact\\human\\data-preservation.json",
+      "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745\\human\\data-preservation.json",
       "sha256": "B0FE6096503A3D456B9AA6872B5BBE3843FFD1ECEEF24AB66A94D05C10893605"
     }
   ],
-  "humanClientAcceptance": "PENDING",
-  "remoteWritesPerformed": false
+  "humanClientAcceptance": "PASS",
+  "humanAcceptanceRecord": {
+    "date": "2026-10-13",
+    "acceptedCommit": "1405745c6fc049c7df2217304e8df801c728fb68",
+    "source": "explicit-user-confirmation",
+    "servers": ["Folia 26.1.2", "Paper 26.2", "Spigot 1.8.8"],
+    "scope": "Overall acceptance confirmed by user; no additional per-step client evidence inferred.",
+    "document": "../current-artifact-human-acceptance.md"
+  },
+  "evidenceArchive": {
+    "path": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\artifacts\\merged-issue12-1405745",
+    "manifest": "archive-manifest.json",
+    "originalWorktreeRemoved": true,
+    "rawEvidenceBytesPreserved": true
+  },
+  "remoteWritesPerformed": true,
+  "delivery": {
+    "pullRequest": "https://github.com/Command1264/InviteCodeKt/pull/30",
+    "headCommit": "1405745c6fc049c7df2217304e8df801c728fb68",
+    "target": "develop",
+    "mergeCommit": "1b46780ccc5bfbbe4ff63898999852f61e5fa218",
+    "mergedDate": "2026-10-13",
+    "ciPassed": true,
+    "formalReleasePublished": false
+  }
 }

@@ -1,15 +1,19 @@
 # 最新產物短版真人驗收
 
-本輪只補最終產物證據。先前三台確認畫面、同意／不同意、逾時與重啟通過的紀錄保留，不要求重新執行整套長流程。自動結果與部署狀態見[最新產物驗證紀錄](./evidence/2026-10-02-issue-12-current-artifact-retest.md)。三台部署與 migration、重啟及資料保留比對已完成，可執行下列步驟。
+## 2026-10-13 驗收結果：通過
 
-## 待驗收版本
+使用者明確回覆「`1405745` 在 folia 26.1.2、paper 26.2、spigto 1.8.8 進行完成驗收，可以進行合併」。此為三台的整體人工驗收確認，不補造逐步截圖、客戶端版本或個別操作 log。受測固定 JAR 與先前部署證據依下節記錄；PR #30 已合併至 `develop`，合併 commit 為 `1b46780ccc5bfbbe4ff63898999852f61e5fa218`。
+
+先前三台確認畫面、同意／不同意、逾時與重啟通過的紀錄保留。自動結果與部署狀態見[最新產物驗證紀錄](./evidence/2026-10-02-issue-12-current-artifact-retest.md)，逐條判定見[發行門檻結論](./issue-12-release-gates.md)。下列步驟保留供日後同範圍複驗，不代表目前仍待人工操作。
+
+## 受測版本
 
 - 產品來源：`418c8298e8deb6c7fdef66d6e0ff67f78d807a89`，已合入 develop `fb215c09ee4bbce96050ef4aebf97a1905ed984a`。
 - 插件 SHA-256：`D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C`。
 - 固定測服：`invitecode-spigot-1.8.8`、`invitecode-paper-26.2`、`invitecode-folia-26.1.2`，位於 `D:\Code\Java\Plugin\InstanceHarbor\instances\Human\InviteCode\`。
 - 使用既有世界、帳號與邀請資料；不清空資料、不重設資格。三台保持同 IP `DENY`，本清單不需要新的成功 Claim。
 
-## 每台依序操作
+## 保留的複驗步驟
 
 1. 從 Windows 開始功能表開啟已安裝的 **PowerShell 7**，在桌面視窗執行：
 
@@ -37,10 +41,10 @@
 
 6. 完成後切回 lobby，正常停止該台，再對下一台重複步驟 1–5。測試結束後三台 InviteCode 都關閉；共用入口若其他測試還需要使用，不必為本插件關閉。
 
-## 回覆及限制
+## 日後複驗的回覆方式與限制
 
 請分別回覆三台的「切服／指令、六碼提示與複製、資格預檢、繁體中文、重啟保留」是否通過；失敗時附實際畫面或文字及 `logs/latest.log`，保留原資料，不重建伺服器。不要提供帳號密碼或 anti-abuse key。
 
 此短版不會重新建立 Invitation。原生 Dialog 的實際提交與同意／不同意沿用已確認的歷史結果；合成封包只算自動證據。若日後要以全新合資格帳號複驗完整流程，再另外界定測試帳號與可回復資料；不要為了開啟 Dialog 直接 unlink 或清空現有資料。
 
-真人結果通過後，仍須完成 Issue #12 的門檻結論與文件交付；這不代表允許 push、PR、merge、tag 或正式發行。Folia 保持實驗性，第三方 provider 的支援範圍另列限制。
+本次真人結果與 PR #30 合併已確認；Issue #12 的門檻結論見[收尾文件](./issue-12-release-gates.md)。後續文件 PR、Issue 結案及正式發行另依授權；Folia 保持實驗性，第三方 provider 的支援範圍另列限制。

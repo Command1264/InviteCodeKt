@@ -16,7 +16,7 @@ InviteCode 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件；`In
 - 在不使用 NMS 的前提下維持 Java 8 執行環境相容性。
 - 在有能力的新版伺服器使用原生 Dialog 輸入，其餘版本安全退回聊天或指令輸入。
 
-標準領域詞彙記錄於 [`CONTEXT.md`](../CONTEXT.md)，已確認的產品與工程範圍記錄於 [`invitecode-1.0.md`](./spec/invitecode-1.0.md)。
+標準領域詞彙記錄於 [`GLOSSARY.md`](../GLOSSARY.md)，已確認的產品與工程範圍記錄於 [`invitecode-1.0.md`](./spec/invitecode-1.0.md)。
 
 ## 建置
 

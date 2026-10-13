@@ -4,7 +4,7 @@
 
 ## 背景
 
-`CONTEXT.md` 的 Anonymized Player 必須保留 Invitation、Qualification、Reward 與稽核的歷史關係，但不能繼續以 Minecraft UUID、名稱或 IP 雜湊識別原玩家。現有三種 backend 的 `player_id` 都直接使用 Minecraft UUID，且 Reward、Audit 與自由文字欄位可能再次暴露身分。單純清空 `last_known_name` 不是匿名化。
+`GLOSSARY.md` 的 Anonymized Player 必須保留 Invitation、Qualification、Reward 與稽核的歷史關係，但不能繼續以 Minecraft UUID、名稱或 IP 雜湊識別原玩家。現有三種 backend 的 `player_id` 都直接使用 Minecraft UUID，且 Reward、Audit 與自由文字欄位可能再次暴露身分。單純清空 `last_known_name` 不是匿名化。
 
 ## 已確認的產品決定
 

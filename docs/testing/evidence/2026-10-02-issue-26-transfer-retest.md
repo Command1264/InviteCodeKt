@@ -2,6 +2,8 @@
 
 日期：2026-10-02。分支：`codex/fix/issue-26-transfer-preflight`，目標 `develop`。
 
+2026-10-14 狀態更新：受測版本 `418c829` 已透過 [PR #29](https://github.com/Command1264/InviteCodeKt/pull/29) 合併至 `develop`；五項 CI 通過。下文執行過程是當時紀錄，本次只重新核對封存檔案。最新結案判定見 [Issue #26 收尾文件](../issue-26-closeout.md)。
+
 ## 受測版本
 
 在獨立 Worktree `D:\Code\Java\Plugin\InviteCodeKt\worktrees\fix-issue-26-transfer-preflight`，以 `develop` 的 `40e21b01edfc87275eac887b9f1f5ae147ae0542` 整合既有搬移候選 `8c57de5997e8c1b31f57ab883b5f46278500fcbb`，再修正來源完整性預檢及補足測試。主要 checkout 與舊候選 Worktree 保留，不在 `develop` 直接實作。
@@ -29,7 +31,14 @@ mise 清單確認已有 `local-8`、`local-11`；本輪以 `mise exec java@local
 | MysqlRuntimeBootstrapTest | 2 | 同資料庫／密鑰重新開啟、startup 與 transfer lock／guard 的協調 |
 | JsonOfflineTransferTest | 2 | staging 失敗不發布、重開讀回及目的檔競爭不覆寫 |
 
-原始 XML 快照保留於本 Worktree `invitecode-plugin/build/issue26-evidence/xml/<module>/`；完整執行 log 位於 `invitecode-plugin/build/issue26-mysql/full-check.log` 與 `final-check.log`。此目錄屬本機驗證產物，不加入 Git。
+原始 Worktree 已移除；上述路徑是原執行位置。現存封存根目錄為 `D:\Code\Java\Plugin\InviteCodeKt\artifacts\merged-issue26-418c829\worktree\invitecode-plugin\build\`：
+
+- `issue26-evidence/InviteCode-418c829.jar`：與上述 SHA-256 相符。
+- `issue26-evidence/xml/<module>/`：55 組、244 項 JUnit 結果，2026-10-14 重新加總相符。
+- `issue26-evidence/manifest.json`：保留原 HEAD 與執行路徑；其中舊路徑屬歷史來源，現在請使用本節封存位置。
+- `issue26-mysql/full-check.log`、`issue26-mysql/final-check.log`：完整建置紀錄；後者記錄 `BUILD SUCCESSFUL`。
+
+原始檔案保留不改寫；封存屬本機證據，不加入 Git。本次未重新執行 Java／MySQL 測試。
 
 ## 隔離範圍與限制
 
@@ -39,8 +48,8 @@ MySQL 故障注入在公開 `OfflineStorageTransfer.import` 的真實 transactio
 
 MySQL→檔案方向的 dump fixture 只驗證 CLI 要求非空備份的 gate，未證明 dump 可還原；實際維運仍須自行驗證一致性 dump。`--stopped` 仍是操作者確認，不能證明不可見的其他 MySQL 帳號或稍後連入的寫入者已停止。
 
-測試結束後正常停止本輪隔離 MySQL，移除暫存憑證並確認 port 已釋放；保留資料目錄與 log 供核對。真人遊戲內驗收維持先前延後安排，本輪未要求追加真人測試。
+測試結束後正常停止本輪隔離 MySQL，移除暫存憑證並確認 port 已釋放；保留資料目錄與 log 供核對。三核心遊戲內驗收已於 2026-10-13 由使用者確認通過，Issue #12 已結案；範圍見 [Issue #12 結論](../issue-12-release-gates.md)。這不代表已進行跨 backend 的人工停機、切換與 dump 還原測試。
 
 ## 交付
 
-Agent 驗證完成後保留 task Worktree、JAR、XML 與分支供使用者審閱。Push、PR、merge 及 Issue 關閉尚未執行。下一步依 [Issue #26 驗收條件](https://github.com/Command1264/InviteCodeKt/issues/26)交付新 HEAD，授權後建立目標為 `develop` 的 PR；再依 [Roadmap #1 發行門檻](https://github.com/Command1264/InviteCodeKt/issues/1)核對 Issue #12 與最終發行證據。
+PR #29 的來源為 `418c8298e8deb6c7fdef66d6e0ff67f78d807a89`，合併 commit 為 `fb215c09ee4bbce96050ef4aebf97a1905ed984a`。[CI run 37014114197](https://github.com/Command1264/InviteCodeKt/actions/runs/37014114197) 的 Linux／Windows Java 8、11 與 MySQL integration 五項通過。2026-10-14 核對時 Issue #26 仍開啟，待收尾文件交付與授權後留下結案證據；產品尚未正式發布。下一步及留言草稿見 [收尾文件](../issue-26-closeout.md)。

@@ -48,3 +48,7 @@ MySQL → SQLite／JSON 時，將 MySQL 設為 `--from-backend mysql`，目的�
 - 若切換設定後需要回復來源，先停止目的地所有寫入者；目的地啟用後新增的資料不會自動回流，須先人工核對差異。不得同時讓來源與目的地接受新 Claim 或獎勵交付。
 
 三核心遊戲內人工驗收已於 2026-10-13 由使用者確認通過，範圍見 [Issue #12 發行門檻結論](../testing/issue-12-release-gates.md)；此確認不新增跨 backend 搬移的真人測試主張。搬移仍以本文件的隔離自動證據為據；隔離測試與 dump 不得使用正式玩家資料。
+
+## 交付與證據
+
+搬移實作 `418c829` 已由 [PR #29](https://github.com/Command1264/InviteCodeKt/pull/29) 合併至 `develop`，五項 CI 通過。[複驗紀錄](../testing/evidence/2026-10-02-issue-26-transfer-retest.md)列出六種方向、故障復原及目前可讀取的封存路徑；[Issue #26 收尾文件](../testing/issue-26-closeout.md)逐項核對結案條件。2026-10-14 核對時 #26 仍開啟。`--stopped` 與一致性 dump 的維運責任仍依上文執行。

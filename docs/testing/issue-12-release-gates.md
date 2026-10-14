@@ -44,9 +44,9 @@ PR #30 的 CI 五項均成功：Linux／Windows 各自使用 Java 8 與 Java 11 
 
 ## 接下來的交付順序
 
-1. 審閱並授權本文件候選 push／建立目標為 `develop` 的 PR；不需重做已確認的三台人工測試。
-2. 收尾文件通過檢查並取得指定 commit 的合併授權後整合；另取得 GitHub Issue 操作授權，在 #12 留下證據再關閉。#25／#26 的實作已合併但 Issue 尚開啟，亦須依各自驗收與授權核對結案，不直接批次關閉。
+1. 本文件已透過 PR #31（`61944af`）合併；#12 已留下證據並結案。不需重做已確認的三台人工測試。
+2. #25 已透過 PR #32（`3e346ca`）完成複驗整合並結案。#26 實作已由 PR #29 合併，仍開啟；依 [Issue #26 收尾文件](./issue-26-closeout.md)交付文件並取得相應遠端操作授權。
 3. 依 [Roadmap #1「發行門檻」](https://github.com/Command1264/InviteCodeKt/issues/1)規劃 1.0 發行：確認版號、正式候選來源、JAR 雜湊、穩定目標 `main`、支援／已知限制與發行說明。版本調整若產生新 JAR，要補相稱的產物驗證。
 4. `main` 整合、tag、GitHub Release 與 artifact 發布各依明確授權執行；本輪完成不代表已發布。
 
-GitHub 狀態為 2026-10-13 核對時點，後續操作以實際 Issue／PR 狀態為準。本輪不啟動或修改測服，不操作 InstanceHarbor。
+GitHub 狀態更新至 2026-10-14 核對時點，後續操作以實際 Issue／PR 狀態為準。本輪不啟動或修改測服，不操作 InstanceHarbor。

@@ -43,6 +43,7 @@ object RuntimeConfigurationAssembler {
         rewards: Map<String, Any?>,
         messageCatalogs: Map<String, Map<String, Any?>>,
         onMissingMessage: (String) -> Unit = {},
+        bundledMessageCatalogs: Map<String, Map<String, Any?>> = emptyMap(),
     ): InviteCodeRuntimeConfiguration {
         val parsedGeneral = BukkitPluginConfigurationParser.parse(general)
         val parsedStorage = StorageConfigurationParser.parse(storage)
@@ -50,6 +51,9 @@ object RuntimeConfigurationAssembler {
         val parsedRewards = RewardConfigurationParser.parse(rewards)
         require(messageCatalogs.isNotEmpty()) { "At least one message catalog is required." }
         val parsedCatalogs = messageCatalogs.mapValues { (locale, document) ->
+            MessageCatalogParser.parse(locale, document)
+        }
+        val parsedBundledCatalogs = bundledMessageCatalogs.mapValues { (locale, document) ->
             MessageCatalogParser.parse(locale, document)
         }
         val defaultCatalog = parsedCatalogs[parsedGeneral.language.defaultLocale]
@@ -65,7 +69,8 @@ object RuntimeConfigurationAssembler {
                 addAll(reward.inviterActions.filter { it.type == RewardActionType.MESSAGE }.map { it.payload })
             }
         }.toSet()
-        val missingRewardMessages = rewardMessageKeys - defaultCatalog.keys
+        val missingRewardMessages = rewardMessageKeys - defaultCatalog.keys -
+            parsedBundledCatalogs[parsedGeneral.language.defaultLocale].orEmpty().keys
         require(missingRewardMessages.isEmpty()) {
             "Default locale is missing Reward message keys: ${missingRewardMessages.sorted().joinToString()}."
         }
@@ -79,6 +84,7 @@ object RuntimeConfigurationAssembler {
                 parsedGeneral.language.useClientLocale,
                 parsedCatalogs,
                 onMissingMessage,
+                bundledCatalogs = parsedBundledCatalogs,
             ),
             availableLocales = parsedCatalogs.keys,
         )
@@ -114,7 +120,14 @@ object MessageCatalogParser {
         require(key.isNotBlank()) { "Message catalog $locale contains a blank key." }
         when (value) {
             is String -> {
-                require(value.isNotBlank()) { "Message catalog $locale key $key must not be blank." }
+                if (key == "presentation.prefix") {
+                    require(value == value.trim() && '\n' !in value && '\r' !in value &&
+                        !Regex("\\{[a-z][a-z0-9_]*}").containsMatchIn(value)) {
+                        "Message catalog $locale prefix must be one unpadded line without variables."
+                    }
+                } else {
+                    require(value.isNotBlank()) { "Message catalog $locale key $key must not be blank." }
+                }
                 destination[key] = value
             }
             is Map<*, *> -> {

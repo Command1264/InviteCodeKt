@@ -16,6 +16,18 @@
 
 ## 玩家指令
 
+### 訊息與設定底層（第一階段）
+
+啟動及 `/ic reload` 載入設定前，都會從 JAR `config/` 白名單補回缺少的內建 YAML；已有檔案（包括損壞檔）不覆寫。復位不包含資料庫、`anti-abuse.key` 或任意自訂語系。寫入失敗或檔案無效會明確報錯；正常模式 reload 失敗仍保留上一份有效快照，storage 變更仍須遵守既有切換／重啟限制。
+
+messages 查詢順序為玩家自訂語系、設定預設語系、對應內建語系、內建預設語系。只有使用內建備援時才回報缺鍵，同一快照的相同查詢語系／鍵不反覆警告；全部來源都缺鍵時仍顯示可辨識的 missing 訊息。
+
+各語系新增 `presentation.prefix`（預設 `&7[&6InviteCode&7]&r`）。只有此鍵可為空字串，且必須為不帶首尾空白的單行文字。第一階段只提供 `MessagePresenter` 的文字片段、基本色／HEX、console 降色與 prefix 處理，**尚未接入現有命令、聊天或 Dialog**；因此修改 prefix 暫不會改變遊戲內既有回覆。完整新文案保留在規格草案，第二階段才接入。
+
+Console 底層以標準黑底為基準篩選至少 4.5:1 對比的基本色；近黑／暗灰轉灰色，其餘暗色在可讀色中選最近值。這不保證自訂終端機主題的外觀；原生 Dialog 置中、實際色彩及點擊互動仍需後續整合與真人驗收。
+
+詳細範圍見 [已核准顯示規格](../plans/command-feedback-display-spec.md) 與 [四階段計畫](../plans/command-feedback-implementation-plan.md)。
+
 Console 可使用 `/invitecode`、`/invitecode help` 與管理指令。需要玩家身分與狀態的 `code`、`claim`、`confirm`、`cancel`、`status` 與 `stats` 會明確回覆只限玩家使用。
 
 Tab 建議會依發送者身分、權限與當前參數位置篩選。已完成的指令、不明路徑、Invite Code、UUID、reason 與超出語法長度的位置會回傳空集合，不會退回顯示所有線上玩家。

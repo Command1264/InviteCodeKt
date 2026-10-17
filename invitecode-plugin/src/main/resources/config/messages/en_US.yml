@@ -1,4 +1,6 @@
 messages-version: 1
+presentation:
+  prefix: "&7[&6InviteCode&7]&r"
 runtime:
   usage: "Invalid usage. Use /{label} help to see available commands."
   no-permission: "You do not have permission to run this command."

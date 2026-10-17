@@ -1,4 +1,6 @@
 messages-version: 1
+presentation:
+  prefix: "&7[&6InviteCode&7]&r"
 runtime:
   usage: "用法錯誤。請使用 /{label} help 查看可用指令。"
   no-permission: "你沒有執行此指令的權限。"

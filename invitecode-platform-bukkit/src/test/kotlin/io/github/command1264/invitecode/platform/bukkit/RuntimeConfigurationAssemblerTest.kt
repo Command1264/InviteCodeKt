@@ -7,6 +7,20 @@ import org.junit.jupiter.api.Test
 
 class RuntimeConfigurationAssemblerTest {
     @Test
+    fun `only presentation prefix may be empty and must remain a single unpadded line`() {
+        val catalog = mapOf("messages-version" to 1, "presentation" to mapOf("prefix" to ""))
+        assertEquals("", MessageCatalogParser.parse("zh_TW", catalog)["presentation.prefix"])
+        for (prefix in listOf("[InviteCode] ", "[InviteCode]\n", " ")) {
+            assertThrows(IllegalArgumentException::class.java) {
+                MessageCatalogParser.parse("zh_TW", mapOf("messages-version" to 1, "presentation" to mapOf("prefix" to prefix)))
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            MessageCatalogParser.parse("zh_TW", mapOf("messages-version" to 1, "message" to ""))
+        }
+    }
+
+    @Test
     fun `parses all configuration documents into one snapshot`() {
         val configuration = RuntimeConfigurationAssembler.parse(
             general = general(),

@@ -1,14 +1,18 @@
 package io.github.command1264.invitecode.platform.bukkit
 
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 class LocalizedMessages(
     private val defaultLocale: String,
     private val useClientLocale: Boolean,
     catalogs: Map<String, Map<String, String>>,
     private val onMissingKey: (String) -> Unit = {},
+    bundledCatalogs: Map<String, Map<String, String>> = emptyMap(),
 ) {
-    private val catalogs = catalogs.mapKeys { normalizeLocale(it.key) }
+    private val catalogs = catalogs.mapKeys { normalizeLocale(it.key) }.mapValues { it.value.toMap() }
+    private val bundledCatalogs = bundledCatalogs.mapKeys { normalizeLocale(it.key) }.mapValues { it.value.toMap() }
+    private val reportedFallbacks = ConcurrentHashMap.newKeySet<String>()
 
     init {
         require(this.catalogs.containsKey(normalizeLocale(defaultLocale))) {
@@ -25,14 +29,23 @@ class LocalizedMessages(
         }
         preferred?.get(key)?.let { return it }
         catalogs.getValue(normalizeLocale(defaultLocale))[key]?.let { return it }
+        val fallbackLocale = if (useClientLocale && clientLocale != null) normalizeLocale(clientLocale) else null
+        val fallback = fallbackLocale?.let { bundledCatalogs[it]?.get(key) }
+            ?: bundledCatalogs[normalizeLocale(defaultLocale)]?.get(key)
+        if (fallback != null) {
+            // Catalogs are immutable snapshots; report once per lookup locale and key.
+            if (reportedFallbacks.add("$fallbackLocale:$key")) onMissingKey(key)
+            return fallback
+        }
         onMissingKey(key)
         return "[missing: $key]"
     }
 
     fun resolve(clientLocale: String?, key: String, variables: Map<String, String>): String {
         require(variables.keys.all(VARIABLE_NAME::matches)) { "Message variable names must use lowercase snake_case." }
-        return variables.entries.fold(resolve(clientLocale, key)) { message, (name, value) ->
-            message.replace("{$name}", value)
+        // Match only the template: a replacement may itself contain another placeholder.
+        return PLACEHOLDER.replace(resolve(clientLocale, key)) { match ->
+            variables[match.groupValues[1]] ?: match.value
         }
     }
 
@@ -44,5 +57,6 @@ class LocalizedMessages(
 
     private companion object {
         val VARIABLE_NAME = Regex("[a-z][a-z0-9_]*")
+        val PLACEHOLDER = Regex("\\{([a-z][a-z0-9_]*)}")
     }
 }

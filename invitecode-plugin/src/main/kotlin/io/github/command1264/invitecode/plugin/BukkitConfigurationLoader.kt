@@ -5,6 +5,8 @@ import io.github.command1264.invitecode.platform.bukkit.RuntimeConfigurationAsse
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.InvalidConfigurationException
 import org.bukkit.configuration.file.YamlConfiguration
+import java.io.InputStream
+import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -14,14 +16,21 @@ class BukkitConfigurationLoader(
     private val dataDirectory: Path,
     private val onMissingMessage: (String) -> Unit,
 ) {
-    fun load(): InviteCodeRuntimeConfiguration = RuntimeConfigurationAssembler.parse(
-        general = loadDocument(dataDirectory.resolve("config.yml")),
-        storage = loadDocument(dataDirectory.resolve("storage.yml")),
-        qualifications = loadDocument(dataDirectory.resolve("qualifications.yml")),
-        rewards = loadDocument(dataDirectory.resolve("rewards.yml")),
-        messageCatalogs = loadMessageCatalogs(),
-        onMissingMessage = onMissingMessage,
-    )
+    fun load(): InviteCodeRuntimeConfiguration {
+        BundledConfigurationInstaller(dataDirectory, ::openBundledResource).installMissing()
+        return RuntimeConfigurationAssembler.parse(
+            general = loadDocument(dataDirectory.resolve("config.yml")),
+            storage = loadDocument(dataDirectory.resolve("storage.yml")),
+            qualifications = loadDocument(dataDirectory.resolve("qualifications.yml")),
+            rewards = loadDocument(dataDirectory.resolve("rewards.yml")),
+            messageCatalogs = loadMessageCatalogs(),
+            onMissingMessage = onMissingMessage,
+            bundledMessageCatalogs = loadBundledMessageCatalogs(),
+        )
+    }
+
+    private fun openBundledResource(resourcePath: String): InputStream? =
+        javaClass.classLoader.getResourceAsStream(resourcePath)
 
     private fun loadMessageCatalogs(): Map<String, Map<String, Any?>> {
         val messagesDirectory = dataDirectory.resolve("messages")
@@ -33,6 +42,25 @@ class BukkitConfigurationLoader(
                 file.nameWithoutExtension to restoreBooleanLikeMessageKeys(loadDocument(file))
             }
         }
+    }
+
+    private fun loadBundledMessageCatalogs(): Map<String, Map<String, Any?>> =
+        BUNDLED_MESSAGE_CATALOGS.mapValues { (_, resourcePath) ->
+            val input = openBundledResource(resourcePath)
+                ?: throw IllegalArgumentException("Bundled message catalog resource does not exist: $resourcePath")
+            input.use { resource -> parseBundledMessageCatalog(resource, resourcePath) }
+        }
+
+    private fun parseBundledMessageCatalog(input: InputStream, resourcePath: String): Map<String, Any?> {
+        val yaml = YamlConfiguration()
+        try {
+            InputStreamReader(input, StandardCharsets.UTF_8).use { reader -> yaml.load(reader) }
+        } catch (error: InvalidConfigurationException) {
+            throw IllegalArgumentException("Bundled message catalog has invalid YAML: $resourcePath", error)
+        }
+        return restoreBooleanLikeMessageKeys(
+            yaml.getValues(false).mapValues { (_, value) -> normalize(value) },
+        )
     }
 
     private fun restoreBooleanLikeMessageKeys(document: Map<String, Any?>): Map<String, Any?> {
@@ -75,5 +103,12 @@ class BukkitConfigurationLoader(
         }
         is List<*> -> value.map(::normalize)
         else -> value
+    }
+
+    companion object {
+        private val BUNDLED_MESSAGE_CATALOGS = mapOf(
+            "zh_TW" to "config/messages/zh_TW.yml",
+            "en_US" to "config/messages/en_US.yml",
+        )
     }
 }

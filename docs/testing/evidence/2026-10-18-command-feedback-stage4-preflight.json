@@ -1,0 +1,251 @@
+{
+  "checkedAt": "2026-10-17T20:42:57.820468+00:00",
+  "checkpoint": "85fb9389e53f9f72c6240eb1956e4e5ee3617674",
+  "runtimeCommit": "dfbc39c4a80cea91b22b88c5f89d16107e7d50a2",
+  "candidateSha256": "E350DCA507D1FB953A2B785474708226BFBD682CBFE5D44E7E9BF0D0630C6C8B",
+  "candidateBytes": 19890059,
+  "state": "prepared-only-not-deployed",
+  "instances": [
+    {
+      "name": "invitecode-folia-26.1.2",
+      "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2",
+      "core": "FOLIA",
+      "minecraftVersion": "26.1.2",
+      "build": "8",
+      "buildEvidence": "workspace hash matches actual JAR",
+      "coreSha256": "607AFD1C3320008E1FFD2EAEE6780ACE4419D5F8C527B75E79F259BE79EBF57B",
+      "metadataCoreHashMatches": true,
+      "javaAlias": "local-25",
+      "javaExecutableExists": true,
+      "port": 30101,
+      "managerState": "Stopped",
+      "managerDiscovered": true,
+      "forwardingConfigMatches": true,
+      "route": "127.0.0.1:30101",
+      "routeLiveAcceptance": "pending for new candidate",
+      "installedPlugin": "InviteCode-0.1.0-SNAPSHOT.jar",
+      "installedPluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "sqliteSchema": 9,
+      "sqliteQuickCheck": "ok",
+      "accounts": [
+        {
+          "role": "A",
+          "generation": 0,
+          "activeCodeCount": 1
+        },
+        {
+          "role": "B",
+          "generation": 0,
+          "activeCodeCount": 0
+        }
+      ],
+      "invitationStatusCounts": {
+        "CLAIMED": 1
+      },
+      "rewardActionStatusCounts": {},
+      "matchingIpAction": "DENY",
+      "localeDiff": {
+        "zh_TW": {
+          "installedSha256": "64EB834762D21DE25902D822303AE0D6AD30E6294E74C82D22D9357FFD01E725",
+          "candidateSha256": "A44EB1BF8B87B1F80712B64EF421D0D2C3665B89D994D80AA77EF3C146EC5471",
+          "different": true
+        },
+        "en_US": {
+          "installedSha256": "6B13BB41A5037A5F84967B7039924E12E8C3BC474551A6F85F92C583812748FB",
+          "candidateSha256": "1F6B27FAD2E68A3996841346311ED223D067E67217C1FB16D1FD5F1972B70B4E",
+          "different": true
+        }
+      },
+      "allPluginJars": [
+        "InviteCode-0.1.0-SNAPSHOT.jar",
+        "LuckPerms-Bukkit-5.5.85.jar"
+      ]
+    },
+    {
+      "name": "invitecode-paper-26.2",
+      "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-paper-26.2",
+      "core": "PAPER",
+      "minecraftVersion": "26.2",
+      "build": "134",
+      "buildEvidence": "installed update record newHash matches actual JAR; not boot-verified this turn",
+      "coreSha256": "3CCE0A4922BAF79BD8E1275EE5FF9F073F24675770E09B0D4BE9442D513E7A6B",
+      "metadataCoreHashMatches": false,
+      "javaAlias": "local-25",
+      "javaExecutableExists": true,
+      "port": 20101,
+      "managerState": "Stopped",
+      "managerDiscovered": true,
+      "forwardingConfigMatches": true,
+      "route": "127.0.0.1:20101",
+      "routeLiveAcceptance": "pending for new candidate",
+      "installedPlugin": "InviteCode-0.1.0-SNAPSHOT.jar",
+      "installedPluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "sqliteSchema": 9,
+      "sqliteQuickCheck": "ok",
+      "accounts": [
+        {
+          "role": "A",
+          "generation": 0,
+          "activeCodeCount": 1
+        },
+        {
+          "role": "B",
+          "generation": 0,
+          "activeCodeCount": 0
+        }
+      ],
+      "invitationStatusCounts": {
+        "CLAIMED": 1
+      },
+      "rewardActionStatusCounts": {},
+      "matchingIpAction": "DENY",
+      "localeDiff": {
+        "zh_TW": {
+          "installedSha256": "64EB834762D21DE25902D822303AE0D6AD30E6294E74C82D22D9357FFD01E725",
+          "candidateSha256": "A44EB1BF8B87B1F80712B64EF421D0D2C3665B89D994D80AA77EF3C146EC5471",
+          "different": true
+        },
+        "en_US": {
+          "installedSha256": "6B13BB41A5037A5F84967B7039924E12E8C3BC474551A6F85F92C583812748FB",
+          "candidateSha256": "1F6B27FAD2E68A3996841346311ED223D067E67217C1FB16D1FD5F1972B70B4E",
+          "different": true
+        }
+      },
+      "allPluginJars": [
+        "InviteCode-0.1.0-SNAPSHOT.jar",
+        "LuckPerms-Bukkit-5.5.85.jar"
+      ]
+    },
+    {
+      "name": "invitecode-paper-26.3",
+      "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-paper-26.3",
+      "core": "PAPER",
+      "minecraftVersion": "26.3",
+      "build": "202",
+      "buildEvidence": "installed update record newHash matches actual JAR; not boot-verified this turn",
+      "coreSha256": "1B243442FC3B3CBE945628F8AF7911E4BE439CA8B22106FB1568AC81D5A5792B",
+      "metadataCoreHashMatches": false,
+      "javaAlias": "local-25",
+      "javaExecutableExists": true,
+      "port": 20102,
+      "managerState": "Stopped",
+      "managerDiscovered": true,
+      "forwardingConfigMatches": true,
+      "route": "127.0.0.1:20102",
+      "routeLiveAcceptance": "pending for new candidate",
+      "installedPlugin": "InviteCode-1.0.0.jar",
+      "installedPluginSha256": "F2055052DC9E8C0913AFE85C6B19E46850FC2F2FC2C7B5467DE60CA567203BCE",
+      "sqliteSchema": 9,
+      "sqliteQuickCheck": "ok",
+      "accounts": [
+        {
+          "role": "A",
+          "generation": 0,
+          "activeCodeCount": 1
+        },
+        {
+          "role": "B",
+          "generation": 0,
+          "activeCodeCount": 0
+        }
+      ],
+      "invitationStatusCounts": {
+        "QUALIFIED": 1
+      },
+      "rewardActionStatusCounts": {
+        "DELIVERED": 2
+      },
+      "matchingIpAction": "ALLOW",
+      "localeDiff": {
+        "zh_TW": {
+          "installedSha256": "64EB834762D21DE25902D822303AE0D6AD30E6294E74C82D22D9357FFD01E725",
+          "candidateSha256": "A44EB1BF8B87B1F80712B64EF421D0D2C3665B89D994D80AA77EF3C146EC5471",
+          "different": true
+        },
+        "en_US": {
+          "installedSha256": "6B13BB41A5037A5F84967B7039924E12E8C3BC474551A6F85F92C583812748FB",
+          "candidateSha256": "1F6B27FAD2E68A3996841346311ED223D067E67217C1FB16D1FD5F1972B70B4E",
+          "different": true
+        }
+      },
+      "allPluginJars": [
+        "InviteCode-1.0.0.jar",
+        "LuckPerms-Bukkit-5.5.85.jar"
+      ]
+    },
+    {
+      "name": "invitecode-spigot-1.8.8",
+      "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-spigot-1.8.8",
+      "core": "SPIGOT",
+      "minecraftVersion": "1.8.8",
+      "build": "local-buildtools",
+      "buildEvidence": "workspace hash matches actual JAR",
+      "coreSha256": "6ED6046687CE9255228FE7BD31E097DA49BEFF2A0C577E7BE56D14F09753239C",
+      "metadataCoreHashMatches": true,
+      "javaAlias": "local-8",
+      "javaExecutableExists": true,
+      "port": 10101,
+      "managerState": "Stopped",
+      "managerDiscovered": true,
+      "forwardingConfigMatches": true,
+      "route": "127.0.0.1:10101",
+      "routeLiveAcceptance": "pending for new candidate",
+      "installedPlugin": "InviteCode-0.1.0-SNAPSHOT.jar",
+      "installedPluginSha256": "D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C",
+      "sqliteSchema": 9,
+      "sqliteQuickCheck": "ok",
+      "accounts": [
+        {
+          "role": "A",
+          "generation": 0,
+          "activeCodeCount": 1
+        },
+        {
+          "role": "B",
+          "generation": 0,
+          "activeCodeCount": 0
+        }
+      ],
+      "invitationStatusCounts": {
+        "QUALIFIED": 1
+      },
+      "rewardActionStatusCounts": {
+        "DELIVERED": 2
+      },
+      "matchingIpAction": "DENY",
+      "localeDiff": {
+        "zh_TW": {
+          "installedSha256": "64EB834762D21DE25902D822303AE0D6AD30E6294E74C82D22D9357FFD01E725",
+          "candidateSha256": "A44EB1BF8B87B1F80712B64EF421D0D2C3665B89D994D80AA77EF3C146EC5471",
+          "different": true
+        },
+        "en_US": {
+          "installedSha256": "6B13BB41A5037A5F84967B7039924E12E8C3BC474551A6F85F92C583812748FB",
+          "candidateSha256": "1F6B27FAD2E68A3996841346311ED223D067E67217C1FB16D1FD5F1972B70B4E",
+          "different": true
+        }
+      },
+      "allPluginJars": [
+        "InviteCode-0.1.0-SNAPSHOT.jar",
+        "LuckPerms-Bukkit-5.4.145.jar"
+      ]
+    }
+  ],
+  "entryServices": [
+    {
+      "name": "Velocity",
+      "state": "Listening"
+    },
+    {
+      "name": "lobby",
+      "state": "Listening"
+    }
+  ],
+  "limitations": [
+    "not started or deployed",
+    "no account reset performed",
+    "human acceptance pending",
+    "Paper26.2 affected adapter retest pending",
+    "latest Folia ALPHA remains unverified"
+  ]
+}

@@ -4,6 +4,11 @@ InviteCode 使用專案外的 `D:\Code\Java\Plugin\InstanceHarbor` 共用伺服�
 
 訊息顯示矩陣的現行 C# 管理器操作、鎖定核心／JDK、Agent 隔離及檢查結果見 [2026-10-18 第三階段證據](evidence/2026-10-18-command-feedback-stage3.md)。下方 PowerShell runner 是歷史流程；本輪沒有直接沿用其啟停或舊訊息比對，也沒有把可攜式管理器的 C# 入口退回為舊產品腳本。渲染客戶端與真人外觀驗收仍分開處理。
 
+第四階段的[固定測服部署安排與兩帳號真人步驟](command-feedback-human-acceptance.md)已備妥；
+[唯讀 preflight](evidence/2026-10-18-command-feedback-stage4-preflight.json)核對四台實例、實際核心 hash、
+舊插件、資料庫與路由。三台主測服仍未部署候選或啟動；不要沿用建立時的 Paper build 推定實際核心。
+既有 A／B 已登記，完整重測需要另行明確安排 B 的資格重設；世界與歷史不清空。
+
 ## 測試矩陣
 
 正式矩陣定義於 `test-servers/matrix.json`：

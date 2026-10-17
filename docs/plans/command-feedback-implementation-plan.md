@@ -85,3 +85,13 @@
 - 整體驗收後才請使用者核准該版本的 push／PR／merge；發行候選重建、回流 release／main、tag 及發布另行規劃。
 
 第一至三階段沿用上述 task Worktree；實際檢查結果及限制見各階段證據。建議下一步依第四階段準備集中真人外觀驗收，先唯讀核對固定測服的核心／JAR／路由，再按明確部署安排更新目標產物及交付操作清單。這輪沒有部署或真人操作，也不需要先合併 release 或進行 remote write。
+
+2026-10-18 第四階段準備：固定四台均可被現行管理器發現且已停止，三台主測服選定
+Spigot 1.8.8、Paper 26.3 build 202、Folia 26.1.2 build 8；Paper 26.2 實際為 build 134。
+兩台 Paper 的 hash 已與核心更新紀錄對上，不能再採用建立 metadata 或舊啟動 log 的 build。
+候選 JAR、雙語 messages 及逐台設定提案僅放在本機準備區，沒有部署、啟動、修改帳號或 push。
+既有 B 均已登記，因此全流程重測須先確認資格重設及其資料影響；不是刪除 DB 或世界。
+詳見[完整步驟與部署安排](../testing/command-feedback-human-acceptance.md)及
+[機器可讀 preflight](../testing/evidence/2026-10-18-command-feedback-stage4-preflight.json)。
+下一個可執行項目是停服備份後部署三台與核對當次啟動，再交付集中真人驗收；
+Paper 26.2 受影響 adapter 的 Agent 複驗仍未完成，與最新 Folia ALPHA 缺口分別保留。

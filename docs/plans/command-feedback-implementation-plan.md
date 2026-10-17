@@ -1,17 +1,17 @@
 # 指令回饋與 messages 實作、測試計畫
 
-日期：2026-10-18。整體顯示規格已通過；使用者後續已授權建立功能 Worktree 並完成第一階段，明確暫不 push。[第一階段證據](../testing/evidence/2026-10-18-command-feedback-stage1.md) 記錄底層實作與 Agent 檢查；第二至四階段仍未開始。以下保留完整計畫與 remote 邊界，不表示後續階段已授權。
+日期：2026-10-18。整體顯示規格已通過；使用者已授權沿用功能 Worktree 完成第二階段，明確暫不 push。[第一階段證據](../testing/evidence/2026-10-18-command-feedback-stage1.md) 記錄底層實作；[第二階段證據](../testing/evidence/2026-10-18-command-feedback-stage2.md) 記錄輸出整合、封裝與檢查。第三、四階段仍未開始；以下保留完整計畫與 remote 邊界，不表示後續階段已授權。
 
 ## 基線與分支
 
 - 已唯讀查詢遠端：`develop` 與 `origin/develop` 均為 `5041c701f824ba5934a0647f2db52a475f503bca`；主要 checkout `D:\Code\Java\Plugin\InviteCodeKt\repo` 乾淨。
-- 建議 branch：`codex/feat/command-feedback-messages`。
-- 建議 Worktree：`D:\Code\Java\Plugin\InviteCodeKt\worktrees\feat-command-feedback-messages`。
+- 已使用 branch：`codex/feat/command-feedback-messages`。
+- 已使用 Worktree：`D:\Code\Java\Plugin\InviteCodeKt\worktrees\feat-command-feedback-messages`。
 - 起點為開始實作時重新核對的最新 `develop`，未來 PR target 為 `develop`。
 - 現有 `codex/release/1.0.0` HEAD `e8e2b1f` 的產品原始碼與 develop 相同，差異只有文件及版號；此功能不依賴未合併的 runtime 修改，不需要先合併 release。
-- 規格、雙語草案、help 核對表及本計畫目前在 release Worktree，核准實作後將明確列出的相關文件複製到新 Worktree，保留來源，不搬移、不 stash、不 cherry-pick 整條發行歷史。
+- 第一階段已把明確列出的規格、雙語草案、help 核對表及本計畫複製到功能 Worktree；release 來源保留，不搬移、不 stash、不 cherry-pick 整條發行歷史。第二階段同步更新功能 Worktree 的參考文案，執行期權威為 plugin 的 `config/messages/`。
 - release 的歷史驗收文件、其他 Worktree 及 F205 產物保持原樣。功能分支沿用 develop 版號，不夾帶 1.0.0 升版；功能合併後另行規劃發行候選重建及複驗。
-- 此次已核准第一階段的本機實作、驗證與可回復的 task commit；GitHub Issue 建立、push、PR、merge、tag、發布皆需對應的明確授權，尚未執行。
+- 此次已核准第一、二階段的本機實作、驗證與可回復的 task commit；GitHub Issue 建立、push、PR、merge、tag、發布皆需對應的明確授權，尚未執行。
 
 ## 範圍與方法
 
@@ -80,4 +80,4 @@
 - 既有 release Worktree 的相關草案以本任務具體檔案清單複製；其他 dirty／untracked 不納入，不廣泛 stage。
 - 整體驗收後才請使用者核准該版本的 push／PR／merge；發行候選重建、回流 release／main、tag 及發布另行規劃。
 
-第一階段已依上述起點建立 task Worktree、複製規格並完成 RED／GREEN 與 Agent 驗證。建議下一步是第二階段輸出整合，待使用者授權後執行；不需要先合併 release 或進行任何 remote write。
+第一、二階段沿用上述 task Worktree，完成訊息底層與輸出整合；實際檢查結果及限制見各階段證據。建議下一步是第三階段 Agent 真實核心矩陣，先核對八個 profile 的核心／JDK／資源及資料隔離，再執行已授權的測試；目前尚未取得第三階段執行授權。不需要先合併 release 或進行任何 remote write。

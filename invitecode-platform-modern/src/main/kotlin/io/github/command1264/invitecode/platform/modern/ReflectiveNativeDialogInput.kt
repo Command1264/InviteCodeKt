@@ -3,6 +3,8 @@ package io.github.command1264.invitecode.platform.modern
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogInput
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogConfirmationRequest
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogRequest
+import io.github.command1264.invitecode.platform.bukkit.MessageDecoration
+import io.github.command1264.invitecode.platform.bukkit.PresentedMessage
 import io.github.command1264.invitecode.platform.bukkit.UnavailableNativeDialogInput
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
@@ -175,6 +177,9 @@ private class PaperDialogBackend private constructor(
     private val componentText: Method,
     private val componentColoredText: Method,
     private val textColorRgb: Method,
+    private val componentColor: Method,
+    private val componentDecorate: Method,
+    private val decorationConstants: Map<MessageDecoration, Any>,
     private val componentAppend: Method,
     private val plainMessage: Method,
     private val keyFactory: Method,
@@ -203,8 +208,9 @@ private class PaperDialogBackend private constructor(
     override val provider: String = "PAPER"
 
     override fun show(player: Player, request: NativeDialogRequest) {
-        val title = componentText.invoke(null, request.title)
-        val label = componentText.invoke(null, request.label)
+        val presentation = request.presentation
+        val title = presentation?.let { presented(it.title) } ?: componentText.invoke(null, request.title)
+        val label = presentation?.inputLabel?.let { presented(it) } ?: componentText.invoke(null, request.label)
         val inputBuilder = dialogInputText.invoke(null, INPUT_KEY, label)
         textWidth.invoke(inputBuilder, 300)
         textMaximumLength.invoke(inputBuilder, request.maximumLength)
@@ -212,12 +218,15 @@ private class PaperDialogBackend private constructor(
 
         val baseBuilder = dialogBaseBuilder.invoke(null, title)
         baseInputs.invoke(baseBuilder, Collections.singletonList(input))
+        presentation?.body?.takeIf { it.isNotEmpty() }?.let { body ->
+            baseBody.invoke(baseBuilder, body.map { plainMessage.invoke(null, presented(it)) })
+        }
         baseCanClose.invoke(baseBuilder, true)
         val base = baseBuild.invoke(baseBuilder)
         val type = confirmationType.invoke(
             null,
-            button(request.confirm, SUBMIT_ACTION),
-            button(request.cancel, CANCEL_ACTION),
+            button(presentation?.let { presented(it.confirm) } ?: componentText.invoke(null, request.confirm), SUBMIT_ACTION),
+            button(presentation?.let { presented(it.cancel) } ?: componentText.invoke(null, request.cancel), CANCEL_ACTION),
         )
         val dialog = dialogCreate.invoke(null, Consumer<Any> { factory ->
             val builder = registryFactoryEmpty.invoke(factory)
@@ -228,23 +237,39 @@ private class PaperDialogBackend private constructor(
     }
 
     override fun showConfirmation(player: Player, request: NativeDialogConfirmationRequest) {
-        val baseBuilder = dialogBaseBuilder.invoke(null, componentText.invoke(null, request.title))
-        val codeText = request.codeRgb?.let { rgb ->
-            componentColoredText.invoke(null, request.code, textColorRgb.invoke(null, rgb))
-        } ?: componentText.invoke(null, request.code)
-        val codeLine = componentAppend.invoke(componentText.invoke(null, request.codeLabel), codeText)
-        baseBody.invoke(baseBuilder, listOf(
-            plainMessage.invoke(null, componentText.invoke(null, request.inviterLine)),
-            plainMessage.invoke(null, codeLine),
-            plainMessage.invoke(null, componentText.invoke(null, request.question)),
-            plainMessage.invoke(null, componentText.invoke(null, request.timeoutPrompt)),
-        ))
+        val presentation = request.presentation
+        val baseBuilder = dialogBaseBuilder.invoke(
+            null,
+            presentation?.let { presented(it.title) } ?: componentText.invoke(null, request.title),
+        )
+        if (presentation != null) {
+            baseBody.invoke(baseBuilder, presentation.body.map { plainMessage.invoke(null, presented(it)) })
+        } else {
+            val codeText = request.codeRgb?.let { rgb ->
+                componentColoredText.invoke(null, request.code, textColorRgb.invoke(null, rgb))
+            } ?: componentText.invoke(null, request.code)
+            val codeLine = componentAppend.invoke(componentText.invoke(null, request.codeLabel), codeText)
+            baseBody.invoke(baseBuilder, listOf(
+                plainMessage.invoke(null, componentText.invoke(null, request.inviterLine)),
+                plainMessage.invoke(null, codeLine),
+                plainMessage.invoke(null, componentText.invoke(null, request.question)),
+                plainMessage.invoke(null, componentText.invoke(null, request.timeoutPrompt)),
+            ))
+        }
         baseCanClose.invoke(baseBuilder, true)
         val base = baseBuild.invoke(baseBuilder)
         val type = confirmationType.invoke(
             null,
-            button(request.agree, CONFIRM_ACTION, 0x55FF55, request.agreeHint),
-            button(request.disagree, DECLINE_ACTION, 0xFF5555, request.disagreeHint),
+            button(
+                presentation?.let { presented(it.confirm) } ?: componentColoredText.invoke(null, request.agree, textColorRgb.invoke(null, 0x55FF55)),
+                CONFIRM_ACTION,
+                if (presentation == null) componentText.invoke(null, request.agreeHint) else presentation.confirmHint?.let { presented(it) },
+            ),
+            button(
+                presentation?.let { presented(it.cancel) } ?: componentColoredText.invoke(null, request.disagree, textColorRgb.invoke(null, 0xFF5555)),
+                DECLINE_ACTION,
+                if (presentation == null) componentText.invoke(null, request.disagreeHint) else presentation.cancelHint?.let { presented(it) },
+            ),
         )
         val dialog = dialogCreate.invoke(null, Consumer<Any> { factory ->
             val builder = registryFactoryEmpty.invoke(factory)
@@ -258,16 +283,22 @@ private class PaperDialogBackend private constructor(
         closeDialog.invoke(player)
     }
 
-    private fun button(label: String, actionId: String, rgb: Int? = null, tooltip: String? = null): Any {
-        val component = rgb?.let { componentColoredText.invoke(null, label, textColorRgb.invoke(null, it)) }
-            ?: componentText.invoke(null, label)
+    private fun button(component: Any, actionId: String, tooltip: Any? = null): Any {
         val key = keyFactory.invoke(null, actionId)
         val action = customClick.invoke(null, key, null)
         val builder = actionButtonBuilder.invoke(null, component)
         buttonAction.invoke(builder, action)
-        if (tooltip != null) buttonTooltip.invoke(builder, componentText.invoke(null, tooltip))
+        if (tooltip != null) buttonTooltip.invoke(builder, tooltip)
         return buttonBuild.invoke(builder)
     }
+
+    private fun presented(message: PresentedMessage): Any = buildStyledComponent(
+        message,
+        text = { componentText.invoke(null, it) },
+        color = { component, rgb -> componentColor.invoke(component, textColorRgb.invoke(null, rgb)) },
+        decorate = { component, decoration -> componentDecorate.invoke(component, decorationConstants.getValue(decoration)) },
+        append = { left, right -> componentAppend.invoke(left, right) },
+    )
 
     override fun readResponse(event: Event): DialogResponse? {
         val identifier = eventIdentifier.invoke(event).toString()
@@ -287,6 +318,7 @@ private class PaperDialogBackend private constructor(
             val event = load("io.papermc.paper.event.player.PlayerCustomClickEvent").asSubclass(Event::class.java)
             val component = load("net.kyori.adventure.text.Component")
             val textColor = load("net.kyori.adventure.text.format.TextColor")
+            val textDecoration = load("net.kyori.adventure.text.format.TextDecoration")
             val dialogBody = load("io.papermc.paper.registry.data.dialog.body.DialogBody")
             val key = load("net.kyori.adventure.key.Key")
             val binaryTag = load("net.kyori.adventure.nbt.api.BinaryTagHolder")
@@ -317,6 +349,9 @@ private class PaperDialogBackend private constructor(
                 componentText = component.getMethod("text", String::class.java),
                 componentColoredText = component.getMethod("text", String::class.java, textColor),
                 textColorRgb = textColor.getMethod("color", Int::class.javaPrimitiveType!!),
+                componentColor = component.getMethod("color", textColor),
+                componentDecorate = component.getMethod("decorate", textDecoration),
+                decorationConstants = messageDecorationConstants(textDecoration),
                 componentAppend = component.getMethod("append", component),
                 plainMessage = dialogBody.getMethod("plainMessage", component),
                 keyFactory = key.getMethod("key", String::class.java),
@@ -365,6 +400,7 @@ private class SpigotDialogBackend private constructor(
     private val jsonAsString: Method,
     private val textComponentConstructor: Constructor<*>,
     private val setColor: Method,
+    private val setDecorations: Map<MessageDecoration, Method>,
     private val addExtra: Method,
     private val chatColorOf: Method,
     private val greenColor: Any,
@@ -389,36 +425,60 @@ private class SpigotDialogBackend private constructor(
     override val provider: String = "SPIGOT"
 
     override fun show(player: Player, request: NativeDialogRequest) {
-        val input = textInputConstructor.newInstance(INPUT_KEY, text(request.label))
+        val presentation = request.presentation
+        val inputLabel = presentation?.inputLabel?.let { presented(it) } ?: text(request.label)
+        val input = textInputConstructor.newInstance(INPUT_KEY, inputLabel)
         textWidth.invoke(input, 300)
         textMaximumLength.invoke(input, request.maximumLength)
-        val base = dialogBaseConstructor.newInstance(text(request.title))
+        val base = dialogBaseConstructor.newInstance(presentation?.let { presented(it.title) } ?: text(request.title))
         baseInputs.invoke(base, Collections.singletonList(input))
+        presentation?.body?.takeIf { it.isNotEmpty() }?.let { body ->
+            baseBody.invoke(base, body.map { plainMessageConstructor.newInstance(presented(it)) })
+        }
         baseCanClose.invoke(base, true)
         val dialog = confirmationConstructor.newInstance(base)
-        confirmationYes.invoke(dialog, button(request.confirm, SUBMIT_ACTION))
-        confirmationNo.invoke(dialog, button(request.cancel, CANCEL_ACTION))
+        confirmationYes.invoke(dialog, button(presentation?.let { presented(it.confirm) } ?: text(request.confirm), SUBMIT_ACTION))
+        confirmationNo.invoke(dialog, button(presentation?.let { presented(it.cancel) } ?: text(request.cancel), CANCEL_ACTION))
         showDialog.invoke(player, dialog)
     }
 
     override fun showConfirmation(player: Player, request: NativeDialogConfirmationRequest) {
-        val base = dialogBaseConstructor.newInstance(text(request.title))
-        val codeLine = text(request.codeLabel)
-        val codeText = text(request.code)
-        request.codeRgb?.let { rgb ->
-            setColor.invoke(codeText, chatColorOf.invoke(null, "#%06X".format(rgb)))
+        val presentation = request.presentation
+        val base = dialogBaseConstructor.newInstance(presentation?.let { presented(it.title) } ?: text(request.title))
+        if (presentation != null) {
+            baseBody.invoke(base, presentation.body.map { plainMessageConstructor.newInstance(presented(it)) })
+        } else {
+            val codeLine = text(request.codeLabel)
+            val codeText = text(request.code)
+            request.codeRgb?.let { rgb ->
+                setColor.invoke(codeText, chatColorOf.invoke(null, "#%06X".format(rgb)))
+            }
+            addExtra.invoke(codeLine, codeText)
+            baseBody.invoke(base, listOf(
+                plainMessageConstructor.newInstance(text(request.inviterLine)),
+                plainMessageConstructor.newInstance(codeLine),
+                plainMessageConstructor.newInstance(text(request.question)),
+                plainMessageConstructor.newInstance(text(request.timeoutPrompt)),
+            ))
         }
-        addExtra.invoke(codeLine, codeText)
-        baseBody.invoke(base, listOf(
-            plainMessageConstructor.newInstance(text(request.inviterLine)),
-            plainMessageConstructor.newInstance(codeLine),
-            plainMessageConstructor.newInstance(text(request.question)),
-            plainMessageConstructor.newInstance(text(request.timeoutPrompt)),
-        ))
         baseCanClose.invoke(base, true)
         val dialog = confirmationConstructor.newInstance(base)
-        confirmationYes.invoke(dialog, button(request.agree, CONFIRM_ACTION, greenColor, request.agreeHint))
-        confirmationNo.invoke(dialog, button(request.disagree, DECLINE_ACTION, redColor, request.disagreeHint))
+        confirmationYes.invoke(
+            dialog,
+            button(
+                presentation?.let { presented(it.confirm) } ?: text(request.agree).also { setColor.invoke(it, greenColor) },
+                CONFIRM_ACTION,
+                if (presentation == null) text(request.agreeHint) else presentation.confirmHint?.let { presented(it) },
+            ),
+        )
+        confirmationNo.invoke(
+            dialog,
+            button(
+                presentation?.let { presented(it.cancel) } ?: text(request.disagree).also { setColor.invoke(it, redColor) },
+                DECLINE_ACTION,
+                if (presentation == null) text(request.disagreeHint) else presentation.cancelHint?.let { presented(it) },
+            ),
+        )
         showDialog.invoke(player, dialog)
     }
 
@@ -428,13 +488,19 @@ private class SpigotDialogBackend private constructor(
 
     private fun text(value: String): Any = textComponentConstructor.newInstance(value)
 
-    private fun button(label: String, actionId: String, color: Any? = null, tooltip: String? = null): Any {
-        val component = text(label)
-        if (color != null) setColor.invoke(component, color)
+    private fun button(component: Any, actionId: String, tooltip: Any? = null): Any {
         val button = buttonConstructor.newInstance(component, actionConstructor.newInstance(actionId))
-        if (tooltip != null) buttonTooltip.invoke(button, text(tooltip))
+        if (tooltip != null) buttonTooltip.invoke(button, tooltip)
         return button
     }
+
+    private fun presented(message: PresentedMessage): Any = buildStyledComponent(
+        message,
+        text = ::text,
+        color = { component, rgb -> setColor.invoke(component, chatColorOf.invoke(null, "#%06X".format(rgb))); component },
+        decorate = { component, decoration -> setDecorations.getValue(decoration).invoke(component, true); component },
+        append = { left, right -> addExtra.invoke(left, right); left },
+    )
 
     override fun readResponse(event: Event): DialogResponse? {
         val identifier = eventId.invoke(event).toString()
@@ -481,6 +547,13 @@ private class SpigotDialogBackend private constructor(
                 jsonAsString = jsonElement.getMethod("getAsString"),
                 textComponentConstructor = textComponent.getConstructor(String::class.java),
                 setColor = baseComponent.getMethod("setColor", chatColor),
+                setDecorations = mapOf(
+                    MessageDecoration.BOLD to baseComponent.getMethod("setBold", Boolean::class.javaObjectType),
+                    MessageDecoration.ITALIC to baseComponent.getMethod("setItalic", Boolean::class.javaObjectType),
+                    MessageDecoration.UNDERLINE to baseComponent.getMethod("setUnderlined", Boolean::class.javaObjectType),
+                    MessageDecoration.STRIKETHROUGH to baseComponent.getMethod("setStrikethrough", Boolean::class.javaObjectType),
+                    MessageDecoration.OBFUSCATED to baseComponent.getMethod("setObfuscated", Boolean::class.javaObjectType),
+                ),
                 addExtra = baseComponent.getMethod("addExtra", baseComponent),
                 chatColorOf = chatColor.getMethod("of", String::class.java),
                 greenColor = chatColor.getField("GREEN").get(null),
@@ -515,6 +588,17 @@ private class SpigotDialogBackend private constructor(
 }
 
 private fun load(name: String): Class<*> = Class.forName(name)
+
+private fun messageDecorationConstants(enumClass: Class<*>): Map<MessageDecoration, Any> {
+    val constants = enumClass.enumConstants.associateBy { (it as Enum<*>).name }
+    return mapOf(
+        MessageDecoration.BOLD to requireNotNull(constants["BOLD"]),
+        MessageDecoration.ITALIC to requireNotNull(constants["ITALIC"]),
+        MessageDecoration.UNDERLINE to requireNotNull(constants["UNDERLINED"]),
+        MessageDecoration.STRIKETHROUGH to requireNotNull(constants["STRIKETHROUGH"]),
+        MessageDecoration.OBFUSCATED to requireNotNull(constants["OBFUSCATED"]),
+    )
+}
 
 private const val INPUT_KEY = "invite_code"
 private const val SUBMIT_ACTION = "invitecode:claim_dialog_submit"

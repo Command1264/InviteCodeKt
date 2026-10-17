@@ -1,10 +1,12 @@
-# Design draft only. Do not deploy as a runtime message catalog.
-# Stage one implements presentation primitives; command and UI integration is pending.
+# Wording reference applied in stage 2; runtime authority is invitecode-plugin/src/main/resources/config/messages/en_US.yml.
+# Do not overwrite existing custom catalogs with this reference.
 # The renderer adds the prefix to each complete reply, not to values or UI labels.
 messages-version: 1
 presentation:
   prefix: "&7[&6InviteCode&7]&r"
 runtime:
+  raw-output: "{text}"
+  help-row: "&e{usage} &7— &f{description}"
   usage: "&cInvalid command usage. &fUse /{label} help for instructions."
   no-permission: "&cYou do not have permission to use this command."
   player-only: "&eOnly a player can run this command."
@@ -83,6 +85,7 @@ command:
     cancelled: "&fInvite Code input or confirmation cancelled."
     nothing-to-cancel: "&7There is no active Invite Code input or confirmation."
   status:
+    ineligible-reason: "&7Cannot register: &f{reasons}"
     summary: |-
       &fMy invitation status
       &7Can use an Invite Code: &f{eligible}
@@ -96,6 +99,7 @@ command:
   error: "&cThe operation failed. &fContact an administrator to check the server log."
   stopping: "&eThe plugin is stopping and cannot accept operations. &fTry again later."
 value:
+  reason-separator: "; "
   'yes': "yes"
   'no': "no"
   invitation:

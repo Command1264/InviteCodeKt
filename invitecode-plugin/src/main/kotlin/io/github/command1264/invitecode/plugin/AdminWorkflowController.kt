@@ -219,13 +219,20 @@ class AdminWorkflowController(
     private fun <T> mutate(
         sender: CommandSender,
         onSuccess: (T) -> Unit = {
-            if (it is AdminMessage) send(sender, it) else sender.sendMessage(it.toString())
+            if (it is AdminMessage) send(sender, it)
+            else BukkitMessageOutput.sendLiteral(sender, configuration.current().value.messages, it.toString())
         },
         operation: (InviteCodeStorage) -> T,
     ): Boolean = submit(sender, operation, onSuccess)
 
     private fun query(sender: CommandSender, operation: (InviteCodeStorage) -> List<String>): Boolean =
-        submit(sender, operation) { lines -> lines.forEach(sender::sendMessage) }
+        submit(sender, operation) { lines ->
+            BukkitMessageOutput.sendLiteral(
+                sender,
+                configuration.current().value.messages,
+                lines.joinToString("\n"),
+            )
+        }
 
     private fun <T> submit(
         sender: CommandSender,
@@ -275,8 +282,12 @@ class AdminWorkflowController(
     }
 
     private fun send(sender: CommandSender, message: AdminMessage) {
-        val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
-        sender.sendMessage(configuration.current().value.messages.resolve(locale, message.key, message.variables))
+        BukkitMessageOutput.send(
+            sender,
+            configuration.current().value.messages,
+            message.key,
+            message.variables,
+        )
     }
 
     private data class AdminMessage(

@@ -10,10 +10,16 @@ import io.github.command1264.invitecode.api.InviteCodeApi
 import io.github.command1264.invitecode.platform.bukkit.AsyncOperationExecutor
 import io.github.command1264.invitecode.platform.bukkit.AtomicRuntimeSnapshot
 import io.github.command1264.invitecode.platform.bukkit.ClaimInteractionSessions
+import io.github.command1264.invitecode.platform.bukkit.CommandHelp
+import io.github.command1264.invitecode.platform.bukkit.CommandHelpEntry
 import io.github.command1264.invitecode.platform.bukkit.InvalidInviteCodeCommand
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandParser
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeRuntimeConfiguration
+import io.github.command1264.invitecode.platform.bukkit.LocalizedMessages
+import io.github.command1264.invitecode.platform.bukkit.MessagePresenter
+import io.github.command1264.invitecode.platform.bukkit.PrefixPlacement
+import io.github.command1264.invitecode.platform.bukkit.PresentedMessage
 import io.github.command1264.invitecode.platform.bukkit.ParsedInviteCodeCommand
 import io.github.command1264.invitecode.platform.bukkit.PluginRuntimeState
 import io.github.command1264.invitecode.platform.bukkit.RuntimePhase
@@ -36,6 +42,7 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.plugin.ServicePriority
+import net.md_5.bungee.api.chat.ClickEvent
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
@@ -109,7 +116,7 @@ class InviteCodePlugin : JavaPlugin() {
             command.setExecutor(
                 RuntimeCommandExecutor(
                     runtime,
-                    configuration,
+                    messages = { configuration.currentOrNull()?.value?.messages },
                     reload = ::reload,
                     migrateStorage = ::migrateStorage,
                     playerWorkflow = playerWorkflows::handle,
@@ -417,11 +424,10 @@ class InviteCodePlugin : JavaPlugin() {
     ) {
         val messages = configuration.currentOrNull()?.value?.messages
         if (messages == null) {
-            sender.sendMessage("InviteCode configuration is not loaded.")
+            sender.sendMessage("[InviteCode] Configuration is not loaded.")
             return
         }
-        val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
-        sender.sendMessage(messages.resolve(locale, key, variables))
+        BukkitMessageOutput.send(sender, messages, key, variables)
     }
 
     private fun dispatchSender(sender: CommandSender, operation: () -> Unit) {
@@ -453,9 +459,9 @@ private data class StorageMigrationResult(
     val networkHasher: NetworkAddressHasher?,
 )
 
-private class RuntimeCommandExecutor(
+internal class RuntimeCommandExecutor(
     private val runtime: PluginRuntimeState,
-    private val configuration: AtomicRuntimeSnapshot<InviteCodeRuntimeConfiguration>,
+    private val messages: () -> LocalizedMessages?,
     private val reload: (CommandSender) -> Unit,
     private val migrateStorage: (CommandSender, ParsedInviteCodeCommand) -> Unit,
     private val playerWorkflow: (Player, ParsedInviteCodeCommand) -> Boolean,
@@ -511,34 +517,77 @@ private class RuntimeCommandExecutor(
     }
 
     private fun send(sender: CommandSender, key: String, variables: Map<String, String> = emptyMap()) {
-        val messages = configuration.currentOrNull()?.value?.messages
-        if (messages == null) {
-            sender.sendMessage("InviteCode configuration is not loaded.")
+        val catalog = messages()
+        if (catalog == null) {
+            sender.sendMessage("[InviteCode] Configuration is not loaded.")
             return
         }
-        val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
-        sender.sendMessage(messages.resolve(locale, key, variables))
+        BukkitMessageOutput.send(sender, catalog, key, variables)
     }
 
     private fun help(sender: CommandSender, label: String) {
+        val catalog = messages()
+        if (catalog == null) {
+            sender.sendMessage("[InviteCode] Configuration is not loaded.")
+            return
+        }
+        val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
         send(sender, "runtime.help-header")
-        val routes = listOf(
-            Triple("invitecode.command.code", true, "/$label code"),
-            Triple("invitecode.command.claim", true, "/$label claim [code] | confirm | cancel"),
-            Triple("invitecode.command.status", true, "/$label status"),
-            Triple("invitecode.command.stats", true, "/$label stats"),
-            Triple("invitecode.admin.inspect", false, "/$label admin inspect player|invitation|reward ..."),
-            Triple("invitecode.admin.invitation", false, "/$label admin invitation unlink|transfer ..."),
-            Triple("invitecode.admin.qualification", false, "/$label admin invitation force-qualify ..."),
-            Triple("invitecode.admin.eligibility", false, "/$label admin eligibility reset ..."),
-            Triple("invitecode.admin.reward", false, "/$label admin reward retry|mark-delivered ..."),
-            Triple("invitecode.admin.code", false, "/$label admin code rotate ..."),
-            Triple("invitecode.admin.storage", false, "/$label admin storage migrate SQLITE <reason>"),
-            Triple("invitecode.admin.reload", false, "/$label reload"),
-            Triple("invitecode.admin.doctor", false, "/$label admin doctor"),
+        val common = CommandHelp.entries.filter { it.id == InviteCodeCommandId.HELP }
+            .filter { sender.hasPermission(it.permission) }
+        val playerRoutes = CommandHelp.entries.filter { it.playerOnly && sender is Player }
+            .filter { sender.hasPermission(it.permission) }
+        val adminRoutes = CommandHelp.entries.filter { it.id != InviteCodeCommandId.HELP && !it.playerOnly }
+            .filter { sender.hasPermission(it.permission) }
+
+        common.forEach { sendHelpRow(sender, catalog, locale, label, it) }
+        if (playerRoutes.isNotEmpty()) {
+            BukkitMessageOutput.send(sender, catalog, "runtime.help-player-section", prefix = PrefixPlacement.NONE)
+            playerRoutes.forEach { sendHelpRow(sender, catalog, locale, label, it) }
+        }
+        if (adminRoutes.isNotEmpty()) {
+            BukkitMessageOutput.send(sender, catalog, "runtime.help-admin-section", prefix = PrefixPlacement.NONE)
+            adminRoutes.forEach { sendHelpRow(sender, catalog, locale, label, it) }
+        }
+    }
+
+    private fun sendHelpRow(
+        sender: CommandSender,
+        catalog: LocalizedMessages,
+        locale: String?,
+        label: String,
+        entry: CommandHelpEntry,
+    ) {
+        val usage = "/$label ${entry.usage}"
+        val audience = BukkitMessageOutput.audience(sender)
+        val presenter = MessagePresenter(catalog)
+        val description = presenter.render(
+            locale,
+            entry.descriptionKey,
+            audience = audience,
+            prefix = PrefixPlacement.NONE,
         )
-        routes.filter { (permission, playerOnly, _) ->
-            sender.hasPermission(permission) && (!playerOnly || sender is Player)
-        }.forEach { (_, _, usage) -> sender.sendMessage(usage) }
+        val row = presenter.render(
+            locale,
+            "runtime.help-row",
+            mapOf("usage" to usage, "description" to description.plainText),
+            audience = audience,
+            prefix = PrefixPlacement.NONE,
+        )
+        val presented = PresentedMessage(row.segments.flatMap { rowSegment ->
+            if (rowSegment.variable != "description") listOf(rowSegment)
+            else description.segments.map { it.copy(variable = null) }
+        })
+        if (sender is Player) {
+            val components = BukkitMessageOutput.components(presented)
+            presented.segments.forEachIndexed { index, segment ->
+                if (segment.variable == "usage") {
+                    components[index].clickEvent = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, usage)
+                }
+            }
+            sender.spigot().sendMessage(*components)
+        } else {
+            BukkitMessageOutput.sendPresented(sender, presented)
+        }
     }
 }

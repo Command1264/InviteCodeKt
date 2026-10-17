@@ -12,6 +12,7 @@ data class MessageSegment(
     val text: String,
     val color: Int? = null,
     val decorations: Set<MessageDecoration> = emptySet(),
+    val variable: String? = null,
 )
 
 data class PresentedMessage(val segments: List<MessageSegment>) {
@@ -56,8 +57,8 @@ class MessagePresenter(private val messages: LocalizedMessages) {
         var color: Int? = null
         var decorations = emptySet<MessageDecoration>()
         var offset = 0
-        fun append(text: String) {
-            if (text.isNotEmpty()) result.add(MessageSegment(text, color, decorations))
+        fun append(text: String, variable: String? = null) {
+            if (text.isNotEmpty()) result.add(MessageSegment(text, color, decorations, variable))
         }
         TOKEN.findAll(template).forEach { match ->
             append(template.substring(offset, match.range.first))
@@ -77,7 +78,7 @@ class MessagePresenter(private val messages: LocalizedMessages) {
                     color = LegacyInviteCodeColor.entries.first { it.code == code }.color.rgb
                     decorations = emptySet()
                 }
-                else -> append(variables[match.groupValues[3]] ?: match.value)
+                else -> append(variables[match.groupValues[3]] ?: match.value, match.groupValues[3])
             }
             offset = match.range.last + 1
         }

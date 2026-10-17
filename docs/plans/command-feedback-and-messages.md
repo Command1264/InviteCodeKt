@@ -1,6 +1,6 @@
 # 指令回饋、messages 與 prefix 待討論項目
 
-狀態：2026-10-18 整體規格已確認通過，包含 console 16 色、不額外套粗體。第一階段底層已獲授權實作並完成 Agent 驗證；詳見 [顯示規格](command-feedback-display-spec.md) 與 [第一階段證據](../testing/evidence/2026-10-18-command-feedback-stage1.md)。第二階段輸出整合尚未開始，F205 JAR 不變。以下各輪保留討論歷程，後續已確認的修訂優先。
+狀態：2026-10-18 整體規格已確認通過，包含 console 16 色、不額外套粗體。第一、二階段已授權實作，詳見 [顯示規格](command-feedback-display-spec.md) 與 [第二階段證據](../testing/evidence/2026-10-18-command-feedback-stage2.md)。F205 JAR 與既有真人驗收保持原版本綁定；第三、四階段尚未開始。以下各輪保留討論歷程，後續已確認的修訂優先。
 
 ## 已提出的需求
 

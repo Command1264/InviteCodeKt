@@ -5,48 +5,49 @@ import net.md_5.bungee.api.chat.BaseComponent
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.TextComponent
+import io.github.command1264.invitecode.platform.bukkit.MessageSegment
+import io.github.command1264.invitecode.platform.bukkit.PresentedMessage
 
 /** Interactive chat affordances isolated from the legacy text and RGB Invite Code formatter. */
 internal object PlayerChatActions {
     fun codeMessage(
-        template: String,
-        displayedCode: String,
+        message: PresentedMessage,
         code: String,
-        copyHint: String,
-        selectHint: String,
+        copyHint: PresentedMessage,
+        selectHint: PresentedMessage,
     ): Array<BaseComponent> {
         // COPY_TO_CLIPBOARD is absent from the Bungee chat API bundled by Spigot 1.8.8.
         val clipboard = enumValues<ClickEvent.Action>().firstOrNull { it.name == "COPY_TO_CLIPBOARD" }
         val action = clipboard ?: ClickEvent.Action.SUGGEST_COMMAND
-        val marker = "{code}"
-        val before = if (marker in template) template.substringBefore(marker) else template + " "
-        val after = if (marker in template) template.substringAfter(marker) else ""
-        val codeComponents = TextComponent.fromLegacyText(displayedCode)
-        codeComponents.forEach { component ->
-            component.clickEvent = ClickEvent(action, code)
-            component.hoverEvent = HoverEvent(
-                HoverEvent.Action.SHOW_TEXT,
-                arrayOf(TextComponent(if (clipboard != null) copyHint else selectHint)),
-            )
+        val components = BukkitMessageOutput.components(message)
+        components.zip(message.segments).forEach { (component, segment) ->
+            if (segment.variable == "code") {
+                component.clickEvent = ClickEvent(action, code)
+                component.hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    BukkitMessageOutput.components(if (clipboard != null) copyHint else selectHint))
+            }
         }
-        return TextComponent.fromLegacyText(before) + codeComponents + TextComponent.fromLegacyText(after)
+        return components
     }
 
     fun confirmation(
-        agreeLabel: String,
-        disagreeLabel: String,
-        agreeHint: String,
-        disagreeHint: String,
-    ): Array<TextComponent> = arrayOf(
-        TextComponent("[$agreeLabel]").apply {
-            color = ChatColor.GREEN
-            clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/invitecode confirm")
-            hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, arrayOf(TextComponent(agreeHint)))
-        },
-        TextComponent("  [$disagreeLabel]").apply {
-            color = ChatColor.RED
-            clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/invitecode cancel")
-            hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, arrayOf(TextComponent(disagreeHint)))
-        },
+        agreeLabel: PresentedMessage,
+        disagreeLabel: PresentedMessage,
+        agreeHint: PresentedMessage,
+        disagreeHint: PresentedMessage,
+    ): Array<BaseComponent> = arrayOf(
+        button(agreeLabel, agreeHint, "/invitecode confirm", false),
+        button(disagreeLabel, disagreeHint, "/invitecode cancel", true),
     )
+
+    private fun button(label: PresentedMessage, hint: PresentedMessage, command: String, separated: Boolean): BaseComponent {
+        val bracketColor = if (separated) 0xFF5555 else 0x55FF55
+        val content = PresentedMessage(listOf(MessageSegment(if (separated) "  [" else "[", bracketColor)) +
+            label.segments + MessageSegment("]", bracketColor))
+        return TextComponent(*BukkitMessageOutput.components(content)).apply {
+            color = if (separated) ChatColor.RED else ChatColor.GREEN
+            clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, command)
+            hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, BukkitMessageOutput.components(hint))
+        }
+    }
 }

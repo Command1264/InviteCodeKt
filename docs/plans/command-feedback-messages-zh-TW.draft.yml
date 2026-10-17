@@ -1,10 +1,12 @@
-# 完整文案設計草案，非執行期設定；底層 prefix／樣式已於第一階段實作，輸出整合尚未開始。
-# 不要直接覆蓋伺服器 messages。版本契約於實作前確認。
+# 文案設計參考，第二階段已套用；執行期權威為 invitecode-plugin/src/main/resources/config/messages/zh_TW.yml。
+# 不要直接覆蓋伺服器 messages；已有自訂檔案保留。
 # prefix 自動套用；值、欄位、hover 與按鈕不各自加 prefix。
 messages-version: 1
 presentation:
   prefix: "&7[&6InviteCode&7]&r"
 runtime:
+  raw-output: "{text}"
+  help-row: "&e{usage} &7— &f{description}"
   usage: "&c指令用法不正確。&f請使用 /{label} help 查看說明。"
   no-permission: "&c你沒有使用此指令的權限。"
   player-only: "&e此指令只能由玩家執行。"
@@ -84,6 +86,7 @@ command:
     cancelled: "&f已取消邀請碼輸入或確認。"
     nothing-to-cancel: "&7目前沒有進行中的邀請碼輸入或確認。"
   status:
+    ineligible-reason: "&7無法登記原因：&f{reasons}"
     summary: |-
       &f我的邀請狀態
       &7可使用邀請碼：&f{eligible}
@@ -97,6 +100,7 @@ command:
   error: "&c操作失敗。&f請聯絡管理員檢查伺服器紀錄。"
   stopping: "&e插件正在停止，暫時無法操作。&f請稍後再試。"
 value:
+  reason-separator: "、"
   'yes': "是"
   'no': "否"
   invitation:

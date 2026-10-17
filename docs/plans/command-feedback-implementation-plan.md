@@ -1,6 +1,6 @@
 # 指令回饋與 messages 實作、測試計畫
 
-日期：2026-10-18。整體顯示規格已通過；使用者已授權沿用功能 Worktree 完成第二階段，明確暫不 push。[第一階段證據](../testing/evidence/2026-10-18-command-feedback-stage1.md) 記錄底層實作；[第二階段證據](../testing/evidence/2026-10-18-command-feedback-stage2.md) 記錄輸出整合、封裝與檢查。第三、四階段仍未開始；以下保留完整計畫與 remote 邊界，不表示後續階段已授權。
+日期：2026-10-18。使用者已授權沿用功能 Worktree 執行第三階段，明確暫不 push。[第一階段證據](../testing/evidence/2026-10-18-command-feedback-stage1.md) 記錄底層實作；[第二階段證據](../testing/evidence/2026-10-18-command-feedback-stage2.md) 記錄輸出整合與封裝；[第三階段證據](../testing/evidence/2026-10-18-command-feedback-stage3.md) 記錄八個選定核心及兩個網路玩家流程。Agent 可執行範圍已通過，保留最新 Folia 及渲染客戶端缺口；第四階段尚未開始。
 
 ## 基線與分支
 
@@ -11,7 +11,7 @@
 - 現有 `codex/release/1.0.0` HEAD `e8e2b1f` 的產品原始碼與 develop 相同，差異只有文件及版號；此功能不依賴未合併的 runtime 修改，不需要先合併 release。
 - 第一階段已把明確列出的規格、雙語草案、help 核對表及本計畫複製到功能 Worktree；release 來源保留，不搬移、不 stash、不 cherry-pick 整條發行歷史。第二階段同步更新功能 Worktree 的參考文案，執行期權威為 plugin 的 `config/messages/`。
 - release 的歷史驗收文件、其他 Worktree 及 F205 產物保持原樣。功能分支沿用 develop 版號，不夾帶 1.0.0 升版；功能合併後另行規劃發行候選重建及複驗。
-- 此次已核准第一、二階段的本機實作、驗證與可回復的 task commit；GitHub Issue 建立、push、PR、merge、tag、發布皆需對應的明確授權，尚未執行。
+- 此次已核准第一至三階段的本機實作、驗證與可回復的 task commit；GitHub Issue 建立、push、PR、merge、tag、發布皆需對應的明確授權，尚未執行。
 
 ## 範圍與方法
 
@@ -59,6 +59,10 @@
 - 對可支援的客戶端自動化先核對工具與版本，再補真實聊天／Dialog 路徑與截圖證據；不把合成 callback、console smoke 或缺少客戶端覆蓋說成真人通過。缺工具不擅自安裝依賴或刪減驗收。
 - 失敗保存最小證據；停止本輪擁有的程序，保留待驗收 JAR 與必要資料，不清除固定 Human 世界。
 
+本輪結果：八個選定核心 smoke 與 failed-reload／退出稽核通過，Spigot 1.8.8 聊天及 Paper 1.21.8 原生 Dialog 實際網路回呼／離線補發通過。使用者明確同意 Folia 以最後 STABLE 26.1.2 build 8 替代；26.3 ALPHA 未驗證。現有 mc-pilot 沒有已建立客戶端，也沒有 26.3／1.21.8 Fabric 變體，未安裝依賴；沒有渲染畫面、滑鼠或剪貼簿驗收，26.3 Dialog 玩家路徑仍未驗證。不以此宣稱所有遊戲內與真人門檻通過。
+
+所有本輪程序與 port 已釋放；自動核准審查拒絕刪除可重建 `data/`，約 1.70 GiB 仍保留，磁碟清理狀態為 `retained-cleanup-blocked`。未將測試通過等同清理完成；路徑與證據見第三階段摘要。
+
 ### 第四階段：集中一次的真人外觀驗收
 
 優先使用既有固定 Spigot 1.8.8、Paper 26.3、Folia 26.1.2 測服，準備時重新核對其存在、核心 build 與路由；現有 Paper 26.2 做受影響 adapter 的 Agent 複驗，若能力路徑不同再補真人項目。不為本計畫新建或啟動伺服器。
@@ -80,4 +84,4 @@
 - 既有 release Worktree 的相關草案以本任務具體檔案清單複製；其他 dirty／untracked 不納入，不廣泛 stage。
 - 整體驗收後才請使用者核准該版本的 push／PR／merge；發行候選重建、回流 release／main、tag 及發布另行規劃。
 
-第一、二階段沿用上述 task Worktree，完成訊息底層與輸出整合；實際檢查結果及限制見各階段證據。建議下一步是第三階段 Agent 真實核心矩陣，先核對八個 profile 的核心／JDK／資源及資料隔離，再執行已授權的測試；目前尚未取得第三階段執行授權。不需要先合併 release 或進行任何 remote write。
+第一至三階段沿用上述 task Worktree；實際檢查結果及限制見各階段證據。建議下一步依第四階段準備集中真人外觀驗收，先唯讀核對固定測服的核心／JAR／路由，再按明確部署安排更新目標產物及交付操作清單。這輪沒有部署或真人操作，也不需要先合併 release 或進行 remote write。

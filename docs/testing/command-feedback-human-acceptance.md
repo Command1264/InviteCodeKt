@@ -1,5 +1,46 @@
 # 訊息與 prefix：第四階段真人驗收
 
+
+## 已通過：Folia 框線與第 2 頁返回（局部真人驗收）
+
+2026-10-18 使用者明確回報候選 `760c51a` 在 Folia 26.1.2：框線顯示可接受，
+reload、doctor、storage 返回管理員第 2 頁均正常。這四項已通過，不要求重做。
+客戶端版本／資源包未回報，不推定其他字型或核心也通過。完整證據：
+[真人回報紀錄](evidence/2026-10-18-folia-help-partial-human-acceptance.json)。
+這是局部驗收，沒有推定首頁點擊、其他 UI、整個第四階段或合併已通過。
+
+## 剩餘驗收：先 Folia，再安排其他核心
+
+目前仍只使用 Folia；本輪只更新文件，不啟停、部署、改設定或改資料。
+以下沒有明確真人回報的項目保持待確認，不把 Agent 測試當作人眼驗收。
+
+| 順序 | 項目 | 簡單操作與預期 | 執行者 |
+| --- | --- | --- | --- |
+| 1 | 首頁點擊與停用按鈕 | `/ic` 點 help 直接開說明；其他操作只填入。點深灰導航無反應，黃色可用 | A |
+| 2 | 權限與 Tab | A 看管理分類；B 不見管理入口／管理 Tab。`/ic status `、`/ic stats ` 與多餘參數的 Tab 不冒玩家名 | A、B |
+| 3 | status／stats 與邀請碼 | `/ic status`、`/ic stats` 的 prefix 一次、無亂碼。A `/ic code`，六碼 hover 清楚、複製只有原碼；B 不執行 code | A、B |
+| 4 | Console 外觀與 Tab | `ic help admin`、`ic help admin 2`，文字及 16 色可讀；`ic help admin ` Tab 有候選，完成路徑 Tab 無玩家名 | Console |
+| 5 | 雙語與 messages reload | 切英文／繁中，help／status／stats 完整。備份後暫改 prefix、reload 生效；錯誤型別 reload 失敗保留舊快照，恢復後 reload | A、B、管理員 |
+| 6 | Claim 與確認畫面 | 先核對 B 仍可登記；輸入取消、不同意、60 秒逾時、最後同意；Dialog／聊天 prefix、綠紅按鈕與文字位置正確 | A、B |
+| 7 | 資格與離線補發 | A 回 Lobby，B 達資格；A 回服只補發一次，再進不重複。由 Agent 核對新關係與獎勵，不只看畫面 | A、B、Agent |
+| 8 | 重啟與還原 | 正常關服再開，碼／status／stats 保留、不重複補發；Agent 還原本輪臨時設定與權限，不回灌舊 DB | 管理員、Agent |
+
+建議下一步只做第 1–4 項，先完成 Folia 指令面板與基本訊息；不用立即做雙帳號 claim 全流程。
+第 1、3、4 項主要可先用 A 與主控台；第 2 項需要 B 的一般權限視角。
+兩帳號流程前必須重新唯讀核對 B 的登記視窗、generation、目前邀請與資格設定；
+不能因舊文件曾準備完成就直接假設今天仍可開始，不自動重設或 unlink。
+第 5–8 項沿用下方 12 步完整清單；有先前操作成果則先核對，不盲目重做已完成的登記／補發。
+
+Folia 尚未完整通過前，不自動啟動其他兩台。之後 Spigot 1.8.8／Paper 26.3
+須先部署同一驗收候選，再驗證舊版聊天／新版 Dialog、權限 Tab、雙語與 console；
+本輪 Folia 通過項目不能直接算作它們通過。Paper 26.2 adapter 的 Agent 複驗及最新 Folia ALPHA 缺口另列。
+玩家名稱導向管理草案仍延後，關服 JLine 問題仍暫緩，不列為本輪要求真人重現的測項。
+
+回報方式：`Folia 760c51a：首頁／停用按鈕／權限 Tab／status-stats／複製／console：通過、失敗或未測`。
+失敗附指令、實際結果與截圖。全部相關驗收完成後才整理還原與交付；push／PR／merge 尚未授權。
+
+## 前輪操作與部署紀錄（保留歷史，以下待驗收敘述以最上方狀態為準）
+
 ## 最新局部複驗：Folia 框線長度與返回頁
 
 候選 `760c51a8b3ae50e172cda8218f62aa5c8b4b9de7`，JAR SHA-256 `D2669D283F5ACD0FB7AB1A9B45C398371E88EE9B0B1795A29DCCB429E1A3A012`。只更新 Folia 26.1.2，其他兩台保持停止。

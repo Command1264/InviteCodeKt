@@ -121,6 +121,45 @@ class RuntimeCommandHelpTest {
         }
     }
 
+    @Test
+    fun `help frames keep inline prefix and all navigation slots without disabled events`() {
+        listOf(emptyArray(), arrayOf("help", "admin"), arrayOf("help", "admin", "2"),
+            arrayOf("help", "admin", "invitation", "transfer")).forEach { args ->
+            val capture = Capture()
+            val permissions = CommandHelp.entries.map { it.permission }.toSet()
+            execute(permissionProxy(Player::class.java, permissions, capture), "ic", args = args, capture = capture)
+            val first = capture.components.first().joinToString("") { it.toPlainText() }
+            assertTrue(first.contains("[InviteCode]") && first.contains("────"))
+            val footer = capture.components.last()
+            assertEquals("[Previous]  [Back]  [Next]", footer.joinToString("") { it.toPlainText() })
+            assertTrue(footer.filter { it.clickEvent != null }.all {
+                it.color == ChatColor.YELLOW && it.hoverEvent != null &&
+                    it.clickEvent.action.name == "RUN_COMMAND" &&
+                    (it.clickEvent.value.startsWith("/ic help") || it.clickEvent.value == "/ic")
+            })
+            val disabled = if (args.isEmpty()) listOf("Previous", "Back", "Next")
+                else if (args.last() == "2") listOf("Next") else if (args.last() == "transfer") listOf("Previous", "Next")
+                else listOf("Previous")
+            disabled.forEach { name ->
+                val parts = footer.filter { it.toPlainText().contains(name) }
+                assertTrue(parts.isNotEmpty())
+                assertTrue(parts.all { it.clickEvent == null && it.hoverEvent == null && it.color == ChatColor.DARK_GRAY })
+            }
+            assertEquals(1, Regex("\\[InviteCode]").findAll(capture.plainText()).count())
+        }
+    }
+
+    @Test
+    fun `empty custom prefix stays empty in frame and console retains all slots`() {
+        val capture = Capture()
+        execute(permissionProxy(CommandSender::class.java, basicPermissions, capture), "ic",
+            messageCatalog(mapOf("presentation.prefix" to "")), capture = capture)
+        assertFalse(capture.plainText().contains("[InviteCode]"))
+        assertTrue(capture.plainText().contains("──── Home"))
+        assertTrue(capture.plainText().contains("[Previous]  [Back]  [Next]"))
+        assertEquals(0, capture.operations)
+    }
+
     private val basicPermissions = setOf("invitecode.command.basic", "invitecode.command.code", "invitecode.command.claim",
         "invitecode.command.status", "invitecode.command.stats")
 
@@ -148,6 +187,11 @@ class RuntimeCommandHelpTest {
             "runtime.raw-output" to "{text}",
             "runtime.help-header" to "Help",
             "runtime.help-home-header" to "Home",
+            "runtime.help-frame-header" to "&8──── {prefix}&6{title} &8────",
+            "runtime.help-frame-divider" to "&8────────────────────────",
+            "runtime.help-navigation-enabled" to "&e[{text}]",
+            "runtime.help-navigation-disabled" to "&8[{text}]",
+            "runtime.help-navigation-hover" to "Open help page",
             "runtime.help-page-header" to "{topic} {page}/{pages}",
             "runtime.help-page-error" to "No such help page",
             "runtime.help-open-detail" to "Open help",

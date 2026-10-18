@@ -71,3 +71,15 @@ Console 的內容與權限依指令用途判斷，不因使用 console 而一律
 平台複驗涵蓋舊版聊天、新版 Paper／Folia Dialog 和 console。真人驗收核對實際置中、字型、顏色與互動；HTML 模擬和靜態檢查不能代替。新 JAR 的證據另綁版本，不改寫 F205 既有驗收。
 
 規格已通過，第一至三階段的實作與 Agent 檢查分別記錄於證據文件；第四階段已開始，2026-10-18 依真人回饋加入分層 help。真實網路／回呼不代替客戶端渲染與真人外觀，最新 Folia 的缺口另列。關服例外維持暫緩，沒有隔離測試。Human 更新依本輪授權進行，證據另記；沒有 push、PR 或發行。
+
+
+## 2026-10-18 Help 分隔與固定導航
+
+所有成功的 help 首頁、分類、分頁與詳細頁均使用同一行標題：灰色分隔線、語系 prefix、金色說明名稱／頁碼。
+prefix 不再單獨佔一行、不重複；仍由 `presentation.prefix` 自訂，空值維持停用。
+內容後加灰色結尾線，底部固定依序顯示上一頁、返回、下一頁。可用按鈕黃色、有唯讀 help 點擊與 hover；
+停用按鈕深灰色，沒有 click 或 hover 事件，按下不做任何事。首頁三項均停用；首／末頁按實際可用性停用，
+詳細頁只保留返回可用。Console 使用相同順序與狀態，可用項目另顯示導航命令，顏色仍遵守可讀 16 色。
+模板使用 `runtime.help-frame-header`（`{prefix}`／`{title}`）、`help-frame-divider`、
+`help-navigation-enabled`／`help-navigation-disabled`（`{text}`）與 `help-navigation-hover`；
+沿用三項標籤設定。動態文字不重新解析樣式，模板不能自訂點擊目標。

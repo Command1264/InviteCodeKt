@@ -115,3 +115,11 @@ Invitation、Eligibility、Code Rotation 與 Storage Migration 會留下 actor�
 9. 以一般玩家、無權限管理員、Console 分別驗證權限與玩家專用限制；切換 `zh_TW`／`en_US`，確認語系 fallback、Dialog 文字與缺鍵紀錄；確認六碼 HEX Invite Code 在新版 client 呈現精確 RGB，在舊版呈現最接近的 legacy color。
 
 跨 Minecraft 版本的真實伺服器矩陣由 Issue #12 執行。
+
+
+### Help 框線與導航顯示
+
+help 以同列 prefix／標題的分隔線起始、內容後加結尾線，固定顯示 `[上一頁] [返回] [下一頁]`。
+黃色可用，深灰停用；停用項目沒有點擊或 hover，首頁三項皆停用。
+Console 可用項目顯示其導航指令。`runtime.help-frame-*`／`help-navigation-*` 控制格式與色彩，
+`presentation.prefix` 仍可自訂或設空。頁面導覽為唯讀，真正操作用法仍只填入聊天列。

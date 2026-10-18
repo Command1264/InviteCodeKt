@@ -546,16 +546,31 @@ internal class RuntimeCommandExecutor(
         }
         val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
         val presenter = MessagePresenter(catalog)
-        if (query.home) send(sender, "runtime.help-home-header")
-        else if (page.detail != null) send(sender, "runtime.help-header")
+        val audience = BukkitMessageOutput.audience(sender)
+        val title = if (query.home) presenter.render(locale, "runtime.help-home-header",
+            audience = audience, prefix = PrefixPlacement.NONE)
+        else if (page.detail != null) presenter.render(locale, "runtime.help-header",
+            audience = audience, prefix = PrefixPlacement.NONE)
         else {
             val topic = query.path.lastOrNull() ?: if (sender is Player) "player" else "admin"
-            send(sender, "runtime.help-page-header", mapOf(
+            presenter.render(locale, "runtime.help-page-header", mapOf(
                 "topic" to presenter.render(locale, "runtime.help-topic.$topic",
-                    audience = BukkitMessageOutput.audience(sender), prefix = PrefixPlacement.NONE).plainText,
+                    audience = audience, prefix = PrefixPlacement.NONE).plainText,
                 "page" to query.page.toString(), "pages" to page.pages.toString(),
-            ))
+            ), audience = audience, prefix = PrefixPlacement.NONE)
         }
+        val prefix = presenter.render(locale, "presentation.prefix", audience = audience, prefix = PrefixPlacement.NONE)
+        val header = presenter.render(locale, "runtime.help-frame-header",
+            mapOf("prefix" to prefix.plainText + if (prefix.plainText.isEmpty()) "" else " ", "title" to title.plainText), audience = audience, prefix = PrefixPlacement.NONE)
+        BukkitMessageOutput.sendPresented(sender, PresentedMessage(header.segments.flatMap { segment ->
+            when (segment.variable) {
+                "prefix" -> prefix.segments.map { it.copy(variable = null) } +
+                    if (prefix.plainText.isEmpty()) emptyList() else presenter.render(locale, "runtime.raw-output",
+                        mapOf("text" to " "), audience = audience, prefix = PrefixPlacement.NONE).segments
+                "title" -> title.segments.map { it.copy(variable = null) }
+                else -> listOf(segment)
+            }
+        }))
         val detail = page.detail
         if (detail != null) {
             val usage = "/$label ${detail.usage}"
@@ -566,20 +581,24 @@ internal class RuntimeCommandExecutor(
                 "example" to CommandHelpNavigation.example(detail, label)), false)
         }
         page.rows.forEach { sendHelpRow(sender, catalog, locale, it) }
-        val links = listOfNotNull(page.previous?.let { "previous" to it },
-            page.back?.let { "back" to it }, page.next?.let { "next" to it })
-        if (links.isNotEmpty()) {
-            val segments = links.flatMapIndexed { index, (name, target) ->
-                val caption = presenter.render(locale, "runtime.help-$name",
-                    audience = BukkitMessageOutput.audience(sender), prefix = PrefixPlacement.NONE)
-                val text = if (sender is Player) "[${caption.plainText}]" else "${caption.plainText}: $target"
-                presenter.render(locale, "runtime.raw-output",
-                    mapOf("text" to (if (index > 0) "  " else "") + text),
-                    audience = BukkitMessageOutput.audience(sender), prefix = PrefixPlacement.NONE)
-                    .segments.map { it.copy(variable = name) }
-            }
-            sendHelpMessage(sender, PresentedMessage(segments), links.toMap(), true)
+        BukkitMessageOutput.send(sender, catalog, "runtime.help-frame-divider", prefix = PrefixPlacement.NONE)
+        val slots = listOf("previous" to page.previous, "back" to page.back, "next" to page.next)
+        val segments = slots.flatMapIndexed { index, (name, target) ->
+            val caption = presenter.render(locale, "runtime.help-$name",
+                audience = audience, prefix = PrefixPlacement.NONE).plainText
+            val text = if (sender !is Player && target != null) "$caption: $target" else caption
+            val item = presenter.render(locale,
+                if (target == null) "runtime.help-navigation-disabled" else "runtime.help-navigation-enabled",
+                mapOf("text" to text), audience = audience, prefix = PrefixPlacement.NONE)
+            val spacer = if (index == 0) emptyList() else presenter.render(locale, "runtime.raw-output",
+                mapOf("text" to "  "), audience = audience, prefix = PrefixPlacement.NONE).segments
+            spacer + item.segments.map { it.copy(variable = if (target != null) name else null) }
         }
+        val hover = presenter.render(locale, "runtime.help-navigation-hover",
+            audience = audience, prefix = PrefixPlacement.NONE).plainText
+        sendHelpMessage(sender, PresentedMessage(segments), slots.mapNotNull { (name, target) ->
+            target?.let { name to it }
+        }.toMap(), true, hover)
     }
 
     private fun sendHelpRow(sender: CommandSender, catalog: LocalizedMessages, locale: String?, entry: HelpRow) {

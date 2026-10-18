@@ -145,3 +145,11 @@ Spigot 既有 LuckPerms JSON 寫入限制以不寫該權限的資格測試安排
 status／stats、複製及 console），原因是可以沿現有候選繼續驗收且無需變更登記／獎勵資料。
 之後再安排雙語 reload、兩帳號確認／補發／重啟；開始 claim 前需重新核對 B。
 其他兩台仍延後，沒有自動啟動、部署、push 或合併。
+
+
+## 2026-10-18 Console 與密集資訊排版
+
+Console 的逐行 log 標頭、一般回覆每行 prefix、後台 help 去重／標題／文字導航已實作。
+doctor／inspect／離線工具及中英文可見分號拆行，玩家報告只加一次標題 prefix。
+Java 8／11 及 Agent 檢查完成，僅 Folia 部署；下一步為最新清單的 Console 與玩家報告外觀驗收。
+前版局部通過保留，其他未測不推定通過；不啟動其他測服、不混入玩家紀錄導覽草案、不 push。

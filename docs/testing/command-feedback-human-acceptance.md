@@ -1,6 +1,30 @@
 # 訊息與 prefix：第四階段真人驗收
 
 
+## 最新待驗收：Console 逐行與報告排版（只測 Folia）
+
+候選 `53893c475fdeaf631ca5b174493f33754660e0ad`，SHA-256 `6E7EB72D59896AF141FE17029FDAD5A0322EADA7F019929F5E78D11C20C8664E`。只更新 Folia 26.1.2；另兩台保持停止。
+前版 `760c51a` 的框線與返回第 2 頁通過紀錄保留，但不推定新版 Console／報告外觀已通過。
+
+1. 打開 Folia 原生後台，輸入 `ic`：只有一個 help 入口，沒有重複 help admin。
+2. 輸入 `ic help`、`ic help admin 2`、`ic help admin reload`：索引標示後台用途。
+   每行都有核心產生的時間戳／INFO；頁尾只列可輸入的有效導航命令，不再模仿按鈕或顯示停用項目。
+3. 輸入 `ic admin doctor`：標題與狀態逐欄，每行都有時間戳／INFO 及一次 prefix；
+   backend、schema、各獎勵狀態不再擠在同一行。沒有分號或色碼外洩。
+4. 輸入 `ic admin inspect player Command1`：逐欄顯示，名稱與 UUID、布林狀態容易辨認。
+   不需查詢其他私人玩家；Invitation／Reward Action 的模板已有回歸檢查，可待後續方便取得 ID 再看外觀。
+5. A 經 localhost:25565 與 `/server invitecode-folia-26.1.2`，輸入 `/ic admin doctor`、
+   `/ic admin inspect player Command1`：每份報告只有頂端標題加一次 prefix，其餘逐欄。
+   玩家 help 固定三按鈕、停用無反應、首頁 help 直接開啟與第 2 頁返回仍正常。
+6. 若方便，切 English (US) 重做 help／doctor，確認雙語與 prefix；最後回覆
+   `Folia 53893c4：每行時間戳、後台 help 去重、文字導航、doctor、inspect、玩家 prefix、雙語：通過／失敗／未測`。
+   失敗附指令與截圖，不貼 DB、key 或原始網路資料。
+
+只測顯示，不執行 reset／unlink／retry／migration，也不用現在重跑雙帳號登記。未測項目保持未測。
+測完仍待完整訊息／互動驗收與臨時設定還原，沒有 push／PR／merge 授權。
+離線匿名化／跨 backend 工具只有輸出格式調整，測試用隔離資料已驗證，不在 Human DB 執行。
+
+
 ## 已通過：Folia 框線與第 2 頁返回（局部真人驗收）
 
 2026-10-18 使用者明確回報候選 `760c51a` 在 Folia 26.1.2：框線顯示可接受，

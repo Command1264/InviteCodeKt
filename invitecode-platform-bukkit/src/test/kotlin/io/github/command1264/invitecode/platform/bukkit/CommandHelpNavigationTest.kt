@@ -9,6 +9,29 @@ class CommandHelpNavigationTest {
         CommandHelpNavigation.resolve(requireNotNull(CommandHelpNavigation.query(args.toList())), "ic", player, permissions)
 
     @Test
+    fun `return locates category on its permission filtered parent page`() {
+        assertEquals("/ic", page("help", "admin").back)
+        listOf("storage", "reload", "doctor").forEach { topic ->
+            val child = page("help", "admin", topic)
+            assertEquals("/ic help admin 2", child.back, topic)
+        }
+        val onlyDoctor: (String) -> Boolean = { it in setOf("invitecode.command.basic", "invitecode.admin.doctor") }
+        assertEquals("/ic help admin", page("help", "admin", "doctor", permissions = onlyDoctor).back)
+        assertEquals("/ic help admin invitation", page("help", "admin", "invitation", "transfer").back)
+        // Every visible child returns to a page which actually contains it, including future categories.
+        for (number in 1..page("help", "admin").pages) {
+            val parent = page("help", "admin", number.toString())
+            parent.rows.forEach { row ->
+                val child = CommandHelpNavigation.resolve(requireNotNull(CommandHelpNavigation.query(
+                    row.target.removePrefix("/ic ").split(' '))), "ic", true, all)
+                val back = CommandHelpNavigation.resolve(requireNotNull(CommandHelpNavigation.query(
+                    child.back!!.removePrefix("/ic ").split(' '))), "ic", true, all)
+                assertTrue(back.rows.any { it.target == row.target })
+            }
+        }
+    }
+
+    @Test
     fun `homepage contains five common commands and a single admin entrance`() {
         val home = page()
         assertEquals(listOf("/ic code", "/ic claim", "/ic status", "/ic stats", "/ic help", "/ic help admin"),

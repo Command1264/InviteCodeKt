@@ -11,6 +11,7 @@ import io.github.command1264.invitecode.platform.bukkit.AsyncOperationExecutor
 import io.github.command1264.invitecode.platform.bukkit.AtomicRuntimeSnapshot
 import io.github.command1264.invitecode.platform.bukkit.ClaimInteractionSessions
 import io.github.command1264.invitecode.platform.bukkit.CommandHelpNavigation
+import io.github.command1264.invitecode.platform.bukkit.HelpFrameLayout
 import io.github.command1264.invitecode.platform.bukkit.HelpRow
 import io.github.command1264.invitecode.platform.bukkit.InvalidInviteCodeCommand
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
@@ -562,7 +563,7 @@ internal class RuntimeCommandExecutor(
         val prefix = presenter.render(locale, "presentation.prefix", audience = audience, prefix = PrefixPlacement.NONE)
         val header = presenter.render(locale, "runtime.help-frame-header",
             mapOf("prefix" to prefix.plainText + if (prefix.plainText.isEmpty()) "" else " ", "title" to title.plainText), audience = audience, prefix = PrefixPlacement.NONE)
-        BukkitMessageOutput.sendPresented(sender, PresentedMessage(header.segments.flatMap { segment ->
+        val heading = PresentedMessage(header.segments.flatMap { segment ->
             when (segment.variable) {
                 "prefix" -> prefix.segments.map { it.copy(variable = null) } +
                     if (prefix.plainText.isEmpty()) emptyList() else presenter.render(locale, "runtime.raw-output",
@@ -570,7 +571,10 @@ internal class RuntimeCommandExecutor(
                 "title" -> title.segments.map { it.copy(variable = null) }
                 else -> listOf(segment)
             }
-        }))
+        })
+        val divider = presenter.render(locale, "runtime.help-frame-divider", audience = audience, prefix = PrefixPlacement.NONE)
+        val frame = HelpFrameLayout.align(heading, divider, audience)
+        BukkitMessageOutput.sendPresented(sender, frame.first)
         val detail = page.detail
         if (detail != null) {
             val usage = "/$label ${detail.usage}"
@@ -581,7 +585,7 @@ internal class RuntimeCommandExecutor(
                 "example" to CommandHelpNavigation.example(detail, label)), false)
         }
         page.rows.forEach { sendHelpRow(sender, catalog, locale, it) }
-        BukkitMessageOutput.send(sender, catalog, "runtime.help-frame-divider", prefix = PrefixPlacement.NONE)
+        BukkitMessageOutput.sendPresented(sender, frame.second)
         val slots = listOf("previous" to page.previous, "back" to page.back, "next" to page.next)
         val segments = slots.flatMapIndexed { index, (name, target) ->
             val caption = presenter.render(locale, "runtime.help-$name",

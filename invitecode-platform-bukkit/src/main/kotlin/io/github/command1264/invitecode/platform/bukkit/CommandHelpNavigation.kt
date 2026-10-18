@@ -62,7 +62,7 @@ object CommandHelpNavigation {
         }
         val detail = leaf(query.path)
         if (detail != null) return if (detail in allowed) {
-            HelpPage(query, detail = detail, back = command(label, query.path.dropLast(1)))
+            HelpPage(query, detail = detail, back = parentLink(query.path, label, player, permission))
         } else HelpPage(query, error = true)
         val candidates = when {
             query.path.isEmpty() && player -> homeIds.mapNotNull { id -> allowed.firstOrNull { it.id == id } }
@@ -80,7 +80,19 @@ object CommandHelpNavigation {
         return HelpPage(query, rows, pages = pages,
             previous = if (query.page > 1) command(label, query.path, query.page - 1) else null,
             next = if (query.page < pages) command(label, query.path, query.page + 1) else null,
-            back = if (query.path.isEmpty()) "/$label" else command(label, query.path.dropLast(1)))
+            back = if (query.path.isEmpty()) "/$label" else parentLink(query.path, label, player, permission))
+    }
+
+    private fun parentLink(topic: List<String>, label: String, player: Boolean, permission: (String) -> Boolean): String {
+        if (topic == listOf("admin")) return "/$label"
+        val parent = topic.dropLast(1)
+        val first = resolve(HelpQuery(false, parent), label, player, permission)
+        val target = command(label, topic)
+        val number = (1..first.pages).firstOrNull { page ->
+            val content = if (page == 1) first else resolve(HelpQuery(false, parent, page), label, player, permission)
+            content.rows.any { it.target == target }
+        } ?: 1
+        return command(label, parent, number.takeIf { it > 1 })
     }
 
     fun complete(arguments: List<String>, player: Boolean, permission: (String) -> Boolean): List<String> {

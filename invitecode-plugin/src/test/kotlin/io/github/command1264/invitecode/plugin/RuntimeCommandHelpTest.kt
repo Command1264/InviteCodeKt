@@ -161,6 +161,15 @@ class RuntimeCommandHelpTest {
         assertEquals(0, capture.operations)
     }
 
+    @Test
+    fun `reload detail return button points to its second management page`() {
+        val capture = Capture()
+        val player = permissionProxy(Player::class.java, CommandHelp.entries.map { it.permission }.toSet(), capture)
+        execute(player, "ic", args = arrayOf("help", "admin", "reload"), capture = capture)
+        assertTrue(capture.components.last().any { it.clickEvent?.value == "/ic help admin 2" })
+        assertEquals(0, capture.operations)
+    }
+
     private val basicPermissions = setOf("invitecode.command.basic", "invitecode.command.code", "invitecode.command.claim",
         "invitecode.command.status", "invitecode.command.stats")
 

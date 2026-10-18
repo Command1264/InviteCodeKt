@@ -102,3 +102,12 @@ Paper 26.2 受影響 adapter 的 Agent 複驗仍未完成，與最新 Folia ALPH
 Spigot 既有 LuckPerms JSON 寫入限制以不寫該權限的資格測試安排避開，未修復第三方插件。
 下一步是[集中真人清單](../testing/command-feedback-human-acceptance.md)，其後核對新資料、還原暫時設定與權限。
 本機文件與測服操作不等於 remote 授權，仍未 push。
+
+
+## 2026-10-18 真人回饋：分層 help 與權限 Tab
+
+依使用者批准沿用目前分支修正首頁資訊過量；Agent 測試、三台停服備份／部署／啟動完成。
+沒有重設 B、unlink 或改寫世界。新候選與結果見
+[本輪證據](../testing/evidence/2026-10-18-command-feedback-help-deployment.md)，
+下一個尚未完成且前置條件已滿足的項目是第四階段真人 help 複驗，接續同一份
+[驗收清單](../testing/command-feedback-human-acceptance.md)。沒有 push 或發布。

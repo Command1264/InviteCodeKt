@@ -1,18 +1,50 @@
 # 訊息與 prefix：第四階段真人驗收
 
-## 目前狀態：已備份、部署與啟動，待真人驗收
+## 目前狀態：分層 help 修正已部署，待真人複驗
 
-2026-10-18 已依使用者授權完成三台部署、B 資格重設及 Folia 單筆舊關係解除。
+2026-10-18 原準備已依使用者授權完成三台部署、B 資格重設及 Folia 單筆舊關係解除；本輪只更新 help，不重做帳號操作。
 三台當次 `Done`、InviteCode ACTIVE、help／doctor／玩家專用拒絕／reload、UTF-8 log、實際 JDK 與 port 均已核對。
-世界原位保留；DB、密鑰與歷史未清空。候選程式沒有重建，沒有 push。
+世界原位保留；DB、密鑰與歷史未清空。原部署後因首頁資訊過量重建候選，三台已更新為下列新版；沒有 push。
 
-- 程式來源：`dfbc39c4a80cea91b22b88c5f89d16107e7d50a2`。
-- 已裝 JAR：`InviteCode-0.1.0-SNAPSHOT.jar`，19,890,059 bytes。
-- SHA-256：`E350DCA507D1FB953A2B785474708226BFBD682CBFE5D44E7E9BF0D0630C6C8B`。
-- [部署與當次啟動證據](evidence/2026-10-18-command-feedback-stage4-deployment.json)。
+- 程式來源：`6de6dce250334ec6a1647cb91ac2b09918abc9e6`。
+- 已裝 JAR：`InviteCode-0.1.0-SNAPSHOT.jar`，19,912,806 bytes。
+- SHA-256：`29C46B948B43B3066768BC824853080D2DD09240E1DA2E6179B5210493B9E54A`。
+- [本輪部署與當次啟動證據](evidence/2026-10-18-command-feedback-help-deployment.json)；[原帳號準備與部署證據](evidence/2026-10-18-command-feedback-stage4-deployment.json)。
 
 **現在直接從步驟 1 開始；不要再次 reset、unlink 或建立 B 的邀請碼。**
 B 的本輪視窗最早在 **2026-10-19 14:38（臺灣時間）** 到期。若來不及，先回報，由 Agent 重新核對後安排。
+
+## 2026-10-18 分層 help 複驗：先完成這六項
+
+本輪為真人回饋修正，沿用原分支／Worktree。只更新插件與雙語訊息，不再次 reset／unlink。
+DB 各資料表在部署前後一致，金鑰、資格設定、權限與世界保留；三台當次啟動及 console 回覆已核對。
+本輪不替使用者宣告真人通過。三台各做一次下列清單，之後繼續先前尚未完成的 12 步流程。
+
+1. **連線。** A（Command1，管理員）與 B（Taiwan_PingLord，一般玩家）經 `localhost:25565`，
+   各自 `/server invitecode-spigot-1.8.8`、`/server invitecode-paper-26.3` 或 `/server invitecode-folia-26.1.2`。
+   每次只選一台；使用對應客戶端版本，記下版本。不要直接連後端。
+2. **首頁。** A、B 各輸入 `/ic`。B 應只見有權限的 `code`、`claim`、`status`、`stats`、`help`；
+   A 額外一行 `/ic help admin`。不直接列管理用法、confirm 或 cancel。B 只閱讀首頁，**不要執行 `/ic code`**。
+3. **分層與點擊。** A 依序 `/ic help admin`、`/ic help admin 2`、`/ic help admin invitation`、
+   `/ic help admin invitation transfer`。分類每頁最多五項，有頁碼；詳細頁才顯示完整參數與範例。
+   點分類／下一頁／返回應直接開 help；點真正的管理用法應只填入聊天列，**不要按 Enter 執行**。
+   B 查 `/ic help admin` 應顯示一般錯誤，不洩漏管理用法。confirm／cancel 只在互動情境提示；明確查其 help 仍有效。
+4. **Tab。** A 輸入 `/ic help admin ` 後按 Tab，應見分類與 `1`、`2`；
+   `/ic help admin invitation ` 應見三種操作。B 的 `/ic ` 不見 admin／reload，`/ic help admin ` 沒有候選。
+   A 的 `/ic admin invitation force-qualify EXAMPLE_INVITATION_UUID ` 應提示設定內的資格 ID，
+   **只按 Tab，不送出這個假 ID 指令**。`/ic status `、`/ic stats `、`/ic help admin 2 `、
+   `/ic help admin invitation transfer ` 及任意超長路徑的 Tab 都應為空，不冒出玩家名稱。
+5. **Console 與錯誤。** 在各台原生主控台輸入 `ic`、`ic help admin`、`ic help admin 2`、
+   `ic help admin invitation transfer`、`ic help typo`、`ic help admin 999`。console 只見適用項目，
+   分頁列出可輸入的導航命令，錯誤清楚；16 色可讀、不額外粗體、沒有原始色碼。
+   也請在原生主控台鍵入 `ic help admin ` 後按 Tab（不按 Enter），確認有分類／頁碼，
+   `ic status ` 的 Tab 不回退玩家名稱。原生終端的實際 Tab 行為仍待這項真人驗收。
+6. **回報。** 逐台回覆「核心／客戶端版本；首頁、權限、分頁點擊、玩家 Tab、console Tab、顏色：通過／失敗」。
+   失敗附操作、預期／實際與截圖。通過後再繼續原清單未完成的確認、雙語、獎勵與重啟驗收。
+
+已知限制：最新 Folia ALPHA 未驗證；本輪沿用 stable 26.1.2。Spigot 的 LuckPerms JSON 寫入問題仍保留，
+本清單不修改權限。關服 JLine 問題維持暫緩；本輪正常停止三台皆有成功退出紀錄。
+相關：[本輪部署證據](evidence/2026-10-18-command-feedback-help-deployment.json)。
 
 ## 選用三台，逐台完成
 
@@ -100,10 +132,10 @@ A、B 各輸入 `/ic status`、`/ic stats` 並記下數量；B 目前應顯示�
 若 status 同時顯示舊 QUALIFIED／UNLINKED，那是保留的歷史；本輪可登記與後續新關係另外核對。
 B 的「已有登記」前置拒絕要在步驟 8 成功後再測。
 
-### 3. help、Tab 與邀請碼
+### 3. help、Tab 與邀請碼（改以上方六項複驗為準）
 
-A、B 各輸入 `/ic help`。點擊一條用法，應只填入聊天列、不自動執行。
-A 可看到其權限允許的管理用法；B 須先確認為一般玩家（沒有 OP／管理權限），只看到允許的項目。
+A、B 先依上方六項複驗首頁、分層說明及 Tab。首頁與詳細頁的操作用法只填入聊天列；分類／分頁直接開啟唯讀 help。
+A 以 `/ic help admin` 查看其權限允許的分類；B 須先確認為一般玩家（沒有 OP／管理權限），只看到允許的項目。
 在 `/ic status `、`/ic stats ` 和超出語法長度的位置按 Tab，應沒有線上玩家名稱補全。
 
 A 輸入 `/ic code`。將滑鼠移到**六碼本身**，檢查 hover。

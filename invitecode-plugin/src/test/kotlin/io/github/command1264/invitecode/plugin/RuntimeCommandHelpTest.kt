@@ -17,13 +17,14 @@ import java.lang.reflect.Proxy
 
 class RuntimeCommandHelpTest {
     @Test
-    fun `homepage gives ordinary player exactly five short suggest commands`() {
+    fun `homepage keeps five entries and runs only read only help navigation`() {
         val capture = Capture()
         val player = permissionProxy(Player::class.java, basicPermissions, capture)
         execute(player, "ic", capture = capture)
         val clicks = capture.components.flatten().mapNotNull { it.clickEvent }
         assertEquals(setOf("/ic code", "/ic claim", "/ic status", "/ic stats", "/ic help"), clicks.map { it.value }.toSet())
-        assertTrue(clicks.all { it.action.name == "SUGGEST_COMMAND" })
+        assertTrue(clicks.filter { it.value != "/ic help" }.all { it.action.name == "SUGGEST_COMMAND" })
+        assertTrue(clicks.filter { it.value == "/ic help" }.all { it.action.name == "RUN_COMMAND" })
         assertEquals(1, Regex("\\[InviteCode]").findAll(capture.plainText()).count())
         assertFalse(capture.plainText().contains("confirm"))
         assertFalse(capture.plainText().contains("cancel"))

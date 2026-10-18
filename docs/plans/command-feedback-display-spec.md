@@ -83,3 +83,7 @@ prefix 不再單獨佔一行、不重複；仍由 `presentation.prefix` 自訂�
 模板使用 `runtime.help-frame-header`（`{prefix}`／`{title}`）、`help-frame-divider`、
 `help-navigation-enabled`／`help-navigation-disabled`（`{text}`）與 `help-navigation-hover`；
 沿用三項標籤設定。動態文字不重新解析樣式，模板不能自訂點擊目標。
+
+
+2026-10-18 補充：首頁 `/ic help` 與 `/ic help admin` 都是唯讀導覽，點擊直接開啟；
+`code`／`claim`／`status`／`stats` 等操作仍只填入聊天列，不自動執行。

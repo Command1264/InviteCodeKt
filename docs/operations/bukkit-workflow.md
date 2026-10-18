@@ -123,3 +123,7 @@ help 以同列 prefix／標題的分隔線起始、內容後加結尾線，固�
 黃色可用，深灰停用；停用項目沒有點擊或 hover，首頁三項皆停用。
 Console 可用項目顯示其導航指令。`runtime.help-frame-*`／`help-navigation-*` 控制格式與色彩，
 `presentation.prefix` 仍可自訂或設空。頁面導覽為唯讀，真正操作用法仍只填入聊天列。
+
+
+2026-10-18 補充：首頁 `/ic help` 與 `/ic help admin` 都是唯讀導覽，點擊直接開啟；
+`code`／`claim`／`status`／`stats` 等操作仍只填入聊天列，不自動執行。

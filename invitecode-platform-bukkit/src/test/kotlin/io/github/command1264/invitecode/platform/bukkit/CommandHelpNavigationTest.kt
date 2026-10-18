@@ -13,7 +13,9 @@ class CommandHelpNavigationTest {
         val home = page()
         assertEquals(listOf("/ic code", "/ic claim", "/ic status", "/ic stats", "/ic help", "/ic help admin"),
             home.rows.map { it.usage })
-        assertEquals(5, home.rows.count { !it.navigation })
+        assertEquals(4, home.rows.count { !it.navigation })
+        assertTrue(home.rows.single { it.usage == "/ic help" }.navigation)
+        assertEquals("/ic help", home.rows.single { it.usage == "/ic help" }.target)
         assertTrue(home.rows.none { it.usage.contains("confirm") || it.usage.contains("cancel") || it.usage.contains('<') })
     }
 

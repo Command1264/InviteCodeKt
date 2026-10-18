@@ -86,7 +86,7 @@ class BukkitConfigurationLoader(
             } catch (error: InvalidConfigurationException) {
                 if (path.fileName.toString() == "storage.yml") {
                     throw IllegalArgumentException(
-                        "storage.yml has invalid YAML; check its syntax without sharing the file because it may contain credentials.",
+                        "storage.yml has invalid YAML\ncheck its syntax without sharing the file because it may contain credentials.",
                     )
                 }
                 throw error

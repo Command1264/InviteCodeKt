@@ -71,7 +71,7 @@ object BukkitPluginConfigurationParser {
         }
         val version = value.requiredInteger("config-version", "General configuration")
         require(version == CURRENT_VERSION) {
-            "General config-version $version is unsupported; expected $CURRENT_VERSION."
+            "General config-version $version is unsupported\nexpected $CURRENT_VERSION."
         }
         val language = value.requiredMap("language", "General configuration")
         requireKeys(language, LANGUAGE_KEYS, "language")

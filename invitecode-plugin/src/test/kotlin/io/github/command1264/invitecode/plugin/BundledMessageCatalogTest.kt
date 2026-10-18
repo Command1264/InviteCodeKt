@@ -30,6 +30,20 @@ class BundledMessageCatalogTest {
         assertFalse(english.getValue("command.claim.confirmation-prompt").endsWith(":"))
     }
 
+    @Test
+    fun `bundled user messages avoid semicolon prose and diagnostics have one field per line`() {
+        listOf("zh_TW", "en_US").forEach { locale ->
+            val entries = catalog(locale)
+            entries.forEach { (key, value) -> assertFalse(value.contains(';') || value.contains('；'), "$locale:$key") }
+            listOf("admin.doctor-runtime", "admin.doctor-integrations", "admin.doctor-storage",
+                "admin.inspect-player", "admin.inspect-invitation", "admin.inspect-reward").forEach { key ->
+                val lines = entries.getValue(key).lines()
+                assertTrue(lines.size >= 3, key)
+                lines.forEach { assertEquals(1, variables(it).size, "$locale:$key:$it") }
+            }
+        }
+    }
+
     private fun catalog(locale: String): Map<String, String> {
         val yaml = YamlConfiguration()
         InputStreamReader(requireNotNull(javaClass.getResourceAsStream("/config/messages/$locale.yml")), Charsets.UTF_8)

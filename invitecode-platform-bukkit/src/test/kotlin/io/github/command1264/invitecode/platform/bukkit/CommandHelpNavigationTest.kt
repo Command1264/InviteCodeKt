@@ -65,7 +65,7 @@ class CommandHelpNavigationTest {
         assertTrue(page("help", "admin", "invitation", "unlink", permissions = qualificationOnly).error)
         assertTrue(page("help", "admin", "2", permissions = qualificationOnly).error)
         assertTrue(page("help", "claim", player = false).error)
-        assertEquals(listOf("/ic help", "/ic help admin"), page(player = false).rows.map { it.usage })
+        assertEquals(listOf("/ic help"), page(player = false).rows.map { it.usage })
         assertTrue(page("help", "admin", permissions = { it == "invitecode.command.basic" }).error)
     }
 

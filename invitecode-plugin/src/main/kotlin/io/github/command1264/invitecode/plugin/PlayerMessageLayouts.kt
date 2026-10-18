@@ -26,7 +26,7 @@ internal class PlayerMessageLayouts(
         ), audience)
         if (eligible || reasons.isEmpty()) return summary
         val reason = fragment("command.status.ineligible-reason", mapOf(
-            "reasons" to reasons.joinToString(fragment("value.reason-separator").plainText),
+            "reasons" to reasons.joinToString("\n"),
         ))
         return PresentedMessage(summary.segments + MessageSegment("\n") + reason.segments)
     }

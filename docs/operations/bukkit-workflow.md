@@ -139,3 +139,25 @@ Console 可用項目顯示其導航指令。`runtime.help-frame-*`／`help-navig
 例如全權限的 storage／reload／doctor 返回管理索引 2/2，而只見 doctor 的管理員返回 1/1。
 分類頁、詳細頁與未來新增命令都套用相同規則，不為個別指令寫死頁碼；
 這是可重建的上層導覽，不記錄跨命令的瀏覽器式歷史。
+
+
+## 2026-10-18 Console 與逐欄報告規格
+
+Console 不把多行文字一次塞入 sendMessage；每個邏輯行獨立送給伺服器，時間戳與 INFO 由核心產生，
+不自行偽造。一般回覆與 doctor／inspect 每行加一次語系 prefix，維持各段顏色；
+已成區塊的 help 仍只在標題出現 prefix，內容各行獨立輸出以保留真實 log 標頭。
+玩家 doctor／inspect 使用一次標題 prefix 加逐欄內容，不在各行重複。
+Console 首頁只列 help 入口，help 與 help admin 都開共用管理索引，標題改為「後台指令說明」。
+不新增權限或第二份路由清單。玩家仍區分一般／管理說明。
+Console 導航只列實際可輸入的上一頁／返回／下一頁命令，不顯示不可點擊的按鈕或停用項目，省略前導斜線。
+玩家三項固定導航、停用無事件、返回所在父頁與框線共用規則保留。
+
+面向使用者的繁中／英文分號句改為真正換行。doctor、inspect 與離線工具多表數量、匿名化影響範圍
+改成一行一個欄位；玩家無法登記的多項原因逐項換行。離線工具不偽造伺服器 timestamp／INFO。
+動態玩家輸入、原因、UUID、SQL／migration 檔案、程式語法與註解不作盲目分號替換。
+核心與 storage 的本輪變更經去除字串後比對，僅訊息文字改變，沒有狀態、schema、備份或交易行為變更。
+原 value.reason-separator 保留相容鍵；狀態畫面的多原因目前固定逐行顯示。
+
+新增可自訂語系鍵 runtime.help-console-home-header、runtime.help-topic.console、
+runtime.help-console-navigation-title、admin.inspect-*-title 及 admin.inspect-* 報告模板。
+既有檔案通常不自動覆寫；本輪獲准更新 Folia 時先備份再部署完整雙語文案，其他核心不部署。

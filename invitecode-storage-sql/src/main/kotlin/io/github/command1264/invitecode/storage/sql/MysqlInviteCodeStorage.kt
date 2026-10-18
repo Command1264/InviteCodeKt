@@ -36,7 +36,7 @@ class MysqlInviteCodeStorage private constructor(
                 return HikariDataSource(hikari)
             } catch (error: Exception) {
                 throw MysqlStorageException(
-                    "MySQL connection pool could not start at ${config.host}:${config.port}/${config.database}; " +
+                    "MySQL connection pool could not start at ${config.host}:${config.port}/${config.database}\n" +
                         "check server availability, TLS and credentials.",
                 )
             }

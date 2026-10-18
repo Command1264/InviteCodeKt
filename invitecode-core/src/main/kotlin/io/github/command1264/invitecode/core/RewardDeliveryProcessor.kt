@@ -136,7 +136,7 @@ class RewardDeliveryCoordinator(
     ): StoredRewardAction {
         val current = requireNotNull(records.rewardAction(actionId)) { "Reward Action $actionId does not exist." }
         check(current.status == requiredStatus) {
-            "Reward Action $actionId must be $requiredStatus; current status is ${current.status}."
+            "Reward Action $actionId must be $requiredStatus\ncurrent status is ${current.status}."
         }
         val transitionAt = if (occurredAt.isAfter(current.updatedAt)) {
             occurredAt
@@ -202,7 +202,7 @@ class RewardDeliveryProcessor(
         } catch (error: Exception) {
             val uncertain = coordinator.uncertain(
                 processing.id,
-                "External Reward Action execution threw ${error.javaClass.simpleName}; result is unknown.",
+                "External Reward Action execution threw ${error.javaClass.simpleName}\nresult is unknown.",
                 now(),
             )
             return result(RewardActionProcessingStatus.UNCERTAIN, uncertain)

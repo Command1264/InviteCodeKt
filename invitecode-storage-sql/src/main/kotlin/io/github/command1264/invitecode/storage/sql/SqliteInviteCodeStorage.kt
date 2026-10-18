@@ -216,7 +216,7 @@ internal class JdbcInviteCodeStorage private constructor(
                 action.copy(
                     status = RewardActionStatus.UNCERTAIN,
                     updatedAt = recoveredAt,
-                    lastError = "Interrupted while processing; delivery result is unknown.",
+                    lastError = "Interrupted while processing\ndelivery result is unknown.",
                 ),
             )
         }
@@ -235,7 +235,7 @@ internal class JdbcInviteCodeStorage private constructor(
             "Reward Action $actionId does not exist."
         }
         require(current.status == RewardActionStatus.UNCERTAIN) {
-            "Only an uncertain Reward Action can be resolved; current status is ${current.status}."
+            "Only an uncertain Reward Action can be resolved\ncurrent status is ${current.status}."
         }
         val resolved = current.copy(
             status = when (resolution) {
@@ -436,7 +436,7 @@ internal class JdbcInviteCodeStorage private constructor(
                 statement.setString(1, lockName)
                 statement.executeQuery().use { rows -> rows.next() && rows.getInt(1) == 1 }
             }
-            check(acquired) { "MySQL anonymization lock timed out; check other maintenance processes." }
+            check(acquired) { "MySQL anonymization lock timed out\ncheck other maintenance processes." }
             try {
                 write { OfflinePlayerAnonymizer.anonymize(it, playerId, key.keyId, key::hash) }
             } finally {
@@ -495,7 +495,7 @@ internal class JdbcInviteCodeStorage private constructor(
                 connection.rollback()
             } catch (rollbackError: Throwable) {
                 throw MysqlStorageException(
-                    "MySQL write and rollback both failed; state is uncertain. Stop writes and inspect the database.",
+                    "MySQL write and rollback both failed\nstate is uncertain. Stop writes and inspect the database.",
                 )
             }
             throw error
@@ -524,10 +524,10 @@ internal class JdbcInviteCodeStorage private constructor(
 
     private fun storageFailure(operation: String, cause: SQLException): IllegalStateException =
         if (mysqlSource != null) MysqlStorageException(
-            "MySQL $operation failed (SQLState ${cause.sqlState ?: "unknown"}, code ${cause.errorCode}); " +
+            "MySQL $operation failed (SQLState ${cause.sqlState ?: "unknown"}, code ${cause.errorCode})\n" +
                 "check database availability, schema and pool capacity. The operation was rejected.",
         ) else SqliteStorageException(
-            "SQLite $operation failed for ${requireNotNull(database).toAbsolutePath()}; " +
+            "SQLite $operation failed for ${requireNotNull(database).toAbsolutePath()}\n" +
                 "the storage operation was rejected and no fallback backend was used.",
             cause,
         )
@@ -555,7 +555,7 @@ internal class JdbcInviteCodeStorage private constructor(
                     readSchemaVersion(connection)
                 } catch (error: Exception) {
                     throw SqliteStorageException(
-                        "SQLite database ${database.toAbsolutePath()} is not initialized; " +
+                        "SQLite database ${database.toAbsolutePath()} is not initialized\n" +
                             "run the explicit schema migration before opening storage.",
                         error,
                     )
@@ -563,7 +563,7 @@ internal class JdbcInviteCodeStorage private constructor(
                 if (version != SqliteSchemaMigrator.currentVersion) {
                     throw SqliteStorageException(
                         "SQLite schema version $version does not match required version " +
-                            "${SqliteSchemaMigrator.currentVersion}; run the explicit schema migration.",
+                            "${SqliteSchemaMigrator.currentVersion}\nrun the explicit schema migration.",
                     )
                 }
                 if (reservationKey != null) {
@@ -573,7 +573,7 @@ internal class JdbcInviteCodeStorage private constructor(
                         statement.setString(1, reservationKey.keyId)
                         statement.executeQuery().use { it.next() }
                     }
-                    check(!otherKey) { "Reserved Invite Codes use another anti-abuse key; restore the original secret." }
+                    check(!otherKey) { "Reserved Invite Codes use another anti-abuse key\nrestore the original secret." }
                 }
             }
             return JdbcInviteCodeStorage(database, null, blockingOperationGuard, reservationKey)
@@ -590,7 +590,7 @@ internal class JdbcInviteCodeStorage private constructor(
                         }
                     }
                     check(storedKey == reservationKey.keyId) {
-                        "MySQL anti-abuse secret does not match the database; restore the shared secret."
+                        "MySQL anti-abuse secret does not match the database\nrestore the shared secret."
                     }
                 }
             }
@@ -634,7 +634,7 @@ internal fun <T> executeImmediateWrite(
             connection.createStatement().use { it.execute("ROLLBACK") }
         } catch (rollbackError: Throwable) {
             val uncertain = SqliteStorageException(
-                "SQLite write failed for ${database.toAbsolutePath()} and rollback also failed; " +
+                "SQLite write failed for ${database.toAbsolutePath()} and rollback also failed\n" +
                     "the database state is uncertain. Preserve it and inspect both causes before retrying.",
                 error,
             )

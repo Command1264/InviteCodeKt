@@ -151,13 +151,14 @@ class RuntimeCommandHelpTest {
     }
 
     @Test
-    fun `empty custom prefix stays empty in frame and console retains all slots`() {
+    fun `empty custom prefix stays empty and console root has one help entrance`() {
         val capture = Capture()
         execute(permissionProxy(CommandSender::class.java, basicPermissions, capture), "ic",
             messageCatalog(mapOf("presentation.prefix" to "")), capture = capture)
         assertFalse(capture.plainText().contains("[InviteCode]"))
-        assertTrue(capture.plainText().contains("──── Home"))
-        assertTrue(capture.plainText().contains("[Previous]  [Back]  [Next]"))
+        assertTrue(capture.plainText().contains("──── Console home"))
+        assertFalse(capture.plainText().contains("[Previous]"))
+        assertFalse(capture.plainText().contains("/ic help admin"))
         assertEquals(0, capture.operations)
     }
 
@@ -197,6 +198,9 @@ class RuntimeCommandHelpTest {
             "runtime.raw-output" to "{text}",
             "runtime.help-header" to "Help",
             "runtime.help-home-header" to "Home",
+            "runtime.help-console-home-header" to "Console home",
+            "runtime.help-console-navigation-title" to "Navigation",
+            "runtime.help-topic.console" to "Console",
             "runtime.help-frame-header" to "&8──── {prefix}&6{title} &8────",
             "runtime.help-frame-divider" to "&8────────────────────────",
             "runtime.help-navigation-enabled" to "&e[{text}]",

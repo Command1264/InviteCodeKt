@@ -56,7 +56,7 @@ object CommandHelpNavigation {
         val admins = allowed.filter { !it.playerOnly && it.id != InviteCodeCommandId.HELP }
         if (query.home) {
             val rows = homeIds.mapNotNull { id -> allowed.firstOrNull { it.id == id } }.map { entry -> detailRow(entry, false).copy(navigation = entry.id == InviteCodeCommandId.HELP) }
-            val adminLink = if (admins.isEmpty()) emptyList() else listOf(
+            val adminLink = if (admins.isEmpty() || !player) emptyList() else listOf(
                 HelpRow("/$label help admin", "runtime.help-topic.admin", command(label, listOf("admin")), true))
             return HelpPage(query, rows + adminLink)
         }

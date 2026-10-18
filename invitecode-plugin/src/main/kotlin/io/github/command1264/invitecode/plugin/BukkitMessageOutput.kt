@@ -21,24 +21,58 @@ internal object BukkitMessageOutput {
         key: String,
         variables: Map<String, String> = emptyMap(),
         prefix: PrefixPlacement = PrefixPlacement.INLINE,
-    ) = sendPresented(sender, MessagePresenter(messages).render(
-        (sender as? Player)?.let(BukkitLocaleCompatibility::locale), key, variables,
-        audience = audience(sender), prefix = prefix,
-    ))
+    ) {
+        val presenter = MessagePresenter(messages)
+        val audience = audience(sender)
+        val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
+        if (sender is Player || prefix == PrefixPlacement.NONE) {
+            sendPresented(sender, presenter.render(locale, key, variables, audience, prefix))
+        } else {
+            val heading = presenter.render(locale, "presentation.prefix", audience = audience, prefix = PrefixPlacement.NONE)
+            val body = presenter.render(locale, key, variables, audience, PrefixPlacement.NONE)
+            lines(body).forEach { line ->
+                sendPresented(sender, PresentedMessage(if (heading.plainText.isEmpty()) line.segments
+                    else heading.segments + io.github.command1264.invitecode.platform.bukkit.MessageSegment(" ") + line.segments))
+            }
+        }
+    }
+
+    fun sendReport(sender: CommandSender, messages: LocalizedMessages, title: String,
+        sections: List<Pair<String, Map<String, String>>>) {
+        send(sender, messages, title)
+        sections.forEach { (key, variables) -> send(sender, messages, key, variables,
+            if (sender is Player) PrefixPlacement.NONE else PrefixPlacement.INLINE) }
+    }
+
+    private fun lines(message: PresentedMessage): List<PresentedMessage> {
+        val result = mutableListOf<PresentedMessage>()
+        var current = mutableListOf<io.github.command1264.invitecode.platform.bukkit.MessageSegment>()
+        message.segments.forEach { segment ->
+            segment.text.split(Regex("\\r\\n|\\r|\\n")).forEachIndexed { index, part ->
+                if (index > 0) {
+                    result.add(PresentedMessage(current.toList()))
+                    current = mutableListOf()
+                }
+                if (part.isNotEmpty()) current.add(segment.copy(text = part))
+            }
+        }
+        result.add(PresentedMessage(current.toList()))
+        return result
+    }
 
     fun sendLiteral(sender: CommandSender, messages: LocalizedMessages, text: String, prefix: PrefixPlacement = PrefixPlacement.INLINE) =
         send(sender, messages, "runtime.raw-output", mapOf("text" to text), prefix)
 
     fun sendPresented(sender: CommandSender, message: PresentedMessage) {
         if (sender is Player) sender.spigot().sendMessage(*components(message))
-        else sender.sendMessage(buildString {
-            message.segments.forEach { segment ->
+        else lines(message).forEach { line -> sender.sendMessage(buildString {
+            line.segments.forEach { segment ->
                 append("§r")
                 segment.color?.let { append('§').append(InviteCodeColor.fromRgb(it).nearestLegacyColor().code) }
                 append(segment.text.replace('§', '&').replace(CONTROLS, ""))
             }
             append("§r")
-        })
+        }) }
     }
 
     fun audience(sender: CommandSender): MessageAudience = if (sender !is Player) MessageAudience.CONSOLE

@@ -23,6 +23,10 @@ import java.util.Locale
 
 /** Invoke directly from the shaded plugin JAR while all InviteCode servers are stopped. */
 object OfflineAnonymizeMain {
+    private fun printMessage(value: String) {
+        value.lineSequence().forEach { line -> println(if (line.startsWith("[InviteCode]")) line else "[InviteCode] $line") }
+    }
+
     @JvmStatic
     fun main(args: Array<String>) {
         try {
@@ -42,7 +46,7 @@ object OfflineAnonymizeMain {
                 val source = path(options.required("source"))
                 makeBackup(source, path(options.required("backup")))
                 JsonInviteCodeStorage.migrateV8ToV9(source, BlockingOperationGuard { })
-                println("JSON 快照已升級至 schema 9；請驗證快照並保留備份。")
+                printMessage("JSON 快照已升級至 schema 9\n請驗證快照並保留備份。")
                 return
             }
             if ("migrate-sqlite" in options) {
@@ -52,7 +56,7 @@ object OfflineAnonymizeMain {
                 val source = path(options.required("source"))
                 makeBackup(source, path(options.required("backup")))
                 val version = SqliteSchemaMigrator(source, BlockingOperationGuard { }).migrate()
-                println("SQLite schema 已升級至 $version；請驗證資料庫並保留備份。")
+                printMessage("SQLite schema 已升級至 $version\n請驗證資料庫並保留備份。")
                 return
             }
             if ("migrate-mysql" in options) {
@@ -66,7 +70,7 @@ object OfflineAnonymizeMain {
                     pool.use {
                         val version = MysqlSchemaMigrator(it, BlockingOperationGuard { }).migrate()
                         it.connection.use { connection -> MysqlSchemaMigrator.bindNetworkKey(connection, hasher.keyId) }
-                        println("MySQL schema 已升級至 $version；請驗證資料庫並保留 dump。")
+                        printMessage("MySQL schema 已升級至 $version\n請驗證資料庫並保留 dump。")
                     }
                 }
                 return
@@ -94,7 +98,7 @@ object OfflineAnonymizeMain {
                             if (apply) {
                                 requireBackupDump(path(options.required("backup")))
                                 storage.anonymizePlayer(playerId)
-                                println("玩家資料已匿名化；請驗證資料並保留備份。")
+                                printMessage("玩家資料已匿名化\n請驗證資料並保留備份。")
                             }
                         }
                     }
@@ -112,7 +116,7 @@ object OfflineAnonymizeMain {
                             if (apply) {
                                 makeBackup(source, path(options.required("backup")))
                                 storage.anonymizePlayer(playerId)
-                                println("玩家資料已匿名化；請驗證資料並保留備份。")
+                                printMessage("玩家資料已匿名化\n請驗證資料並保留備份。")
                             }
                         }
                     } else {
@@ -122,7 +126,7 @@ object OfflineAnonymizeMain {
                             if (apply) {
                                 makeBackup(source, path(options.required("backup")))
                                 storage.anonymizePlayer(playerId)
-                                println("玩家資料已匿名化；請驗證資料並保留備份。")
+                                printMessage("玩家資料已匿名化\n請驗證資料並保留備份。")
                             }
                         }
                     }
@@ -131,7 +135,7 @@ object OfflineAnonymizeMain {
     }
 
     private fun printPreview(preview: AnonymizationPreview) {
-        println("影響範圍：邀請 ${preview.invitations} 筆、獎勵交付 ${preview.rewardDeliveries} 筆、舊邀請碼 ${preview.retiredCodes} 組。")
+        printMessage("[InviteCode] 影響範圍：\n邀請：${preview.invitations} 筆\n獎勵交付：${preview.rewardDeliveries} 筆\n舊邀請碼：${preview.retiredCodes} 組")
     }
 
     private fun mysqlConfig(options: Map<String, String>): MysqlConfiguration = MysqlConfiguration(
@@ -150,17 +154,17 @@ object OfflineAnonymizeMain {
     private fun makeBackup(source: Path, destination: Path) {
         require(Files.isRegularFile(source, NOFOLLOW_LINKS)) { "儲存來源必須是既有的一般檔案。" }
         require(source != destination) { "備份路徑不能與來源相同。" }
-        require(!Files.exists(destination, NOFOLLOW_LINKS)) { "備份檔已存在；請選擇新路徑。" }
+        require(!Files.exists(destination, NOFOLLOW_LINKS)) { "備份檔已存在\n請選擇新路徑。" }
         require(Files.isDirectory(destination.parent)) { "備份檔的上層資料夾必須存在。" }
         // A leftover WAL can contain committed rows absent from the main SQLite file.
         if (!source.fileName.toString().endsWith(".json", ignoreCase = true)) {
             require(!Files.exists(source.resolveSibling("${source.fileName}-wal")) &&
                 !Files.exists(source.resolveSibling("${source.fileName}-shm"))) {
-                "SQLite 仍有 WAL／SHM 檔案；請先確認實例已停止、執行 checkpoint 並完整備份。"
+                "SQLite 仍有 WAL／SHM 檔案\n請先確認實例已停止、執行 checkpoint 並完整備份。"
             }
         }
         Files.copy(source, destination, COPY_ATTRIBUTES)
-        require(digest(destination).contentEquals(digest(source))) { "備份與來源的 SHA-256 不一致；已停止操作。" }
+        require(digest(destination).contentEquals(digest(source))) { "備份與來源的 SHA-256 不一致\n已停止操作。" }
     }
 
     private fun digest(path: Path): ByteArray = MessageDigest.getInstance("SHA-256").let { sha ->

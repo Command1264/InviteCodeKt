@@ -16,7 +16,7 @@ class PlayerMessageLayoutsTest {
         val layout = PlayerMessageLayouts(BukkitConfigurationLoader(directory) {}.load().messages, "en_US", MessageAudience.LEGACY_PLAYER)
         val status = layout.status(false, "claimed", 2, listOf("already registered", "claim period ended"))
         assertEquals(1, Regex("\\[InviteCode]").findAll(status.plainText).count())
-        assertTrue(status.plainText.endsWith("Cannot register: already registered; claim period ended"))
+        assertTrue(status.plainText.endsWith("Cannot register: already registered\nclaim period ended"))
         assertFalse(layout.status(true, "none", 0, emptyList()).plainText.contains("Cannot register"))
     }
 

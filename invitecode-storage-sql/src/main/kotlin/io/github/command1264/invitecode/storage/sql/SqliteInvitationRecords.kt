@@ -57,7 +57,7 @@ internal object SqliteInvitationRecords {
         val current = find(connection, transition.previousInvitation.id)
         if (current != transition.previousInvitation) {
             throw SqliteStorageException(
-                "Invitation ${transition.previousInvitation.id} changed before the audited transition; " +
+                "Invitation ${transition.previousInvitation.id} changed before the audited transition\n" +
                     "reload it and retry the administrative operation.",
             )
         }

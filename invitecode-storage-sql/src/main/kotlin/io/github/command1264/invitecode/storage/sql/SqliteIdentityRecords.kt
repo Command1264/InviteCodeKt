@@ -282,7 +282,7 @@ internal object SqliteInviteCodeRecords {
             val tombstonesExist = connection.createStatement().use { statement ->
                 statement.executeQuery("SELECT 1 FROM invitecode_reserved_code_hashes LIMIT 1").use { it.next() }
             }
-            check(!tombstonesExist) { "Reserved Invite Codes exist, but their secret is unavailable; code allocation is disabled." }
+            check(!tombstonesExist) { "Reserved Invite Codes exist, but their secret is unavailable\ncode allocation is disabled." }
             return false
         }
         val foreignKey = connection.prepareStatement(
@@ -291,7 +291,7 @@ internal object SqliteInviteCodeRecords {
             statement.setString(1, reservationKey.keyId)
             statement.executeQuery().use { it.next() }
         }
-        check(!foreignKey) { "Reserved Invite Codes use another anti-abuse key; restore the original secret." }
+        check(!foreignKey) { "Reserved Invite Codes use another anti-abuse key\nrestore the original secret." }
         return connection.prepareStatement(
             "SELECT 1 FROM invitecode_reserved_code_hashes WHERE code_hash = ?",
         ).use { statement ->

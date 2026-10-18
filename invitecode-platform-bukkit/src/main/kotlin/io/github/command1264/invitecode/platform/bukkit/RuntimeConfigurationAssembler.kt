@@ -99,7 +99,7 @@ object MessageCatalogParser {
         val version = (document["messages-version"] as? Number)?.toString()?.toIntOrNull()
             ?: throw IllegalArgumentException("Message catalog $locale requires integer messages-version.")
         require(version == CURRENT_VERSION) {
-            "Message catalog $locale version $version is unsupported; expected $CURRENT_VERSION."
+            "Message catalog $locale version $version is unsupported\nexpected $CURRENT_VERSION."
         }
         require(document.keys.any { it != "messages-version" }) {
             "Message catalog $locale must contain at least one message."

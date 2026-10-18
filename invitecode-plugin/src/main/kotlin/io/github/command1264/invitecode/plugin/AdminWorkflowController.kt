@@ -74,37 +74,40 @@ class AdminWorkflowController(
         }
     }
 
-    private fun inspectPlayer(sender: CommandSender, reference: String): Boolean = query(sender) { store ->
+    private fun inspectPlayer(sender: CommandSender, reference: String): Boolean = query(sender, "admin.inspect-player-title") { store ->
         val playerId = resolvePlayer(store, reference)
         val state = store.claimState(playerId)
         val code = store.activeInviteCode(playerId)?.code?.displayValue() ?: "NONE"
         val stats = store.inviterInvitationStats(playerId)
-        listOf(
-            "Player=$playerId name=${store.player(playerId)?.lastKnownName ?: "UNKNOWN"}",
-            "firstSeen=${state.firstSeenAt} inviter=${state.isInviter} invitee=${state.hasInvitation} code=$code",
-            "claimed=${stats.claimed} qualified=${stats.qualified} audit=${store.auditHistoryByPlayer(playerId, 20).size}",
-        )
+        AdminMessage("admin.inspect-player", mapOf(
+            "player" to playerId.toString(), "name" to (store.player(playerId)?.lastKnownName ?: "UNKNOWN"),
+            "first_seen" to state.firstSeenAt.toString(), "inviter" to state.isInviter.toString(),
+            "invitee" to state.hasInvitation.toString(), "code" to code,
+            "claimed" to stats.claimed.toString(), "qualified" to stats.qualified.toString(),
+            "audit" to store.auditHistoryByPlayer(playerId, 20).size.toString(),
+        ))
     }
 
-    private fun inspectInvitation(sender: CommandSender, reference: String): Boolean = query(sender) { store ->
+    private fun inspectInvitation(sender: CommandSender, reference: String): Boolean = query(sender, "admin.inspect-invitation-title") { store ->
         val id = parseUuid(reference, "Invitation ID")
         val invitation = requireNotNull(store.invitation(id)) { "Invitation $id 不存在。" }
-        listOf(
-            "Invitation=${invitation.id} status=${invitation.status}",
-            "inviter=${invitation.inviterId} invitee=${invitation.inviteeId} claimedAt=${invitation.claimedAt}",
-            "facts=${store.qualificationFacts(id).size} rewards=${store.rewardDeliveries(id).size} " +
-                "audit=${store.auditHistoryByInvitation(id, 20).size}",
-        )
+        AdminMessage("admin.inspect-invitation", mapOf(
+            "invitation" to invitation.id.toString(), "status" to invitation.status.name,
+            "inviter" to invitation.inviterId.toString(), "invitee" to invitation.inviteeId.toString(),
+            "claimed_at" to invitation.claimedAt.toString(), "facts" to store.qualificationFacts(id).size.toString(),
+            "rewards" to store.rewardDeliveries(id).size.toString(), "audit" to store.auditHistoryByInvitation(id, 20).size.toString(),
+        ))
     }
 
-    private fun inspectReward(sender: CommandSender, reference: String): Boolean = query(sender) { store ->
+    private fun inspectReward(sender: CommandSender, reference: String): Boolean = query(sender, "admin.inspect-reward-title") { store ->
         val id = parseUuid(reference, "Reward Action ID")
         val action = requireNotNull(store.rewardAction(id)) { "Reward Action $id 不存在。" }
-        listOf(
-            "RewardAction=${action.id} delivery=${action.rewardDeliveryId} status=${action.status}",
-            "recipient=${action.recipientId} type=${action.type} updatedAt=${action.updatedAt}",
-            "lastError=${action.lastError ?: "NONE"} transitions=${store.rewardActionTransitions(id).size}",
-        )
+        AdminMessage("admin.inspect-reward", mapOf(
+            "action" to action.id.toString(), "delivery" to action.rewardDeliveryId.toString(),
+            "status" to action.status.name, "recipient" to action.recipientId.toString(), "type" to action.type,
+            "updated_at" to action.updatedAt.toString(), "last_error" to (action.lastError ?: "NONE"),
+            "transitions" to store.rewardActionTransitions(id).size.toString(),
+        ))
     }
 
     private fun forceQualify(
@@ -225,13 +228,10 @@ class AdminWorkflowController(
         operation: (InviteCodeStorage) -> T,
     ): Boolean = submit(sender, operation, onSuccess)
 
-    private fun query(sender: CommandSender, operation: (InviteCodeStorage) -> List<String>): Boolean =
-        submit(sender, operation) { lines ->
-            BukkitMessageOutput.sendLiteral(
-                sender,
-                configuration.current().value.messages,
-                lines.joinToString("\n"),
-            )
+    private fun query(sender: CommandSender, title: String, operation: (InviteCodeStorage) -> AdminMessage): Boolean =
+        submit(sender, operation) { result ->
+            BukkitMessageOutput.sendReport(sender, configuration.current().value.messages, title,
+                listOf(result.key to result.variables))
         }
 
     private fun <T> submit(

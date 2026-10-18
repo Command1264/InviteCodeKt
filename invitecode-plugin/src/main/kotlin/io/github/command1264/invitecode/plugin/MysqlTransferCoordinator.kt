@@ -19,7 +19,7 @@ internal object MysqlTransferCoordinator {
             statement.executeQuery().use { rows -> rows.next() && rows.getInt(1) == 1 }
         }
         if (!acquired) throw MysqlStorageException(
-            "MySQL backend transfer/startup lock timed out; stop all instances and retry.",
+            "MySQL backend transfer/startup lock timed out\nstop all instances and retry.",
         )
         try {
             operation(connection)
@@ -28,7 +28,7 @@ internal object MysqlTransferCoordinator {
                 statement.setString(1, name)
                 statement.executeQuery().use { rows ->
                     if (!rows.next() || rows.getInt(1) != 1) throw MysqlStorageException(
-                        "MySQL backend transfer/startup lock was lost; inspect the database before continuing.",
+                        "MySQL backend transfer/startup lock was lost\ninspect the database before continuing.",
                     )
                 }
             }

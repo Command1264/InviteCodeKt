@@ -102,7 +102,7 @@ object StorageConfigurationParser {
         }
         val version = value.requiredInteger("config-version", "Storage configuration")
         require(version == CURRENT_VERSION) {
-            "Storage config-version $version is unsupported; expected $CURRENT_VERSION."
+            "Storage config-version $version is unsupported\nexpected $CURRENT_VERSION."
         }
         val sqlite = value.requiredMap("sqlite", "Storage configuration")
         require(sqlite.keys == setOf("file")) { "sqlite must contain only file." }

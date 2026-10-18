@@ -40,8 +40,11 @@ runtime:
   help-navigation-disabled: "&8[{text}]"
   help-navigation-hover: "Click to open the help page"
   help-home-header: "&6Common commands"
+  help-console-home-header: "&6Common administration commands"
+  help-console-navigation-title: "Administration help topics"
   help-page-header: "&6{topic} &7— Page {page}/{pages}"
   help-topic:
+    console: "Console"
     player: "Player"
     admin: "Administration"
     inspect: "Inspection"
@@ -54,12 +57,24 @@ runtime:
     doctor: "Health check"
   help-topic-description:
     inspect: "Read-only details for players, Invitations, or Reward Actions."
-    invitation: "Unlink or transfer an Invitation; changes are audited."
-    eligibility: "Manage claim eligibility; reset advances its generation and keeps history."
-    reward: "Inspect or resolve UNCERTAIN Reward Actions; check external delivery first."
-    code: "Rotate a player's Invite Code; the old code is retired and a new one is issued."
-    storage: "Maintain the current storage backend's schema; this does not move data."
-    reload: "Validate and apply configuration and messages; storage cutover uses its own procedure."
+    invitation: |-
+      Unlink or transfer an Invitation
+      Changes are audited.
+    eligibility: |-
+      Manage claim eligibility
+      Reset advances its generation and keeps history.
+    reward: |-
+      Inspect or resolve UNCERTAIN Reward Actions
+      Check external delivery first.
+    code: |-
+      Rotate a player's Invite Code
+      The old code is retired and a new one is issued.
+    storage: |-
+      Maintain the current storage backend's schema
+      This does not move data.
+    reload: |-
+      Validate and apply configuration and messages
+      Storage cutover uses its own procedure.
     doctor: "Read-only checks for runtime, integrations, and storage health."
   help-previous: "&ePrevious"
   help-next: "&eNext"
@@ -68,15 +83,19 @@ runtime:
   help-page-error: "&cThat page or topic was not found. &fUse /ic help to return to common commands."
   help-detail:
     help: |-
-      &7Opens the player-command index; use /ic help admin [page], then a category and operation for management details.
+      &7Opens the player-command index
+      &7use /ic help admin [page], then a category and operation for management details.
       &7Usage: &f{usage}
       &7Example: &f{example}
     code: |-
-      &7Views or creates your Invite Code; takes no arguments. Creating one makes you an inviter, so you cannot claim another code.
+      &7Views or creates your Invite Code
+      &7takes no arguments. Creating one makes you an inviter, so you cannot claim another code.
       &7Usage: &f{usage}
       &7Example: &f{example}
     claim: |-
-      &7The code is optional; omitting it opens the configured input flow. A valid code starts a timed confirmation; only confirmation creates the Invitation.
+      &7The code is optional
+      &7omitting it opens the configured input flow. A valid code starts a timed confirmation
+      &7only confirmation creates the Invitation.
       &7Usage: &f{usage}
       &7Example: &f{example}
     confirm: |-
@@ -84,7 +103,8 @@ runtime:
       &7Usage: &f{usage}
       &7Example: &f{example}
     cancel: |-
-      &7Takes no arguments. Cancels active code input or confirmation; it does not create an Invitation.
+      &7Takes no arguments. Cancels active code input or confirmation
+      &7it does not create an Invitation.
       &7Usage: &f{usage}
       &7Example: &f{example}
     status: |-
@@ -92,11 +112,13 @@ runtime:
       &7Usage: &f{usage}
       &7Example: &f{example}
     stats: |-
-      &7Takes no arguments. Shows Invitations awaiting qualification and those already qualified; historical qualified Invitations remain included.
+      &7Takes no arguments. Shows Invitations awaiting qualification and those already qualified
+      &7historical qualified Invitations remain included.
       &7Usage: &f{usage}
       &7Example: &f{example}
     inspect-player: |-
-      &7Use a player UUID or unique known name; unknown or ambiguous names are rejected. This query does not change data.
+      &7Use a player UUID or unique known name
+      &7unknown or ambiguous names are rejected. This query does not change data.
       &7Usage: &f{usage}
       &7Example: &f{example}
     inspect-invitation: |-
@@ -104,47 +126,58 @@ runtime:
       &7Usage: &f{usage}
       &7Example: &f{example}
     inspect-reward: |-
-      &7Use a Reward Action UUID, not a Reward Delivery ID. A Delivery records a reward to deliver; an Action tracks execution status. This query does not execute rewards.
+      &7Use a Reward Action UUID, not a Reward Delivery ID. A Delivery records a reward to deliver
+      &7an Action tracks execution status. This query does not execute rewards.
       &7Usage: &f{usage}
       &7Example: &f{example}
     unlink: |-
-      &7Requires an Invitation UUID and a non-empty reason, which may contain spaces. Marks that row UNLINKED and audits the change; history and rewards are retained.
+      &7Requires an Invitation UUID and a non-empty reason, which may contain spaces. Marks that row UNLINKED and audits the change
+      &7history and rewards are retained.
       &7Usage: &f{usage}
       &7Example: &f{example}
     transfer: |-
-      &7Requires an Invitation UUID, new inviter reference, and non-empty reason, which may contain spaces. Only CLAIMED Invitations can be transferred; the change is audited.
+      &7Requires an Invitation UUID, new inviter reference, and non-empty reason, which may contain spaces. Only CLAIMED Invitations can be transferred
+      &7the change is audited.
       &7Usage: &f{usage}
       &7Example: &f{example}
     force-qualify: |-
-      &7Requires an Invitation UUID, configured qualification Policy ID, and non-empty reason, which may contain spaces. Only CLAIMED Invitations are accepted; conditions are bypassed and Reward Delivery/Action records are created, not delivered automatically.
+      &7Requires an Invitation UUID, configured qualification Policy ID, and non-empty reason, which may contain spaces. Only CLAIMED Invitations are accepted
+      &7conditions are bypassed and Reward Delivery/Action records are created, not delivered automatically.
       &7Usage: &f{usage}
       &7Example: &f{example}
     reset-eligibility: |-
-      &7Requires a player reference and non-empty reason, which may contain spaces. Resets first-seen time and advances the eligibility generation; history is kept and other eligibility rules still apply.
+      &7Requires a player reference and non-empty reason, which may contain spaces. Resets first-seen time and advances the eligibility generation
+      &7history is kept and other eligibility rules still apply.
       &7Usage: &f{usage}
       &7Example: &f{example}
     retry-reward: |-
-      &7Requires a Reward Action UUID (not a Delivery ID) and non-empty reason, which may contain spaces. Only UNCERTAIN actions are accepted; check external results first because retrying may duplicate an effect.
+      &7Requires a Reward Action UUID (not a Delivery ID) and non-empty reason, which may contain spaces. Only UNCERTAIN actions are accepted
+      &7check external results first because retrying may duplicate an effect.
       &7Usage: &f{usage}
       &7Example: &f{example}
     mark-delivered: |-
-      &7Requires a Reward Action UUID and non-empty reason, which may contain spaces. Only UNCERTAIN actions are accepted; this does not execute the reward and should follow verification that the external effect occurred.
+      &7Requires a Reward Action UUID and non-empty reason, which may contain spaces. Only UNCERTAIN actions are accepted
+      &7this does not execute the reward and should follow verification that the external effect occurred.
       &7Usage: &f{usage}
       &7Example: &f{example}
     rotate-code: |-
-      &7Requires a player reference and non-empty reason, which may contain spaces. Retires that player's old Invite Code and creates a new one; existing Invitations remain.
+      &7Requires a player reference and non-empty reason, which may contain spaces. Retires that player's old Invite Code and creates a new one
+      &7existing Invitations remain.
       &7Usage: &f{usage}
       &7Example: &f{example}
     migrate-storage: |-
-      &7Requires SQLITE or MYSQL and a non-empty reason, which may contain spaces; the target must match the configured backend. This updates schema and does not move data between backends.
+      &7Requires SQLITE or MYSQL and a non-empty reason, which may contain spaces
+      &7the target must match the configured backend. This updates schema and does not move data between backends.
       &7Usage: &f{usage}
       &7Example: &f{example}
     reload: |-
-      &7Takes no arguments. Validates and applies configuration and messages. Changes to storage.yml backend are not applied here; admin reload is a compatibility alias.
+      &7Takes no arguments. Validates and applies configuration and messages. Changes to storage.yml backend are not applied here
+      &7admin reload is a compatibility alias.
       &7Usage: &f{usage}
       &7Example: &f{example}
     doctor: |-
-      &7Takes no arguments. Read-only checks runtime, integrations, and storage health; it does not create a database or run a migration.
+      &7Takes no arguments. Read-only checks runtime, integrations, and storage health
+      &7it does not create a database or run a migration.
       &7Usage: &f{usage}
       &7Example: &f{example}
 command:
@@ -211,7 +244,7 @@ command:
   error: "&cThe operation failed. &fContact an administrator to check the server log."
   stopping: "&eThe plugin is stopping and cannot accept operations. &fTry again later."
 value:
-  reason-separator: "; "
+  reason-separator: ", "
   'yes': "yes"
   'no': "no"
   invitation:
@@ -220,9 +253,42 @@ value:
     qualified: "qualified"
     unlinked: "unlinked"
 admin:
+  inspect-player-title: "&6Player record"
+  inspect-invitation-title: "&6Invitation record"
+  inspect-reward-title: "&6Reward Action record"
+  inspect-player: |-
+    &fPlayer: {player}
+    &7Name: {name}
+    &7First seen: {first_seen}
+    &7Is inviter: {inviter}
+    &7Has invitation: {invitee}
+    &7Invite Code: {code}
+    &7Awaiting qualification: {claimed}
+    &7Qualified: {qualified}
+    &7Audit: {audit}
+  inspect-invitation: |-
+    &fInvitation: {invitation}
+    &7Status: {status}
+    &7Inviter: {inviter}
+    &7Invitee: {invitee}
+    &7Claimed at: {claimed_at}
+    &7Qualification facts: {facts}
+    &7Rewards: {rewards}
+    &7Audit: {audit}
+  inspect-reward: |-
+    &fReward Action: {action}
+    &7Delivery: {delivery}
+    &7Status: {status}
+    &7Recipient: {recipient}
+    &7Type: {type}
+    &7Updated at: {updated_at}
+    &7Last error: {last_error}
+    &7Transitions: {transitions}
   invitation-unlinked: "&aInvitation {invitation} unlinked."
   invitation-transferred: "&aInvitation {invitation} transferred to inviter {inviter}."
-  invitation-force-qualified: "&aInvitation {invitation} marked as qualified; {rewards} reward delivery records created."
+  invitation-force-qualified: |-
+    &aInvitation {invitation} marked as qualified
+    {rewards} reward delivery records created.
   eligibility-reset: "&aClaim eligibility reset for player {player}."
   reward-resolved: "&aReward action {action} resolved as {status}."
   code-rotated: "&aPlayer {player}'s Invite Code rotated from {previous} to {current}."
@@ -237,11 +303,23 @@ admin:
   storage-stopping: "&eThe plugin is stopping and cannot update the storage schema."
   storage-success: "&aStorage schema updated to version {version}."
   storage-failed: "&cStorage schema update failed. &fCheck the server log."
-  doctor-runtime: "&fRuntime: {phase}; configuration generation: {generation}; executor: {executor}."
-  doctor-integrations: "&fIntegrations: PlaceholderAPI={placeholder}; Vault Economy={vault}; Dialog={dialog}; RGB={rgb}."
+  doctor-runtime: |-
+    &fRuntime: {phase}
+    &fConfiguration generation: {generation}
+    &fExecutor: {executor}
+  doctor-integrations: |-
+    &fPlaceholderAPI: {placeholder}
+    &fVault Economy: {vault}
+    &fDialog: {dialog}
+    &fRGB: {rgb}
   doctor-maintenance: "&eMaintenance reason: {reason}"
   doctor-storage-offline: "&eStorage is offline. This check did not create or modify data."
-  doctor-storage: "&fStorage: {backend}; schema: {schema}; reward actions: PENDING={pending}, PROCESSING={processing}, UNCERTAIN={uncertain}."
+  doctor-storage: |-
+    &fStorage backend: {backend}
+    &fSchema: {schema}
+    &fPENDING: {pending}
+    &fPROCESSING: {processing}
+    &fUNCERTAIN: {uncertain}
   doctor-storage-failed: "&cThe storage health check failed. &fCheck the server log."
   doctor-executor-stopping: "&eThe executor is stopping and cannot query pending reward actions."
 invite:

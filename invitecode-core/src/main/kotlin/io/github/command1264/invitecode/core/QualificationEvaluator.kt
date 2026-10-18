@@ -81,7 +81,7 @@ class QualificationEvaluator(
             "Qualification context Claim timestamp must match Invitation ${invitation.id}."
         }
         check(invitation.status == InvitationStatus.CLAIMED) {
-            "Only a claimed Invitation can be evaluated; current status is ${invitation.status}."
+            "Only a claimed Invitation can be evaluated\ncurrent status is ${invitation.status}."
         }
 
         val facts = mutableListOf<QualificationFact>()

@@ -38,13 +38,13 @@ internal object OfflinePlayerAnonymizer {
                 statement.setString(1, playerId.toString())
                 statement.executeQuery().use { it.next() }
             }
-            check(locked) { "Player $playerId is absent; it may already be anonymized." }
+            check(locked) { "Player $playerId is absent\nit may already be anonymized." }
         }
         val scope = collect(connection, playerId)
         val old = playerId.toString()
         val historical = UUID.randomUUID().toString()
         check(row(connection, "invitecode_players", "player_id", historical) == null) {
-            "Generated historical ID collided with an existing player; retry after rollback."
+            "Generated historical ID collided with an existing player\nretry after rollback."
         }
         val player = requireNotNull(row(connection, "invitecode_players", "player_id", old))
         insert(connection, "invitecode_players", player + ("player_id" to historical) + ("last_known_name" to null))
@@ -184,7 +184,7 @@ internal object OfflinePlayerAnonymizer {
                 }
                 statement.executeQuery().use { rows ->
                     check(!rows.next()) {
-                        "Player name remains in $table; anonymization was rolled back. " +
+                        "Player name remains in $table\nanonymization was rolled back. " +
                             "Inspect unrelated free text and unresolved rewards before retrying."
                     }
                 }
@@ -222,7 +222,7 @@ internal object OfflinePlayerAnonymizer {
                         textColumns.indices.forEach { index -> statement.setString(index + 1, "%$needle%") }
                         statement.executeQuery().use { rows ->
                             check(!rows.next()) {
-                                "Original Minecraft UUID remains in $table; anonymization was rolled back. " +
+                                "Original Minecraft UUID remains in $table\nanonymization was rolled back. " +
                                     "Inspect related text without exposing private data."
                             }
                         }
@@ -239,7 +239,7 @@ internal object OfflinePlayerAnonymizer {
     private fun collect(connection: Connection, playerId: UUID): Scope {
         val id = playerId.toString()
         check(row(connection, "invitecode_players", "player_id", id) != null) {
-            "Player $id is absent; it may already be anonymized."
+            "Player $id is absent\nit may already be anonymized."
         }
         val invitations = queryIds(connection,
             "SELECT invitation_id FROM invitecode_invitations WHERE inviter_id = ? OR invitee_id = ?", id, id)
@@ -255,11 +255,11 @@ internal object OfflinePlayerAnonymizer {
         deliveries.forEach { deliveryId ->
             val delivery = requireNotNull(row(connection, "invitecode_reward_deliveries", "delivery_id", deliveryId))
             check(delivery["status"] !in unsettled) {
-                "Reward Delivery $deliveryId is unresolved; resolve it before anonymization."
+                "Reward Delivery $deliveryId is unresolved\nresolve it before anonymization."
             }
             queryIds(connection, "SELECT status FROM invitecode_reward_actions WHERE reward_delivery_id = ?", deliveryId)
                 .forEach { status -> check(status !in unsettled) {
-                    "Reward Delivery $deliveryId contains an unresolved action; resolve it before anonymization."
+                    "Reward Delivery $deliveryId contains an unresolved action\nresolve it before anonymization."
                 } }
         }
         val codes = queryIds(connection, "SELECT code FROM invitecode_codes WHERE inviter_id = ?", id)

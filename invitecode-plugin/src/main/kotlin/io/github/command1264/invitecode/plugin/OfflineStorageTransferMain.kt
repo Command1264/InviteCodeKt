@@ -25,6 +25,10 @@ import java.util.Locale
 
 /** Explicit offline transfer entry point. It never changes storage.yml or deletes the source. */
 object OfflineStorageTransferMain {
+    private fun printMessage(value: String) {
+        value.lineSequence().forEach { line -> println(if (line.startsWith("[InviteCode]")) line else "[InviteCode] $line") }
+    }
+
     @JvmStatic
     fun main(args: Array<String>) {
         try {
@@ -54,25 +58,25 @@ object OfflineStorageTransferMain {
         hasher(source, options, environment).use { sourceHasher ->
             hasher(destination, options, environment).use { destinationHasher ->
                 require(sourceHasher.keyId == destinationHasher.keyId) {
-                    "兩端 anti-abuse 密鑰不同；請先提供相同密鑰。既有 IP hash 與舊邀請碼保留值不可重新計算。"
+                    "兩端 anti-abuse 密鑰不同\n請先提供相同密鑰。既有 IP hash 與舊邀請碼保留值不可重新計算。"
                 }
                 val keyId = sourceHasher.keyId
                 val snapshot = export(source, mysql, password, sourceHasher, guard)
                 require(snapshot.networkKeyId == keyId) { "來源 metadata 與提供的密鑰不一致。" }
                 preflightDestination(destination, mysql, password)
-                println("預檢通過：${source.backend} → ${destination.backend}；" +
-                    snapshot.tables.joinToString("、") { "${it.name.removePrefix("invitecode_")}=${it.rows.size}" })
+                printMessage("預檢通過：${source.backend} → ${destination.backend}\n" +
+                    snapshot.tables.joinToString("\n") { "${it.name.removePrefix("invitecode_")}=${it.rows.size}" })
                 if (!apply) {
-                    println("本次只預覽；備份來源後，使用相同選項加 --apply --backup <路徑> 執行。")
+                    printMessage("本次只預覽\n備份來源後，使用相同選項加 --apply --backup <路徑> 執行。")
                     return
                 }
                 backup(source, requireNotNull(backupPath))
                 // Reject changes between preview and the final source read; the backup is made before publication.
                 val finalSnapshot = export(source, mysql, password, sourceHasher, guard)
-                require(finalSnapshot == snapshot) { "來源在預檢後改變；目的地未寫入。停止所有寫入者並重新執行。" }
+                require(finalSnapshot == snapshot) { "來源在預檢後改變\n目的地未寫入。停止所有寫入者並重新執行。" }
                 val checkSourceUnchanged = {
                     require(export(source, mysql, password, sourceHasher, guard) == finalSnapshot) {
-                        "搬移期間來源發生變化；目的地仍在 staging，禁止 cutover。請檢查所有寫入者。"
+                        "搬移期間來源發生變化\n目的地仍在 staging，禁止 cutover。請檢查所有寫入者。"
                     }
                 }
                 when (destination.backend) {
@@ -80,7 +84,7 @@ object OfflineStorageTransferMain {
                     "json" -> writeJson(requireNotNull(destination.file), destinationHasher, finalSnapshot, guard, checkSourceUnchanged)
                     "mysql" -> writeMysql(requireNotNull(mysql), requireNotNull(password), finalSnapshot, guard, checkSourceUnchanged)
                 }
-                println("目的地已完成全表驗證；來源未改動。確認 storage.yml 僅指向目的地後，再啟動一組 InviteCode 實例。")
+                printMessage("目的地已完成全表驗證\n來源未改動。確認 storage.yml 僅指向目的地後，再啟動一組 InviteCode 實例。")
             }
         }
     }
@@ -98,7 +102,7 @@ object OfflineStorageTransferMain {
             require(Files.isRegularFile(file, NOFOLLOW_LINKS)) { "來源資料檔必須已存在。" }
             if (backend == "sqlite") requireNoWal(file)
         } else {
-            require(!Files.exists(file, NOFOLLOW_LINKS)) { "目的資料檔已存在；不可覆寫。" }
+            require(!Files.exists(file, NOFOLLOW_LINKS)) { "目的資料檔已存在\n不可覆寫。" }
             require(Files.isDirectory(requireNotNull(file.parent))) { "目的資料夾必須已存在。" }
         }
         return Endpoint(backend, file, secretFile)
@@ -143,7 +147,7 @@ object OfflineStorageTransferMain {
 
     private fun preflightDestination(destination: Endpoint, mysql: MysqlConfiguration?, password: String?) {
         if (destination.backend != "mysql") {
-            require(!Files.exists(requireNotNull(destination.file), NOFOLLOW_LINKS)) { "目的資料檔已出現；停止操作。" }
+            require(!Files.exists(requireNotNull(destination.file), NOFOLLOW_LINKS)) { "目的資料檔已出現\n停止操作。" }
             return
         }
         MysqlInviteCodeStorage.createPool(requireNotNull(mysql), requireNotNull(password)).use { pool ->
@@ -151,7 +155,7 @@ object OfflineStorageTransferMain {
                 requireNoOtherMysqlSessions(connection)
                 val catalog = requireNotNull(connection.catalog) { "MySQL 沒有選定 database。" }
                 connection.metaData.getTables(catalog, null, "%", arrayOf("TABLE", "VIEW")).use { tables ->
-                    require(!tables.next()) { "MySQL 目的 database 必須完全空白；不可覆寫或重試既有 staging。" }
+                    require(!tables.next()) { "MySQL 目的 database 必須完全空白\n不可覆寫或重試既有 staging。" }
                 }
             }
         }
@@ -204,7 +208,7 @@ object OfflineStorageTransferMain {
                 requireNoOtherMysqlSessions(connection)
                 val catalog = requireNotNull(connection.catalog)
                 connection.metaData.getTables(catalog, null, "%", arrayOf("TABLE", "VIEW")).use {
-                    require(!it.next()) { "MySQL 目的 database 已有表格；停止操作。" }
+                    require(!it.next()) { "MySQL 目的 database 已有表格\n停止操作。" }
                 }
                 // This marker blocks plugin startup if DDL, import, or verification is interrupted.
                 OfflineStorageTransfer.createMysqlTransferGuard(connection)
@@ -225,7 +229,7 @@ object OfflineStorageTransferMain {
                 "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE DB = DATABASE() AND ID <> CONNECTION_ID()",
             ).use { rows -> rows.next(); rows.getLong(1) }
         }
-        require(others == 0L) { "偵測到其他 MySQL 連線；請先停止所有使用這個 database 的程序。" }
+        require(others == 0L) { "偵測到其他 MySQL 連線\n請先停止所有使用這個 database 的程序。" }
     }
 
     private fun backup(source: Endpoint, backup: Path) {
@@ -240,13 +244,13 @@ object OfflineStorageTransferMain {
         require(Files.isDirectory(requireNotNull(backup.parent))) { "備份資料夾必須已存在。" }
         if (source.backend == "sqlite") requireNoWal(file)
         Files.copy(file, backup, COPY_ATTRIBUTES)
-        require(digest(file).contentEquals(digest(backup))) { "來源與備份的 SHA-256 不同；停止搬移。" }
+        require(digest(file).contentEquals(digest(backup))) { "來源與備份的 SHA-256 不同\n停止搬移。" }
     }
 
     private fun requireNoWal(file: Path) {
         require(!Files.exists(file.resolveSibling("${file.fileName}-wal")) &&
             !Files.exists(file.resolveSibling("${file.fileName}-shm"))) {
-            "SQLite 仍有 WAL／SHM；先停止實例、checkpoint 並做一致性備份。"
+            "SQLite 仍有 WAL／SHM\n先停止實例、checkpoint 並做一致性備份。"
         }
     }
 

@@ -34,6 +34,114 @@ runtime:
     migrate-storage: "更新儲存結構版本"
     reload: "重新載入設定與訊息"
     doctor: "檢查執行狀態與儲存健康"
+  help-home-header: "&f常用指令"
+  help-page-header: "&6{topic} &7— 第 {page}/{pages} 頁"
+  help-topic:
+    player: "玩家"
+    admin: "管理員"
+    inspect: "資料查詢"
+    invitation: "邀請關係"
+    eligibility: "登記資格"
+    reward: "獎勵處理"
+    code: "邀請碼"
+    storage: "儲存維護"
+    reload: "設定重新載入"
+    doctor: "健康檢查"
+  help-topic-description:
+    inspect: "唯讀查詢玩家、Invitation 或 Reward Action 的資料。"
+    invitation: "解除或轉移邀請關係；變更會留下稽核紀錄。"
+    eligibility: "管理登記資格；重設會推進世代，不刪除歷史資料。"
+    reward: "檢查或處理 UNCERTAIN Reward Action；先核對外部交付結果。"
+    code: "輪替玩家邀請碼；舊碼停用並建立新碼。"
+    storage: "維護目前儲存 backend 的結構，不搬移 backend。"
+    reload: "驗證並套用設定與訊息；儲存切換仍須依維護流程處理。"
+    doctor: "唯讀檢查執行階段、整合與儲存健康。"
+  help-previous: "&e上一頁"
+  help-next: "&e下一頁"
+  help-back: "&e返回"
+  help-open-detail: "點擊查看指令詳細說明"
+  help-page-error: "&c找不到此頁面或主題。&f請使用 /ic help 返回常用指令。"
+  help-detail:
+    help: |-
+      &7查看玩家指令索引；管理說明使用 /ic help admin [頁碼]，再接分類與操作名稱。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    code: |-
+      &7查看或首次建立自己的邀請碼；不需參數。建立後即成為邀請人，不能再使用他人邀請碼。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    claim: |-
+      &7邀請碼為選填；省略時依輸入模式開啟輸入。驗證後會進入限時確認，只有確認才建立邀請關係。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    confirm: |-
+      &7不需參數；只會接受尚未逾時的待確認邀請，並建立邀請關係。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    cancel: |-
+      &7不需參數；取消目前的邀請碼輸入或待確認流程，不會建立邀請關係。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    status: |-
+      &7不需參數；查看登記資格、最近的邀請狀態與待補發獎勵數量。歷史 Invitation 仍可能顯示。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    stats: |-
+      &7不需參數；查看等待達成資格與已達成資格的邀請統計。歷史上已達成資格的 Invitation 仍會計入。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    inspect-player: |-
+      &7玩家參照須為 UUID 或唯一的已知名稱；未知或重複名稱會拒絕。此查詢不修改資料。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    inspect-invitation: |-
+      &7參數是 Invitation UUID，不是玩家 UUID；查詢邀請狀態、資格事實與交付紀錄，不修改資料。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    inspect-reward: |-
+      &7使用 Reward Action UUID，不是 Reward Delivery ID；Delivery 記錄應交付項目，Action 記錄執行狀態。此查詢不執行獎勵。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    unlink: |-
+      &7需要 Invitation UUID 與非空原因（可含空格）；將該列標記為 UNLINKED 並留下稽核，不刪除歷史或獎勵紀錄。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    transfer: |-
+      &7需要 Invitation UUID、新邀請人參照及非空原因（可含空格）；只可轉移 CLAIMED 邀請，並留下稽核紀錄。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    force-qualify: |-
+      &7需要 Invitation UUID、已設定的資格 Policy ID 與非空原因（可含空格）；只接受 CLAIMED 邀請，略過條件檢查並建立 Reward Delivery／Action，不代表已送達。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    reset-eligibility: |-
+      &7需要玩家參照與非空原因（可含空格）；更新首次記錄時間並推進資格世代，不刪除 Invitation、Reward 或已交付紀錄，也不保證符合其他登記條件。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    retry-reward: |-
+      &7需要 Reward Action UUID（不是 Delivery ID）與非空原因（可含空格）；只接受 UNCERTAIN 動作。先查明外部結果，重試可能造成重複效果。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    mark-delivered: |-
+      &7需要 Reward Action UUID 與非空原因（可含空格）；只接受 UNCERTAIN 動作。此操作不執行獎勵，僅在確認外部效果已發生後標記已交付。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    rotate-code: |-
+      &7需要玩家參照與非空原因（可含空格）；停用該玩家舊邀請碼並建立新碼，不會刪除既有邀請關係。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    migrate-storage: |-
+      &7需要 SQLITE 或 MYSQL 及非空原因（可含空格）；目標須與目前 backend 相同。此操作更新結構，不搬移資料到另一個 backend。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    reload: |-
+      &7不需參數；驗證並套用設定與訊息。storage.yml 的 backend 變更不會在此套用；admin reload 為相容別名。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    doctor: |-
+      &7不需參數；唯讀檢查執行狀態、整合與儲存健康，不建立資料庫或執行 migration。
+      &7用法：&f{usage}
+      &7範例：&f{example}
 command:
   code:
     value: "&f你的邀請碼：{code}"

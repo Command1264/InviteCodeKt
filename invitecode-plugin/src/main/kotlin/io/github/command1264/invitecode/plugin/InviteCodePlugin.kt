@@ -10,8 +10,8 @@ import io.github.command1264.invitecode.api.InviteCodeApi
 import io.github.command1264.invitecode.platform.bukkit.AsyncOperationExecutor
 import io.github.command1264.invitecode.platform.bukkit.AtomicRuntimeSnapshot
 import io.github.command1264.invitecode.platform.bukkit.ClaimInteractionSessions
-import io.github.command1264.invitecode.platform.bukkit.CommandHelp
-import io.github.command1264.invitecode.platform.bukkit.CommandHelpEntry
+import io.github.command1264.invitecode.platform.bukkit.CommandHelpNavigation
+import io.github.command1264.invitecode.platform.bukkit.HelpRow
 import io.github.command1264.invitecode.platform.bukkit.InvalidInviteCodeCommand
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandParser
@@ -42,6 +42,8 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.plugin.ServicePriority
+import net.md_5.bungee.api.chat.HoverEvent
+import net.md_5.bungee.api.chat.TextComponent
 import net.md_5.bungee.api.chat.ClickEvent
 import java.time.Duration
 import java.time.Instant
@@ -124,7 +126,9 @@ class InviteCodePlugin : JavaPlugin() {
                     doctor = ::doctor,
                 ),
             )
-            command.setTabCompleter(BukkitInviteCodeTabCompleter(tasks))
+            command.setTabCompleter(BukkitInviteCodeTabCompleter(tasks) {
+                configuration.currentOrNull()?.value?.qualifications?.policies?.keys ?: emptySet()
+            })
         }
         qualificationTask = tasks.repeatGlobal(20L * 60L, 20L * 60L) {
             if (runtime.phase == RuntimePhase.ACTIVE) {
@@ -475,7 +479,10 @@ internal class RuntimeCommandExecutor(
         args: Array<out String>,
     ): Boolean = when (val parsed = InviteCodeCommandParser.parse(args.toList())) {
         is InvalidInviteCodeCommand -> {
-            send(sender, "runtime.usage", mapOf("label" to label))
+            if (args.firstOrNull().equals("help", ignoreCase = true)) {
+                send(sender, if (sender.hasPermission("invitecode.command.basic"))
+                    "runtime.help-page-error" else "runtime.no-permission")
+            } else send(sender, "runtime.usage", mapOf("label" to label))
             true
         }
         is ParsedInviteCodeCommand -> execute(sender, label, parsed)
@@ -499,7 +506,7 @@ internal class RuntimeCommandExecutor(
             return true
         }
         when (request.id) {
-            InviteCodeCommandId.HELP -> help(sender, label)
+            InviteCodeCommandId.HELP -> help(sender, label, request.operands)
             InviteCodeCommandId.ADMIN_RELOAD -> reload(sender)
             InviteCodeCommandId.ADMIN_STORAGE_MIGRATE -> migrateStorage(sender, request)
             InviteCodeCommandId.ADMIN_DOCTOR -> {
@@ -525,69 +532,90 @@ internal class RuntimeCommandExecutor(
         BukkitMessageOutput.send(sender, catalog, key, variables)
     }
 
-    private fun help(sender: CommandSender, label: String) {
+    private fun help(sender: CommandSender, label: String, arguments: List<String>) {
         val catalog = messages()
         if (catalog == null) {
             sender.sendMessage("[InviteCode] Configuration is not loaded.")
             return
         }
-        val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
-        send(sender, "runtime.help-header")
-        val common = CommandHelp.entries.filter { it.id == InviteCodeCommandId.HELP }
-            .filter { sender.hasPermission(it.permission) }
-        val playerRoutes = CommandHelp.entries.filter { it.playerOnly && sender is Player }
-            .filter { sender.hasPermission(it.permission) }
-        val adminRoutes = CommandHelp.entries.filter { it.id != InviteCodeCommandId.HELP && !it.playerOnly }
-            .filter { sender.hasPermission(it.permission) }
-
-        common.forEach { sendHelpRow(sender, catalog, locale, label, it) }
-        if (playerRoutes.isNotEmpty()) {
-            BukkitMessageOutput.send(sender, catalog, "runtime.help-player-section", prefix = PrefixPlacement.NONE)
-            playerRoutes.forEach { sendHelpRow(sender, catalog, locale, label, it) }
+        val query = CommandHelpNavigation.query(arguments) ?: return
+        val page = CommandHelpNavigation.resolve(query, label, sender is Player, sender::hasPermission)
+        if (page.error) {
+            send(sender, "runtime.help-page-error")
+            return
         }
-        if (adminRoutes.isNotEmpty()) {
-            BukkitMessageOutput.send(sender, catalog, "runtime.help-admin-section", prefix = PrefixPlacement.NONE)
-            adminRoutes.forEach { sendHelpRow(sender, catalog, locale, label, it) }
+        val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
+        val presenter = MessagePresenter(catalog)
+        if (query.home) send(sender, "runtime.help-home-header")
+        else if (page.detail != null) send(sender, "runtime.help-header")
+        else {
+            val topic = query.path.lastOrNull() ?: if (sender is Player) "player" else "admin"
+            send(sender, "runtime.help-page-header", mapOf(
+                "topic" to presenter.render(locale, "runtime.help-topic.$topic",
+                    audience = BukkitMessageOutput.audience(sender), prefix = PrefixPlacement.NONE).plainText,
+                "page" to query.page.toString(), "pages" to page.pages.toString(),
+            ))
+        }
+        val detail = page.detail
+        if (detail != null) {
+            val usage = "/$label ${detail.usage}"
+            val message = presenter.render(locale, CommandHelpNavigation.detailKey(detail),
+                mapOf("usage" to usage, "example" to CommandHelpNavigation.example(detail, label)),
+                audience = BukkitMessageOutput.audience(sender), prefix = PrefixPlacement.NONE)
+            sendHelpMessage(sender, message, mapOf("usage" to usage,
+                "example" to CommandHelpNavigation.example(detail, label)), false)
+        }
+        page.rows.forEach { sendHelpRow(sender, catalog, locale, it) }
+        val links = listOfNotNull(page.previous?.let { "previous" to it },
+            page.back?.let { "back" to it }, page.next?.let { "next" to it })
+        if (links.isNotEmpty()) {
+            val segments = links.flatMapIndexed { index, (name, target) ->
+                val caption = presenter.render(locale, "runtime.help-$name",
+                    audience = BukkitMessageOutput.audience(sender), prefix = PrefixPlacement.NONE)
+                val text = if (sender is Player) "[${caption.plainText}]" else "${caption.plainText}: $target"
+                presenter.render(locale, "runtime.raw-output",
+                    mapOf("text" to (if (index > 0) "  " else "") + text),
+                    audience = BukkitMessageOutput.audience(sender), prefix = PrefixPlacement.NONE)
+                    .segments.map { it.copy(variable = name) }
+            }
+            sendHelpMessage(sender, PresentedMessage(segments), links.toMap(), true)
         }
     }
 
-    private fun sendHelpRow(
-        sender: CommandSender,
-        catalog: LocalizedMessages,
-        locale: String?,
-        label: String,
-        entry: CommandHelpEntry,
-    ) {
-        val usage = "/$label ${entry.usage}"
-        val audience = BukkitMessageOutput.audience(sender)
+    private fun sendHelpRow(sender: CommandSender, catalog: LocalizedMessages, locale: String?, entry: HelpRow) {
         val presenter = MessagePresenter(catalog)
-        val description = presenter.render(
-            locale,
-            entry.descriptionKey,
-            audience = audience,
-            prefix = PrefixPlacement.NONE,
-        )
-        val row = presenter.render(
-            locale,
-            "runtime.help-row",
-            mapOf("usage" to usage, "description" to description.plainText),
-            audience = audience,
-            prefix = PrefixPlacement.NONE,
-        )
-        val presented = PresentedMessage(row.segments.flatMap { rowSegment ->
-            if (rowSegment.variable != "description") listOf(rowSegment)
+        val audience = BukkitMessageOutput.audience(sender)
+        val description = presenter.render(locale, entry.descriptionKey,
+            audience = audience, prefix = PrefixPlacement.NONE)
+        val row = presenter.render(locale, "runtime.help-row",
+            mapOf("usage" to entry.usage, "description" to description.plainText),
+            audience = audience, prefix = PrefixPlacement.NONE)
+        // Description formatting stays independent from the usage and outer row template.
+        val presented = PresentedMessage(row.segments.flatMap { segment ->
+            if (segment.variable != "description") listOf(segment)
             else description.segments.map { it.copy(variable = null) }
         })
-        if (sender is Player) {
-            val components = BukkitMessageOutput.components(presented)
-            presented.segments.forEachIndexed { index, segment ->
-                if (segment.variable == "usage") {
-                    components[index].clickEvent = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, usage)
-                }
-            }
-            sender.spigot().sendMessage(*components)
-        } else {
-            BukkitMessageOutput.sendPresented(sender, presented)
+        val hover = if (entry.navigation) presenter.render(locale, "runtime.help-open-detail",
+            audience = audience, prefix = PrefixPlacement.NONE).plainText else null
+        sendHelpMessage(sender, presented, mapOf("usage" to entry.target), entry.navigation, hover)
+    }
+
+    private fun sendHelpMessage(sender: CommandSender, message: PresentedMessage,
+        targets: Map<String, String>, navigation: Boolean, hover: String? = null) {
+        if (sender !is Player) {
+            BukkitMessageOutput.sendPresented(sender, message)
+            return
         }
+        val components = BukkitMessageOutput.components(message)
+        message.segments.forEachIndexed { index, segment ->
+            targets[segment.variable]?.let { target ->
+                // RUN_COMMAND targets are constructed exclusively by the read-only help tree.
+                components[index].clickEvent = ClickEvent(
+                    if (navigation) ClickEvent.Action.RUN_COMMAND else ClickEvent.Action.SUGGEST_COMMAND, target)
+                if (hover != null) components[index].hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    arrayOf(TextComponent(hover)))
+            }
+        }
+        sender.spigot().sendMessage(*components)
     }
 }

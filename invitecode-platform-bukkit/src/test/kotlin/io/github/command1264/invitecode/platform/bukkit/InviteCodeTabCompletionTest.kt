@@ -8,6 +8,19 @@ class InviteCodeTabCompletionTest {
     private val onlinePlayers = listOf("Alex", "Steve")
 
     @Test
+    fun `help tabs traverse only permitted topics and real page numbers`() {
+        assertEquals(listOf("1", "2", "code", "doctor", "eligibility", "inspect", "invitation", "reload", "reward", "storage"),
+            complete(listOf("help", "admin", ""), player = true))
+        assertEquals(listOf("force-qualify", "transfer", "unlink"), complete(listOf("help", "admin", "invitation", ""), true))
+        assertEquals(emptyList<String>(), complete(listOf("help", "admin", "invitation", "transfer", ""), true))
+        assertEquals(emptyList<String>(), complete(listOf("help", "admin", "2", ""), true))
+        val basic: (String) -> Boolean = { it.startsWith("invitecode.command.") }
+        assertEquals(listOf("cancel", "claim", "code", "confirm", "help", "stats", "status"),
+            InviteCodeTabCompletion.complete(listOf("help", ""), true, basic, onlinePlayers))
+        assertEquals(emptyList<String>(), InviteCodeTabCompletion.complete(listOf("help", "admin", ""), true, basic, onlinePlayers))
+    }
+
+    @Test
     fun `player and console receive only applicable root commands`() {
         assertEquals(
             listOf("admin", "cancel", "claim", "code", "confirm", "help", "reload", "stats", "status"),
@@ -46,7 +59,6 @@ class InviteCodeTabCompletionTest {
         listOf(
             listOf("status", ""),
             listOf("stats", "anything"),
-            listOf("help", ""),
             listOf("reload", ""),
             listOf("unknown", ""),
             listOf("admin", "doctor", ""),
@@ -71,7 +83,7 @@ class InviteCodeTabCompletionTest {
             InviteCodeTabCompletion.complete(listOf("admin", ""), false, onlyHelp, onlinePlayers),
         )
 
-        val onlyQualification: (String) -> Boolean = { it == "invitecode.admin.qualification" }
+        val onlyQualification: (String) -> Boolean = { it in setOf("invitecode.command.basic", "invitecode.admin.qualification") }
         assertEquals(
             listOf("force-qualify"),
             InviteCodeTabCompletion.complete(
@@ -90,6 +102,23 @@ class InviteCodeTabCompletionTest {
                 onlinePlayers,
             ),
         )
+    }
+
+    @Test
+    fun `qualification profile completion is permission gated and never fills IDs or free text`() {
+        val arguments = listOf("admin", "invitation", "force-qualify", "invitation-id", "ne")
+        val profiles = listOf("new-player", "veteran")
+        assertEquals(listOf("new-player"), InviteCodeTabCompletion.complete(arguments, false, allowAll, onlinePlayers, profiles))
+        val denied: (String) -> Boolean = { it != "invitecode.admin.qualification" }
+        assertEquals(emptyList<String>(), InviteCodeTabCompletion.complete(arguments, true, denied, onlinePlayers, profiles))
+        assertEquals(emptyList<String>(), complete(arguments.dropLast(1) + "" + "" + "", false))
+        assertEquals(emptyList<String>(), complete(listOf("admin", "invitation", "force-qualify", ""), false))
+        assertEquals(emptyList<String>(), InviteCodeTabCompletion.complete(listOf("help", "claim", ""), false, allowAll, onlinePlayers))
+        val onlyQualification: (String) -> Boolean = { it in setOf("invitecode.command.basic", "invitecode.admin.qualification") }
+        assertEquals(listOf("force-qualify"), InviteCodeTabCompletion.complete(
+            listOf("help", "admin", "invitation", ""), false, onlyQualification, onlinePlayers))
+        assertEquals(emptyList<String>(), InviteCodeTabCompletion.complete(listOf("help", "admin", ""),
+            false, { it != "invitecode.command.basic" }, onlinePlayers))
     }
 
     private fun complete(arguments: List<String>, player: Boolean): List<String> =

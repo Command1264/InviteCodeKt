@@ -9,6 +9,7 @@ import org.bukkit.entity.Player
 
 internal class BukkitInviteCodeTabCompleter(
     private val tasks: PlatformTaskDispatcher,
+    private val qualificationProfileIds: () -> Collection<String> = { emptyList() },
 ) : TabCompleter {
     override fun onTabComplete(
         sender: CommandSender,
@@ -20,5 +21,6 @@ internal class BukkitInviteCodeTabCompleter(
         player = sender is Player,
         hasPermission = sender::hasPermission,
         onlinePlayerNames = tasks.onlinePlayerNames().toList(),
+        qualificationProfileIds = qualificationProfileIds(),
     )
 }

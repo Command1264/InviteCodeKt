@@ -19,6 +19,12 @@ class BundledMessageCatalogTest {
         CommandHelp.entries.forEach { entry ->
             assertTrue(chinese.containsKey(entry.descriptionKey), entry.descriptionKey)
             assertTrue(english.containsKey(entry.descriptionKey), entry.descriptionKey)
+            val detailKey = entry.descriptionKey.replace("help-description", "help-detail")
+            listOf(chinese, english).forEach { locale ->
+                val detail = locale.getValue(detailKey)
+                assertEquals(setOf("usage", "example"), variables(detail), detailKey)
+                assertTrue(detail.lines().size in 3..7, detailKey)
+            }
         }
         assertFalse(chinese.getValue("command.claim.confirmation-prompt").endsWith("："))
         assertFalse(english.getValue("command.claim.confirmation-prompt").endsWith(":"))

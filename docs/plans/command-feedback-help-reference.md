@@ -8,7 +8,7 @@
 
 | ID | 用法 | 用途 | 執行者 | 權限 |
 | --- | --- | --- | --- | --- |
-| help | `/ic help` | 查看指令說明；`/ic` 等價 | 玩家、console | `invitecode.command.basic` |
+| help | `/ic help` | 查看玩家指令索引；`/ic` 為精簡首頁 | 玩家、console | `invitecode.command.basic` |
 | code | `/ic code` | 查看或建立自己的邀請碼 | 玩家 | `invitecode.command.code` |
 | claim | `/ic claim [code]` | 使用別人的邀請碼；省略 code 時依設定開啟輸入 | 玩家 | `invitecode.command.claim` |
 | confirm | `/ic confirm` | 同意目前的邀請確認 | 玩家 | `invitecode.command.claim` |
@@ -29,7 +29,7 @@
 | reload | `/ic reload` | 重新載入設定與訊息；`/ic admin reload` 等價 | 玩家、console | `invitecode.admin.reload` |
 | doctor | `/ic admin doctor` | 檢查執行狀態與儲存健康 | 玩家、console | `invitecode.admin.doctor` |
 
-Help 的顯示列依這些 ID 與固定路由產生，用途從雙語 `runtime.help-description` 取得；不讓文案編輯改變 parser 的路由與參數規則。基本與管理分區只在有對應列時顯示。
+Help 的顯示列依這些 ID 與固定路由產生，用途從雙語 `runtime.help-description` 取得；不讓文案編輯改變 parser 的路由與參數規則。首頁與分層索引依權限顯示；完整用法只在各指令詳細頁展開。
 
 ## 參數與容易混淆之處
 
@@ -52,3 +52,17 @@ Help 的顯示列依這些 ID 與固定路由產生，用途從雙語 `runtime.h
 - [plugin.yml](../../invitecode-plugin/src/main/resources/plugin.yml)：主命令、`ic` 別名與 permission 定義。
 
 本輪未執行命令或 build；用法核對屬靜態證據。日後實作需以 parser 驅動檢查 help 的每條路由，避免維護兩份互相分歧的用法。
+
+## 2026-10-18 真人回饋修訂：分層說明
+
+`/ic`：五個常用操作與有權限的管理說明入口，不列完整管理用法。
+`/ic help`：玩家操作索引（console 為管理索引）。
+`/ic help admin [page]`：管理分類，每頁五項；分類再進 `/ic help admin invitation`，操作再進
+`/ic help admin invitation transfer`。完整參數仍以下表及 parser 為準。
+`confirm`／`cancel` 只在互動情境提示，明確查詢其 help 仍有效。
+
+詳情模板使用 `runtime.help-detail.*` 的 `{usage}` 與 `{example}`；範例為展示用途，UUID 類欄位使用
+`EXAMPLE_INVITATION_UUID`／`EXAMPLE_ACTION_UUID`，必須換成實際 ID。分類使用 `runtime.help-topic*`，
+導航使用 `runtime.help-previous`／`help-next`／`help-back`，頁碼錯誤使用 `runtime.help-page-error`。
+操作只填入聊天列；分類與分頁只執行唯讀 help。基本權限及每項專屬權限同時成立才顯示或提供 Tab。
+不提供 help 簡寫，不為 UUID／邀請碼／reason 猜值；額外參數回傳空 Tab 集合。

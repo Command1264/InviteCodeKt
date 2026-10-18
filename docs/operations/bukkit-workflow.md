@@ -26,7 +26,7 @@ messages 查詢順序為玩家自訂語系、設定預設語系、對應內建�
 
 內建繁中／英文文案已套用。已有自訂 messages 不會自動改寫；要採用新文案，先備份自訂檔，再比對 JAR 的 `config/messages/` 調整，或在停服備份後移走指定語系檔，讓下次載入補回內建檔。不要移除資料庫或金鑰。缺鍵仍可使用內建備援。
 
-受信任的模板支援 `&0`～`&f`、`&k`～`&o`、`&r` 及 `&#RRGGBB`；動態玩家名稱、原因、錯誤明細等以純值插入，不再次解析色碼或 `{變數}`。邀請碼的可點擊區域只涵蓋 `{code}` 本身，複製／舊版聊天填入的內容保持原始邀請碼。help 的用法點擊只填入聊天列，不立即執行；用法、說明及玩家／管理分類按權限與發送者身分篩選。`runtime.help-row` 控制用法列與分隔文字，`runtime.help-description.*` 各自控制說明的樣式；說明不繼承外層用法列的粗體等格式。管理 inspect 的診斷欄位／識別符維持原文。
+受信任的模板支援 `&0`～`&f`、`&k`～`&o`、`&r` 及 `&#RRGGBB`；動態玩家名稱、原因、錯誤明細等以純值插入，不再次解析色碼或 `{變數}`。邀請碼的可點擊區域只涵蓋 `{code}` 本身，複製／舊版聊天填入的內容保持原始邀請碼。help 的操作用法點擊只填入聊天列；分類、分頁與返回可直接執行唯讀 help；用法、說明及玩家／管理分類按權限與發送者身分篩選。`runtime.help-row` 控制用法列與分隔文字，`runtime.help-description.*` 各自控制說明的樣式；說明不繼承外層用法列的粗體等格式。管理 inspect 的診斷欄位／識別符維持原文。
 
 聊天確認依序顯示 prefix、標題、邀請人、邀請碼、問題、無冒號的期限提示、綠紅同意／不同意按鈕。聊天靠左，原生 Dialog 使用原生訊息區塊置中；不補空格、不做每秒刷新。Dialog 按鈕使用文字顏色，底色沿用客戶端原生外觀。資格已達成的通知不代表所有外部獎勵已送達，離線補發仍依原本 Reward 狀態處理。
 
@@ -35,6 +35,12 @@ Console 以標準黑底為基準篩選至少 4.5:1 對比的基本色；近黑�
 詳細範圍見 [已核准顯示規格](../plans/command-feedback-display-spec.md) 與 [四階段計畫](../plans/command-feedback-implementation-plan.md)。
 
 Console 可使用 `/invitecode`、`/invitecode help` 與管理指令。需要玩家身分與狀態的 `code`、`claim`、`confirm`、`cancel`、`status` 與 `stats` 會明確回覆只限玩家使用。
+
+`/ic` 只顯示 `code`、`claim`、`status`、`stats`、`help`，有管理權限時增加 `/ic help admin` 入口。
+`/ic help admin [page]` 每頁最多五個分類，使用 `/ic help admin invitation` 查看操作，再以
+`/ic help admin invitation transfer` 查看完整參數與範例。不存在或未授權的頁面顯示一般錯誤。
+`confirm`／`cancel` 保留情境提示與明確查詢 help，不列在首頁或一般說明。所有 help 子路徑及有效頁碼
+提供權限篩選 Tab；資格 profile ID 在 force-qualify 的指定位置提示。UUID、Invite Code 與 reason 不猜值。
 
 Tab 建議會依發送者身分、權限與當前參數位置篩選。已完成的指令、不明路徑、Invite Code、UUID、reason 與超出語法長度的位置會回傳空集合，不會退回顯示所有線上玩家。
 

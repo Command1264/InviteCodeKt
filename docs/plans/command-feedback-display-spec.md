@@ -1,6 +1,6 @@
 # 指令回饋與 messages 整體規格
 
-狀態：2026-10-18 使用者確認整體規格通過。第一、二階段已完成訊息實作及封裝；[第三階段證據](../testing/evidence/2026-10-18-command-feedback-stage3.md) 記錄獲准的八核心與兩個網路玩家流程、最新 Folia 及渲染客戶端限制。新產物尚未部署 Human 或完成第四階段真人外觀；[實作與測試計畫](command-feedback-implementation-plan.md) 保留後續範圍與 remote 邊界。
+狀態：2026-10-18 使用者確認整體規格通過。第一、二階段已完成訊息實作及封裝；[第三階段證據](../testing/evidence/2026-10-18-command-feedback-stage3.md) 記錄獲准的八核心與兩個網路玩家流程、最新 Folia 及渲染客戶端限制。前一候選已部署 Human，但第四階段因首頁資訊過量正在修正，尚未完成真人外觀；[實作與測試計畫](command-feedback-implementation-plan.md) 保留後續範圍與 remote 邊界。
 
 ## 回覆與 prefix
 
@@ -16,7 +16,7 @@
 - 確認區七個邏輯區塊：prefix、確認邀請碼、邀請人、邀請碼、是否使用、選擇期限、同意／不同意。長文或窄視窗仍可能換行。
 - 期限提示使用 `請在 {seconds} 秒內選擇`，末尾無冒號，不每秒刷新。
 - 邀請碼直接點擊複製與 HEX 彩蛋保留。按鈕綠／紅字與 hover 保留，Dialog 底色由客戶端控制。
-- 玩家執行 help 時，指令點擊只填入聊天列，不立即執行。只有確認區的同意／不同意維持直接操作。
+- 玩家首頁及詳細用法的操作指令點擊只填入聊天列；help 分類、頁碼與返回可直接執行唯讀導覽。確認區的同意／不同意維持原本操作。
 - 原生輸入 Dialog 同樣使用 prefix 作標題，內文放輸入用途與欄位；空 prefix 時以輸入用途作標題。不增加新的輸入模式。
 
 ## 色彩與 console 已確認規則
@@ -42,8 +42,13 @@ Console 的內容與權限依指令用途判斷，不因使用 console 而一律
 
 完整指令、參數、權限與限制見 [help 核對表](command-feedback-help-reference.md)，依實際 parser／controller 整理。不新增指令，不用省略號代替正式用法。
 
-- help 每行指令加用途，依權限／執行者篩選。管理員分玩家與管理區，console 只列可執行項目。
-- `/ic` 與 `/ic help` 皆開說明；`/ic reload` 是主要寫法，`/ic admin reload` 保留為既有別名，不重複列兩行。
+- `/ic` 首頁只列 `code`、`claim`、`status`、`stats`、`help`；各列仍需相應權限。具管理權限時只增加一個 `/ic help admin` 入口。
+- `/ic help` 顯示玩家索引；console 改顯示管理索引。`/ic help admin [page]` 顯示管理分類，每頁最多五項，先按權限篩選再分頁。
+- 使用完整路徑 `/ic help admin invitation` 查看分類，再以 `/ic help admin invitation transfer` 查看完整參數、用途與範例。不提供 `/ic help invitation` 簡寫。
+- `confirm`／`cancel` 不列在首頁與一般說明；claim 互動情境保留必要提示，可明確查詢 `/ic help confirm`／`ic help cancel`。Tab 可依權限探索這些明確命令。
+- `/ic reload` 是主要操作寫法，`/ic admin reload` 保留別名；help 統一在 `/ic help admin reload` 查閱。
+- 所有 help 路徑與可用頁碼提供權限分級 Tab；實際操作參數只在正確位置提示玩家名稱、backend 或資格 profile ID。UUID、邀請碼、原因、完整指令尾端與未知／超長路徑回傳空集合。
+- help 標題、分類、詳細文案、導航與錯誤均由雙語 messages 設定。完整回覆只顯示一次 prefix；未授權或不存在的頁面不洩漏操作參數。
 - `/ic status` 逐欄顯示可登記、邀請關係、待補發獎勵；無法登記時列出真實原因。
 - `/ic stats` 逐欄顯示等待達成資格與已達成資格人數；不新增排行榜、金額或猜測的百分比。
 - 「建立關係」「達成資格」「交付成功」分開敘述；資格通知不等於所有獎勵已入帳。
@@ -65,4 +70,4 @@ Console 的內容與權限依指令用途判斷，不因使用 console 而一律
 
 平台複驗涵蓋舊版聊天、新版 Paper／Folia Dialog 和 console。真人驗收核對實際置中、字型、顏色與互動；HTML 模擬和靜態檢查不能代替。新 JAR 的證據另綁版本，不改寫 F205 既有驗收。
 
-規格已通過，第一至三階段的實作與 Agent 檢查分別記錄於證據文件；第四階段尚未開始。真實網路／回呼不代替客戶端渲染與真人外觀，最新 Folia 的缺口另列。關服例外維持暫緩，沒有隔離測試。沒有部署 Human、push、PR 或發行；後續依計畫取得對應授權後執行。
+規格已通過，第一至三階段的實作與 Agent 檢查分別記錄於證據文件；第四階段已開始，2026-10-18 依真人回饋加入分層 help。真實網路／回呼不代替客戶端渲染與真人外觀，最新 Folia 的缺口另列。關服例外維持暫緩，沒有隔離測試。Human 更新依本輪授權進行，證據另記；沒有 push、PR 或發行。

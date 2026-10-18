@@ -8,11 +8,16 @@ object InviteCodeTabCompletion {
         player: Boolean,
         hasPermission: (String) -> Boolean,
         onlinePlayerNames: Collection<String>,
+        qualificationProfileIds: Collection<String> = emptyList(),
     ): List<String> {
-        if (arguments.isEmpty()) return emptyList()
+        if (arguments.isEmpty() || !hasPermission("invitecode.command.basic")) return emptyList()
         val path = arguments.dropLast(1).map { it.lowercase(Locale.ROOT) }
         val prefix = arguments.last()
-        val candidates = if (
+        val candidates = if (path.firstOrNull() == "help") {
+            CommandHelpNavigation.complete(path, player, hasPermission)
+        } else if (path.size == 4 && path.take(3) == listOf("admin", "invitation", "force-qualify")) {
+            permitted(hasPermission, "invitecode.admin.qualification", qualificationProfileIds)
+        } else if (
             path.size == 4 && path.take(3) == listOf("admin", "invitation", "transfer")
         ) {
             permitted(hasPermission, "invitecode.admin.invitation", onlinePlayerNames)

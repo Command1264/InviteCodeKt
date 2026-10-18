@@ -1,20 +1,22 @@
 # 訊息與 prefix：第四階段真人驗收
 
-## 目前狀態：準備完成，尚未部署或啟動
+## 目前狀態：已備份、部署與啟動，待真人驗收
 
-2026-10-18 沿用 `codex/feat/command-feedback-messages` Worktree。本輪只讀取固定測服，
-在本機 `.run/command-feedback-stage4/` 準備 JAR、兩份語系及逐台設定提案。
-沒有更動 Human 世界、資料庫、密鑰、設定、已裝 JAR、路由或帳號資格；沒有 push。
+2026-10-18 已依使用者授權完成三台部署、B 資格重設及 Folia 單筆舊關係解除。
+三台當次 `Done`、InviteCode ACTIVE、help／doctor／玩家專用拒絕／reload、UTF-8 log、實際 JDK 與 port 均已核對。
+世界原位保留；DB、密鑰與歷史未清空。候選程式沒有重建，沒有 push。
 
-受測程式來源：`dfbc39c4a80cea91b22b88c5f89d16107e7d50a2`。
-待部署 JAR：`invitecode-plugin/build/libs/InviteCode-0.1.0-SNAPSHOT.jar`，19,890,059 bytes。
-SHA-256：`E350DCA507D1FB953A2B785474708226BFBD682CBFE5D44E7E9BF0D0630C6C8B`。
-第一至三階段證據不代表這份 JAR 已通過真人外觀驗收。
+- 程式來源：`dfbc39c4a80cea91b22b88c5f89d16107e7d50a2`。
+- 已裝 JAR：`InviteCode-0.1.0-SNAPSHOT.jar`，19,890,059 bytes。
+- SHA-256：`E350DCA507D1FB953A2B785474708226BFBD682CBFE5D44E7E9BF0D0630C6C8B`。
+- [部署與當次啟動證據](evidence/2026-10-18-command-feedback-stage4-deployment.json)。
+
+**現在直接從步驟 1 開始；不要再次 reset、unlink 或建立 B 的邀請碼。**
+B 的本輪視窗最早在 **2026-10-19 14:38（臺灣時間）** 到期。若來不及，先回報，由 Agent 重新核對後安排。
 
 ## 選用三台，逐台完成
 
-下表的 build 依實際 `server.jar` 雜湊與相符安裝紀錄核對；Paper 更新後尚未在本輪啟動，
-不可拿舊 `versions/` 或 `latest.log` 當成新核心啟動證據。
+下表的核心、build 與 JDK 已依實際 JAR、當次啟動 log 及 Java 程序核對。
 
 | 測服／同名 `/server` 路由 | 核心 | JDK alias | Port | 本輪用途 |
 | --- | --- | --- | --- | --- |
@@ -24,63 +26,50 @@ SHA-256：`E350DCA507D1FB953A2B785474708226BFBD682CBFE5D44E7E9BF0D0630C6C8B`。
 | `invitecode-paper-26.2` | Paper 26.2 build 134 | local-25 | 20101 | 保留；受影響 adapter 的 Agent 複驗尚待執行 |
 
 實例根目錄：`D:\Code\Java\Plugin\InstanceHarbor\instances\Human\InviteCode\`。
-不新建實例、不更新核心、不搬移世界。四台均被現行管理器發現、`Status=Stopped`、後端 port 未監聽。
-Java alias 指向的實體 `java.exe` 均存在；本輪沒有啟動 JVM，故不宣稱啟動時版本驗證完成。
-四條唯一路由、loopback、legacy forwarding 設定相符；仍須以本候選真人切服確認。
-共用 Velocity 25565 與 Lobby 10001 已在既有 managed ConPTY run 運行，保持原狀。
+沒有新增實例、更新核心或搬移世界。三台現在為 Managed／Listening／ConPTY，可在既有 InstanceHarbor GUI
+按該台的原生後台按鈕開啟主控台。共用 Velocity 25565 與 Lobby 10001 的既有 run 保留。
+Paper 26.2 不在本輪部署、reset 或 unlink 範圍，保持停止。
 
-## 部署前，由 Agent 完成的工作
+## 已完成的部署與備份
 
-這是待執行安排，**不是部署成功紀錄**。
+每台先持有管理鎖、確認停止及核心 hash，再備份並逐檔核對：舊 JAR、整個 InviteCode 設定／DB／key、
+LuckPerms JSON 權限資料、metadata 與 ops。備份在各實例 `.invitecode-backups/command-feedback-20261018-*/`；
+精確路徑見部署 JSON。本備份不包含完整世界，世界原位保留，部署期間 `level.dat` 未變。
 
-1. 逐台重新取得管理器 `Status`、run、port 與獨佔鎖；確認停止且沒有待執行核心更新。
-   任一身分、來源 hash 或狀態改變，停止該台部署並重新核對。不要關閉共用代理／Lobby。
-2. 在目標實例旁的獨立備份目錄保留：唯一的舊 InviteCode JAR、整個 `plugins/InviteCode/`、
-   `workspace.json`。資料庫、WAL／SHM（若存在）與密鑰必須成套備份；不將它們提交 Git 或貼出內容。
-   只在停服並持有管理鎖時複製，核對檔案清單、大小、雜湊與可還原性。
-3. 比對本輪 preflight 與實際 JAR，部署原封不動的 E350 候選。先將舊 JAR 移入備份、保持 plugins
-   內只有一份 InviteCode；Paper 26.3 原本叫 `InviteCode-1.0.0.jar`，不能留下它與新 JAR 同時載入。
-   `workspace.json` 只更新插件檔名／hash／來源／更新時間，不改建立時核心紀錄、世界或首次設定狀態。
-4. 備份後，將候選 JAR 的 `config/messages/zh_TW.yml`、`en_US.yml` 部署至既有
-   `plugins/InviteCode/messages/`，保留其舊檔。只換 JAR 不會覆寫舊文案。
-   `storage.yml`、資料庫、密鑰與 rewards 保持原樣。
-5. 為同電腦兩帳號，將三台測試期間的 `matching-ip-action` 設為 `ALLOW`；原設定為 Spigot/Folia
-   `DENY`、Paper 26.3 `ALLOW`。驗收後分別還原原值；不要把 Paper 原值誤報成 DENY。
-   原有同 IP 拒絕證據不代表本輪新候選已重新驗證防濫用。
-6. 若要重測資格通知及離線補發，以提案中的 `PERMISSION invitecode.test.qualified` 暫時取代
-   `qualifications.yml`（policy ID 保持 `new-player`）。保存原檔及 B 原權限，避免被原本 30 分鐘／兩天
-   規則阻擋或提早達成；測完還原。不要改動獎勵種類。
-7. 保留部署前後檔案清單與 hash。啟動由下一個明確安排執行；看到當次核心版本、`Done`、InviteCode
-   ACTIVE 及預定 port 才交給玩家。JAR 存在、`accepted` 或舊 log 均不足以宣告已就緒。
+部署三台的唯一候選 JAR、完整 zh_TW／en_US 文案及測試資格設定；storage／rewards 與 key 不變。
+同網路暫用 ALLOW；測完還原 Spigot／Folia 原 DENY，Paper 26.3 原本就是 ALLOW。
 
-本機候選與提案位於 Worktree `.run/command-feedback-stage4/candidate/`、`proposed/<測服>/`。
-它們不是既有資料備份，也尚未套用。預估候選及文字約 20 MB，已確認 D 槽有 47 GiB 以上空間。
+Spigot 原先繼承全域 Java 25，已備份本台管理設定並改為 mise local-8，正常停服／退出後重啟驗證；
+其他測服與全域 Java 設定未改。Paper／Folia 實際為 local-25。
+
+**Spigot 的資格測試方式不同：**既有 LuckPerms 5.4.145 在寫 JSON 權限時發生 Gson 相容性錯誤。
+這次新建而失敗的 B 權限檔已在停服後移入備份保留證據，原本的權限檔沒有覆寫。
+本輪改用 `invitecode.command.basic` 資格條件，B 最後同意後立即達資格；
+A 必須在 B 最後同意前回 Lobby。**Spigot 不執行本清單的 LuckPerms 權限寫入指令。**
+Paper／Folia 仍用 `invitecode.test.qualified`，已設為 false 並核對持久化與實際檢查結果。
 
 ## 兩帳號與既有資料
 
-- **A：Command1**，邀請人，三台都有自己的有效邀請碼。A 不重設資格、不輪替邀請碼。
-- **B：Taiwan_PingLord**，受邀人，三台都有舊登記，沒有自己的有效邀請碼。
-  Spigot／Paper 26.3 的舊登記為 QUALIFIED；Folia 的舊登記為 CLAIMED。
+- **A：Command1**，邀請人，原邀請碼保持不變。A 不 reset、不輪替邀請碼。
+- **B：Taiwan_PingLord**，受邀人，三台都已由 Agent 重設為新的登記資格，generation 0 → 1。
+  B 沒有自己的有效邀請碼，請不要執行 `/ic code`。
 
-舊資料均為 SQLite schema 9，`quick_check=ok`，本輪沒有 migration；舊獎勵沒有 PENDING／PROCESSING／UNCERTAIN。
-要讓同一個 B 重跑成功 Claim，必須先明確同意對這三台的 B 執行一次**登記資格重設**。
-本輪沒有執行；也不以刪 DB、換 key 或匿名化來繞過。
-操作會影響 B 的當前登記資格並留下稽核；不能把「保留歷史」說成「帳號狀態完全不變」。
-Folia 還有一筆舊 CLAIMED：目前資格掃描會評估所有 CLAIMED 歷史，重設資格不會停止舊列的評估。
-因此也須確認先將 Folia 該筆精確 Invitation **unlink**，保留歷史列與稽核；否則重新授予測試權限時，
-可能連舊列一起達成資格並發獎。Spigot／Paper 26.3 的舊 QUALIFIED 保留，不 unlink。
-Paper 26.2 不在本輪 Human 部署、reset 或 unlink 範圍。
-若不接受此改動，可以先驗收 help、code、status／stats、資格預檢、雙語及 console；新的確認互動仍未驗收。
+Spigot／Paper 26.3 的舊 QUALIFIED 保留；Folia 指定的那一筆舊 CLAIMED 已成為 UNLINKED，
+原列與歷史仍在。三台分別新增 1／1／2 筆稽核，A、原邀請碼、舊 Reward 均未變。
+現在沒有替真人建立新的 Invitation，也沒有新的待補發獎勵。SQLite 均為 schema 9，quick_check=ok。
 
-## 簡單完整步驟（部署並完成前置後才開始）
+Paper 26.3 的 B 原本有直接 `* = true` 與測試資格 true；為驗收一般玩家 help，已暫時移除該 wildcard 並設資格 false。
+原權限已備份，驗收後還原。三台 B 都不是 OP。
 
-每次只開目前那台，做完正常關閉，再換下一台。後端主控台指令**不加 `/`**；玩家聊天指令加 `/`。
+## 簡單完整步驟（現在可以開始）
+
+三台已啟動；一次測一台，做完切回 Lobby 再換下一台。後端主控台指令**不加 `/`**；玩家聊天指令加 `/`。
 測試帳號、語言及客戶端版本記在回報中；不要提供密碼或 key。
 
 ### 1. 啟動與切服
 
-在既有 InstanceHarbor GUI 依名稱啟動目標，開原生後台；不要使用舊 PowerShell 管理入口。
-由 Agent／管理員核對本候選 hash、當次核心版本、`Done`、InviteCode 啟用、無例外，主控台輸入：
+在既有 InstanceHarbor GUI 依名稱選擇目標，開「原生後台」。三台目前已啟動，不必重複按啟動。
+在目前後端主控台依序輸入：
 
 ```text
 ic admin doctor
@@ -106,9 +95,10 @@ Spigot 用 1.8.8 客戶端驗收舊版行為；Paper 用 26.3，Folia 用原生 
 
 ### 2. 先測現有資格拒絕
 
-A、B 各輸入 `/ic status`、`/ic stats`、`/ic claim`。
-預期 A 因 Inviter 身分直接拒絕；B 因已有登記直接拒絕，不開輸入框。
-記下原本邀請碼與統計，做為重啟比較基準。
+A 輸入 `/ic claim`，預期因 Inviter 身分直接拒絕，不開輸入框。
+A、B 各輸入 `/ic status`、`/ic stats` 並記下數量；B 目前應顯示可登記。
+若 status 同時顯示舊 QUALIFIED／UNLINKED，那是保留的歷史；本輪可登記與後續新關係另外核對。
+B 的「已有登記」前置拒絕要在步驟 8 成功後再測。
 
 ### 3. help、Tab 與邀請碼
 
@@ -120,47 +110,11 @@ A 輸入 `/ic code`。將滑鼠移到**六碼本身**，檢查 hover。
 Paper／Folia 點擊後貼到本機記事本，應只有六碼；1.8.8 應填入聊天列，再手動選取複製，勿送到公開聊天。
 檢查 HEX 顏色、繁體中文與 prefix：一般一份回覆只出現一次。
 
-### 4. 由管理員準備 B 的本輪資格
+### 4. 確認 B 可開始，勿重做管理操作
 
-僅於同意上述資格變更、備份及暫時設定已核對後操作。B 先留在 lobby，不在後端。
-先保存 B 的 `invitecode.test.qualified` 原值／來源，確認 B 沒有 OP 或 wildcard，然後主控台執行：
-
-```text
-lp user Taiwan_PingLord permission set invitecode.test.qualified false
-lp user Taiwan_PingLord permission check invitecode.test.qualified
-```
-
-預期檢查為 false；若不是，先回報並處理精確權限，不改所有玩家或群組。
-若目前是 Folia，由 Agent 唯讀找出舊 CLAIMED 的唯一 Invitation UUID，核對 A／B 方向與狀態，
-再在本服執行下列指令（`<舊Invitation-UUID>` 必須換成剛核對的值，不能直接貼入）：
-
-```text
-ic admin inspect invitation <舊Invitation-UUID>
-```
-
-先閱讀結果，核對 UUID、A／B 方向與狀態仍為 CLAIMED；任何不符都停止。
-確認後**單獨**執行：
-
-```text
-ic admin invitation unlink <舊Invitation-UUID> command-feedback-human-old-claimed
-```
-
-再次執行 inspect，確認該列為 UNLINKED、歷史與 audit 保留，才繼續 reset。
-Spigot／Paper 26.3 跳過此 unlink。
-若舊列數量、狀態與本輪 preflight 不符，先停止並重新核對，不能以廣泛 unlink 代替。
-接著在**目前後端**執行：
-
-```text
-ic admin inspect player Taiwan_PingLord
-ic admin eligibility reset Taiwan_PingLord command-feedback-human-acceptance
-ic admin inspect player Taiwan_PingLord
-```
-
-由 Agent 唯讀核對 B 的 `eligibility_generation` 恰好增加 1（本輪原值 0，預期 1），
-歷史 Invitation／Reward 仍保留；不重設 A。B 切入後 `/ic status` 應顯示可登記；
-狀態畫面可能同時列出歷史 Invitation，不能只靠該文字證明本輪新關係。
-若仍不可登記，停止並回報，不反覆 reset。
-B 必須在重新開放的 24 小時內完成後續步驟，且**不要執行 `/ic code`**。
+B 輸入 `/ic status`，確認可登記；不要輸入 `/ic code`。
+Agent 已完成 reset、Folia 精確 unlink、generation 與 audit 核對；這一步不需任何主控台修改。
+若 B 已不符合資格，停止並回報，不自行反覆 reset。
 
 ### 5. 取消輸入與不公開
 
@@ -184,25 +138,31 @@ B 重複輸入 A 碼進入確認後，等待超過 60 秒，再按同意或執�
 
 ### 8. 同意
 
+**Spigot：A 先 `/server lobby`，B 才按最後的同意。**
+Paper／Folia：A 此時可以留在原服，步驟 9 才回 Lobby。
 B 重開輸入，填 A 碼並在期限內按綠色「同意」。預期成功只登記一次。
-B `/ic status`、A `/ic stats` 可看到相符狀態。B 再 `/ic claim` 應在輸入前拒絕。
-資格提示與「獎勵送達」要能區分；這一步尚不應因測試權限提前達成資格。
-由 Agent 唯讀核對只有一筆新的 Invitation UUID，A／B 方向正確、狀態 CLAIMED，
+B `/ic status` 可看到新登記，再 `/ic claim` 應在輸入前拒絕。
+Paper／Folia 新登記應先等待資格；Spigot 依本輪設定立即達成資格並通知 B，A 離線獎勵等待補發。
+由 Agent 在回報後唯讀核對只有一筆新的 Invitation UUID，A／B 方向正確，
 其 `invitee_eligibility_generation` 等於 B 本輪 generation；舊列與舊 Reward 不被覆寫。
 玩家 status／stats 是外觀驗收，不能代替這項資料判定。
 
 ### 9. 資格通知與離線補發
 
-步驟 4 已確認 B 的測試資格權限為 false。同意後，A 切回 `/server lobby`，讓 A 離開該後端；B 留在原服。
-主控台將 B 設為 true：
+**Spigot：不執行 lp 指令。**步驟 8 後 B 應已收到一次資格訊息；A 尚在 Lobby，直接做下方 A 回服檢查。
+
+**Paper／Folia：**A 先 `/server lobby`，B 留在原服。目前後端主控台輸入：
 
 ```text
 lp user Taiwan_PingLord permission set invitecode.test.qualified true
 ```
 
-等待最多一個週期（約 60 秒）或 B 重新加入該服。預期 B 收到一次資格訊息，A 的 MESSAGE 留待補發。
-A 回到該服應收到一次訊息；再次離開再回來不重複。A `/ic stats` 的 qualified 數量相對步驟 8 增加一。
-不要用 reward retry 或 mark-delivered 來製造此測試。
+等待約 60 秒，或讓 B 回 Lobby 再切回本服，預期 B 收到一次資格訊息，A 的 MESSAGE 等待補發。
+若先前已設過 true，不要再重複測本步；保留實際結果。
+
+**三台共用：**A 回到正在測的那台，應收到一次資格訊息；A 再回 Lobby、再進來，不應重複。
+A `/ic stats` 的 qualified 數量相對步驟 2 增加一。文字應清楚區分資格與獎勵交付。
+不要執行 reward retry／mark-delivered。
 
 ### 10. 雙語與 reload
 
@@ -221,9 +181,8 @@ A、B 將客戶端語言切為 English (US)，再執行 help／status／stats，
 重新啟動同一台，兩人切回，預期邀請碼、登記與設定保留，已送獎勵不再補發。
 若遇到已記錄的 JLine 關服例外，保留 log；先核對儲存與退出，不在此輪展開隔離測試或直接重建。
 
-測完還原 B 原權限、原 qualifications 與 matching-ip-action，再 reload／必要時正常重啟核對。
-只還原測試設定，不回灌舊 DB 覆蓋本輪稽核。若要撤回本輪帳號資料變更，須另核對停服備份與精確還原範圍。
-最後正常停止該 InviteCode 後端，保留世界與資料；代理／Lobby 若其他測試在用就保持運行。
+測完先依步驟 12 回報，由 Agent 統一還原 B 原權限、原 qualifications 與 matching-ip-action，並核對正常關服。
+不要手動回灌舊 DB，避免覆蓋本輪歷史與稽核；不要刪 key 或世界。共用代理／Lobby 保持原狀。
 
 ### 12. 回覆方式
 
@@ -257,12 +216,13 @@ reset 前、後與同意後各讀一次；新列須對應當前 generation，歷
 
 ## 尚餘里程碑與來源
 
-本文件完成的是第四階段的**準備**。下一步先確認三台部署與 B 資格重設的資料影響，
-以及 Folia 單筆舊 CLAIMED 的 unlink，再依停服備份流程部署；核對當次啟動後進行上述一次集中真人驗收。
-Paper 26.2 的受影響 adapter Agent 複驗另列未完成，不占用 Human 世界做自動化。
-Folia 最新 ALPHA 缺口保留，26.1.2 仍為實驗性。
-驗收後才整理本任務的 push／PR；merge、release 與正式發布另行取得授權。
+目前是「Agent 部署與啟動驗證完成，待使用者驗收」。下一步依上方清單集中完成三台真人外觀與互動；
+若通過，Agent 核對新 Invitation generation、獎勵恰一次及還原臨時設定／權限、停止不再使用的後端，
+再整理本任務的交付審查。沒有 push 授權，merge、release 與發布也另行處理。
+
+Paper 26.2 的隔離 adapter 複驗尚待完成，不使用其 Human 世界作為可重建自動資料。
+Folia 最新 26.3 ALPHA 缺口仍保留；26.1.2 是實驗性測試對象。
 
 依據：[四階段計畫，第四階段](../plans/command-feedback-implementation-plan.md#第四階段集中一次的真人外觀驗收)、
-[本輪唯讀證據](evidence/2026-10-18-command-feedback-stage4-preflight.json)、
-[第三階段結果](evidence/2026-10-18-command-feedback-stage3.md)。
+[本輪部署證據](evidence/2026-10-18-command-feedback-stage4-deployment.json)、
+[部署前唯讀證據](evidence/2026-10-18-command-feedback-stage4-preflight.json)。

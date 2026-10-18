@@ -95,3 +95,10 @@ Spigot 1.8.8、Paper 26.3 build 202、Folia 26.1.2 build 8；Paper 26.2 實際�
 [機器可讀 preflight](../testing/evidence/2026-10-18-command-feedback-stage4-preflight.json)。
 下一個可執行項目是停服備份後部署三台與核對當次啟動，再交付集中真人驗收；
 Paper 26.2 受影響 adapter 的 Agent 複驗仍未完成，與最新 Folia ALPHA 缺口分別保留。
+
+同日後續已取得明確部署／啟動／B reset／Folia 單筆 unlink 授權並完成，詳見
+[部署與啟動證據](../testing/evidence/2026-10-18-command-feedback-stage4-deployment.md)。
+三台目前可進行真人驗收；Spigot 的本台 Java 已核對為 local-8，Paper／Folia 為 local-25。
+Spigot 既有 LuckPerms JSON 寫入限制以不寫該權限的資格測試安排避開，未修復第三方插件。
+下一步是[集中真人清單](../testing/command-feedback-human-acceptance.md)，其後核對新資料、還原暫時設定與權限。
+本機文件與測服操作不等於 remote 授權，仍未 push。

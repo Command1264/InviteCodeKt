@@ -1,0 +1,173 @@
+{
+  "date": "2026-10-18",
+  "checkedAtUtc": "2026-10-18T06:41:39.978512+00:00",
+  "sourceCheckpoint": "5af0cb5",
+  "runtimeCommit": "dfbc39c4a80cea91b22b88c5f89d16107e7d50a2",
+  "state": "deployed-started-agent-verified-awaiting-human",
+  "instances": [
+    {
+      "name": "invitecode-spigot-1.8.8",
+      "port": 10101,
+      "core": "SPIGOT",
+      "minecraftVersion": "1.8.8",
+      "build": "git-Spigot-3c60ece-741a1bd",
+      "pluginSha256": "E350DCA507D1FB953A2B785474708226BFBD682CBFE5D44E7E9BF0D0630C6C8B",
+      "backup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-spigot-1.8.8\\.invitecode-backups\\command-feedback-20261018-063038-46e9c986",
+      "backupFileCount": 19,
+      "backupHashesVerified": true,
+      "worldDataIncludedInBackup": false,
+      "worldHeadersUnchangedDuringDeployment": true,
+      "keyPreserved": true,
+      "schema": 9,
+      "runId": "cafed55c7b0a4ea7971c50b5425b239f",
+      "hostPid": 67624,
+      "childPid": 67844,
+      "javaExecutable": "C:\\Program Files\\Java\\jdk1.8.0_501\\bin\\java.exe",
+      "mode": "ConPty",
+      "state": "Listening",
+      "coreDone": true,
+      "dialog": "NONE",
+      "agentCommandChecks": [
+        "doctor ACTIVE",
+        "help new prefix",
+        "console player-only refusal",
+        "valid reload",
+        "UTF8 log"
+      ],
+      "B": {
+        "generationBefore": 0,
+        "generationAfter": 1,
+        "claimWindowExpiresTaipei": "2026-10-19T14:38:24.123000+08:00"
+      },
+      "historicalInvitations": {
+        "QUALIFIED": 1
+      },
+      "historicalRewardActions": {
+        "DELIVERED": 2
+      },
+      "auditRecordsAdded": 1,
+      "newInvitationsCreatedByAgent": 0,
+      "qualificationTestMode": "immediate-basic-permission; A leaves before final confirmation",
+      "sameNetworkTestSetting": "ALLOW",
+      "sameNetworkOriginalSetting": "DENY",
+      "humanAcceptance": "pending"
+    },
+    {
+      "name": "invitecode-paper-26.3",
+      "port": 20102,
+      "core": "PAPER",
+      "minecraftVersion": "26.3",
+      "build": "202",
+      "pluginSha256": "E350DCA507D1FB953A2B785474708226BFBD682CBFE5D44E7E9BF0D0630C6C8B",
+      "backup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-paper-26.3\\.invitecode-backups\\command-feedback-20261018-063038-0f8a0cca",
+      "backupFileCount": 18,
+      "backupHashesVerified": true,
+      "worldDataIncludedInBackup": false,
+      "worldHeadersUnchangedDuringDeployment": true,
+      "keyPreserved": true,
+      "schema": 9,
+      "runId": "6d0f3f9d678c4b3cb2c8c61383f8cc35",
+      "hostPid": 51620,
+      "childPid": 25144,
+      "javaExecutable": "C:\\Program Files\\Java\\jdk-25.0.4.1\\bin\\java.exe",
+      "mode": "ConPty",
+      "state": "Listening",
+      "coreDone": true,
+      "dialog": "PAPER",
+      "agentCommandChecks": [
+        "doctor ACTIVE",
+        "help new prefix",
+        "console player-only refusal",
+        "valid reload",
+        "UTF8 log"
+      ],
+      "B": {
+        "generationBefore": 0,
+        "generationAfter": 1,
+        "claimWindowExpiresTaipei": "2026-10-19T14:38:26.428722+08:00"
+      },
+      "historicalInvitations": {
+        "QUALIFIED": 1
+      },
+      "historicalRewardActions": {
+        "DELIVERED": 2
+      },
+      "auditRecordsAdded": 1,
+      "newInvitationsCreatedByAgent": 0,
+      "qualificationTestMode": "manual invitecode.test.qualified false; grant after A leaves",
+      "sameNetworkTestSetting": "ALLOW",
+      "sameNetworkOriginalSetting": "ALLOW",
+      "humanAcceptance": "pending"
+    },
+    {
+      "name": "invitecode-folia-26.1.2",
+      "port": 30101,
+      "core": "FOLIA",
+      "minecraftVersion": "26.1.2",
+      "build": "8",
+      "pluginSha256": "E350DCA507D1FB953A2B785474708226BFBD682CBFE5D44E7E9BF0D0630C6C8B",
+      "backup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\command-feedback-20261018-063038-7d440eea",
+      "backupFileCount": 19,
+      "backupHashesVerified": true,
+      "worldDataIncludedInBackup": false,
+      "worldHeadersUnchangedDuringDeployment": true,
+      "keyPreserved": true,
+      "schema": 9,
+      "runId": "d307427bd85845bf8e6cf7030d8ad668",
+      "hostPid": 74236,
+      "childPid": 72296,
+      "javaExecutable": "C:\\Program Files\\Java\\jdk-25.0.4.1\\bin\\java.exe",
+      "mode": "ConPty",
+      "state": "Listening",
+      "coreDone": true,
+      "dialog": "PAPER",
+      "agentCommandChecks": [
+        "doctor ACTIVE",
+        "help new prefix",
+        "console player-only refusal",
+        "valid reload",
+        "UTF8 log"
+      ],
+      "B": {
+        "generationBefore": 0,
+        "generationAfter": 1,
+        "claimWindowExpiresTaipei": "2026-10-19T14:38:31.389488+08:00"
+      },
+      "historicalInvitations": {
+        "UNLINKED": 1
+      },
+      "historicalRewardActions": {},
+      "auditRecordsAdded": 2,
+      "newInvitationsCreatedByAgent": 0,
+      "qualificationTestMode": "manual invitecode.test.qualified false; grant after A leaves",
+      "sameNetworkTestSetting": "ALLOW",
+      "sameNetworkOriginalSetting": "DENY",
+      "humanAcceptance": "pending"
+    }
+  ],
+  "preservedSharedServices": [
+    {
+      "name": "Velocity",
+      "state": "Listening",
+      "runId": "0469c7f626414832877e4f3fd998ad12"
+    },
+    {
+      "name": "lobby",
+      "state": "Listening",
+      "runId": "172f6e972128449f8b6cc515525a390d"
+    }
+  ],
+  "notTouched": [
+    "Paper26.2 Human",
+    "Velocity routes",
+    "shared global settings",
+    "InstanceHarbor product code"
+  ],
+  "limitations": [
+    "client rendering/click/copy not verified",
+    "Spigot LP JSON permission writes fail due existing Gson mismatch; failed new file quarantined; no LP writes required in current Spigot test",
+    "Paper26.2 isolated adapter retest pending",
+    "Folia26.3 ALPHA not verified"
+  ],
+  "remoteWrites": false
+}

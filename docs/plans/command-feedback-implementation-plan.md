@@ -111,3 +111,11 @@ Spigot 既有 LuckPerms JSON 寫入限制以不寫該權限的資格測試安排
 [本輪證據](../testing/evidence/2026-10-18-command-feedback-help-deployment.md)，
 下一個尚未完成且前置條件已滿足的項目是第四階段真人 help 複驗，接續同一份
 [驗收清單](../testing/command-feedback-human-acceptance.md)。沒有 push 或發布。
+
+
+## 2026-10-18 Help 框線與固定導航回饋
+
+依已批准方案沿用分支加入同列 prefix／標題框線及固定三項導航；停用項目沒有互動事件。
+新候選 `fb303e2` 已完成 Java 8／11 與相關回歸驗證，三台備份部署，沒有 push。
+下一個可開始但尚未完成的項目仍為第四階段真人外觀複驗，先完成
+[本輪六項清單](../testing/command-feedback-human-acceptance.md)，之後續未完成流程。

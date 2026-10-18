@@ -1,18 +1,40 @@
 # 訊息與 prefix：第四階段真人驗收
 
-## 目前狀態：分層 help 修正已部署，待真人複驗
+## 目前狀態：help 框線與固定導航已部署，待真人複驗
 
 2026-10-18 原準備已依使用者授權完成三台部署、B 資格重設及 Folia 單筆舊關係解除；本輪只更新 help，不重做帳號操作。
 三台當次 `Done`、InviteCode ACTIVE、help／doctor／玩家專用拒絕／reload、UTF-8 log、實際 JDK 與 port 均已核對。
 世界原位保留；DB、密鑰與歷史未清空。原部署後因首頁資訊過量重建候選，三台已更新為下列新版；沒有 push。
 
-- 程式來源：`6de6dce250334ec6a1647cb91ac2b09918abc9e6`。
-- 已裝 JAR：`InviteCode-0.1.0-SNAPSHOT.jar`，19,912,806 bytes。
-- SHA-256：`29C46B948B43B3066768BC824853080D2DD09240E1DA2E6179B5210493B9E54A`。
-- [本輪部署與當次啟動證據](evidence/2026-10-18-command-feedback-help-deployment.json)；[原帳號準備與部署證據](evidence/2026-10-18-command-feedback-stage4-deployment.json)。
+- 程式來源：`fb303e23bb6acca4e6d97aa9686bc89475ff0166`。
+- 已裝 JAR：`InviteCode-0.1.0-SNAPSHOT.jar`，19,914,359 bytes。
+- SHA-256：`E8640904EA2963FB741C19A2037C9FD359DF85BAFF2B3F2F9A7EC1F591AE2EBA`。
+- [本輪部署與當次啟動證據](evidence/2026-10-18-command-feedback-help-frame-deployment.json)；[原帳號準備與部署證據](evidence/2026-10-18-command-feedback-stage4-deployment.json)。
 
 **現在直接從步驟 1 開始；不要再次 reset、unlink 或建立 B 的邀請碼。**
 B 的本輪視窗最早在 **2026-10-19 14:38（臺灣時間）** 到期。若來不及，先回報，由 Agent 重新核對後安排。
+
+## 本輪先驗收：框線、同列標題與固定導航
+
+三台使用相同新候選，沒有再次 reset／unlink。每台經原本 `localhost:25565` 與同名 `/server` 路由進入。
+A 使用管理員帳號 Command1，B 使用一般帳號 Taiwan_PingLord；B 不執行 `/ic code`。
+
+1. A、B 輸入 `/ic`：prefix 與「常用指令」在同一條標題線，只出現一次；內容下方有結尾線。
+   底部固定 `[上一頁] [返回] [下一頁]`，首頁三項皆深灰，點擊不反應、沒有操作 hover。
+2. A 輸入 `/ic help admin`：第一頁上一頁深灰，返回／下一頁黃色。點下一頁到 2/2，
+   下一頁改深灰，上一頁仍黃色可回 1/2。點停用項目不新增 help，也不填入聊天列。
+3. A 輸入 `/ic help admin invitation transfer`：前後線清楚，三項導航完整，只有返回黃色可用；
+   點操作用法仍只填入聊天列，**不要按 Enter 執行管理指令**。
+4. B 輸入 `/ic help`，確認同樣框線與三項導航；`/ic help admin` 仍不得顯示管理用法。
+   各自按既有 Tab 清單確認權限與空集合行為未回歸。
+5. 原生主控台輸入 `ic`、`ic help admin`、`ic help admin 2`、`ic help admin invitation transfer`：
+   prefix 同列、前後線與三項導航都顯示，可用項目帶導航命令。Console 仍使用可讀 16 色、不額外粗體；
+   深灰在 console 可依可讀性降色，不要求與玩家畫面完全相同。
+6. 逐台回覆「核心／客戶端版本；框線與 prefix、固定導航、停用無反應、分頁返回、console：通過／失敗」。
+   失敗附指令、預期／實際及截圖；不需再次 reset。通過後續原先尚未完成的其他訊息／確認／雙語／重啟清單。
+
+字型、視窗寬度可能造成換行；不是以空格固定像素對齊。真人未通過前不宣告外觀驗收完成。
+本輪證據見 [部署紀錄](evidence/2026-10-18-command-feedback-help-frame-deployment.json)。
 
 ## 2026-10-18 分層 help 複驗：先完成這六項
 

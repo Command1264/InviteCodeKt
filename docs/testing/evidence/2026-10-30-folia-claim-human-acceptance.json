@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "date": "2026-10-30",
+  "userReport": "登記完成",
+  "humanReportedSteps": "User reports assigned tests completed; input-dialog UX defects tracked separately, timeout fix not accepted yet.",
+  "newInvitationCount": 1,
+  "status": "CLAIMED",
+  "direction": "Command1 -> Taiwan_PingLord",
+  "generation": 2,
+  "oldUnlinkedPreserved": true,
+  "rewardActionCount": 0,
+  "qualificationPermission": "false at last verified check",
+  "dataMutations": false
+}

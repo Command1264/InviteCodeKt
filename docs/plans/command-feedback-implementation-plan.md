@@ -204,3 +204,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 第 2／3 階段完成：使用者先停服並核准；20 檔停止備份與 hash／SQLite quick_check 通過，只啟動 Folia 執行一次 reset。B generation 1→2，登記期限至台灣時間 10 月 31 日 01:47；僅 B 起點／代次及一筆稽核改變，A／碼／歷史／獎勵／設定／key／權限保留。來源 ../testing/evidence/2026-10-30-folia-b-reset-ready.json。
 第 3／3 階段下一步為本日最新真人清單的 1–5：取消、不同意、逾時、最後同意。既有伺服器／候選與測試資格 false 均已備妥；第 5 步回報後由 Agent 先核對資料，再讓管理員設定測試資格 true 並測離線補發。lobby 未開，A 直接斷線代替回 lobby。之後正常重啟保留、還原 ALLOW／測試權限與其他核心仍未完成。本輪沒有真人 claim 或 remote write，沒有 push／merge。
+
+
+## 2026-10-30 claim 四項 UI 修正與登記完成
+
+沿原分支完成候選 5702e91；見 ../testing/evidence/2026-10-30-claim-ux-fixes.json。Java 8／11 check shadowJar、JAR／bytecode 通過，314 pass／24 MySQL skip／0 fail；獨立 review 無具體 High／Critical。修正單一主要 status 理由、17 雙語鍵、輸入框期限邊界與早觸發重排／原子逾時提交。原生客戶端尚未複驗，沒有新 production dependency、schema 或領域資格規則變更。
+使用者報告登記完成，唯讀確認目前 generation 2 一筆 CLAIMED、舊 UNLINKED 保留、獎勵 0；UI 缺陷不混算通過。使用者選先完成既有資格／離線補發，再停服部署；故本輪不動 Human runtime 或 B。下一個前置條件已滿足的是真人清單最新節的資格／離線補發，先由 A 斷線、管理員在約定步驟設測試資格 true。回報後再唯讀核對交付，接停服備份部署／新候選 UI／重啟還原與其他核心。/ic claim 多原因回覆仍列原文待討論，沒有 push／merge。

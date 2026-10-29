@@ -1,5 +1,34 @@
 # 訊息與 prefix：第四階段真人驗收
 
+## 2026-10-30 登記核對通過；四項介面修正候選尚未部署
+
+B 已回報「登記完成」。[真人回報與唯讀核對](evidence/2026-10-30-folia-claim-human-acceptance.json) 確認 A→B 只有一筆
+目前 generation 2 的 CLAIMED，舊 UNLINKED 保留，沒有獎勵動作。這是登記資料核對通過；使用者指出的四項 UI 缺陷另行修正，不能當成新候選已通過。
+
+修正候選 `5702e91` 已完成：status 單一主要原因、17 個雙語文案鍵（錯誤＋重試指引單句紅／邀請碼標籤不綁定位數）、
+到期即關閉／提示、提早 tick 重排與逾時提交原子判定。Java 8／11 完整檢查通過，338 項中 314 通過、24 MySQL 條件跳過，0 失敗／錯誤。
+[完整變更與測試證據](evidence/2026-10-30-claim-ux-fixes.json)／[文案前後與討論項](evidence/2026-10-30-claim-ux-fixes.md)。
+
+使用者已選定：**先以 Folia 現有 `1a83b73` 完成資格／離線補發，再停服更新新候選。**
+Folia 本輪未部署、啟停、改設定／權限或 DB；不重設 B，不重做 claim。新輸入框真人複驗留待合適帳號／後續安排。
+目前下一步就是下方原步驟 6–7：
+
+1. A Command1 先退出伺服器；B Taiwan_PingLord 留在 Folia。
+2. Folia 主控台輸入（不加斜線）：
+
+   ```text
+   lp user Taiwan_PingLord permission set invitecode.test.qualified true
+   ```
+
+3. 等約 60 秒的資格檢查，或 B 退出／再切入 Folia。B 應收到資格通知。
+4. A 重新登入並 `/server invitecode-folia-26.1.2`，檢查離線獎勵，再退出／加入一次，不重複。
+5. 回覆「資格／離線補發／再次登入不重複：通過、失敗或未測」。由 Agent 唯讀核對交付，再處理還原及停服部署。
+
+若已提前達資格或出現非預期獎勵，先回報，不自行 retry／mark-delivered／reset。
+之後仍需新候選外觀、正常重啟保留、臨時設定／權限還原及其他核心驗收。沒有 push／PR／merge。
+以下為既有登記準備與歷史紀錄。
+
+
 ## 2026-10-30 兩帳號流程已就緒：先做到「同意登記」再回報
 
 使用者已明確核准備份及 B-only reset，並先停止測服。Agent 核對正常退出／排空、程序與 port 釋放，

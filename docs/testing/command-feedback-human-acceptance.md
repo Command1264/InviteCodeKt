@@ -1,5 +1,56 @@
 # 訊息與 prefix：第四階段真人驗收
 
+## 2026-10-30 兩帳號準備：唯讀核對完成，B 期限已過
+
+候選仍為 `1a83b73`，Folia 26.1.2 stable build 8 的核心 hash 與前次核對一致，port 30101、
+已登記 Velocity 路由。當次管理器顯示 Listening／Managed；未啟停、未部署。
+[唯讀 preflight](evidence/2026-10-30-folia-two-account-preflight.json) 是本次準備的狀態來源。
+
+B Taiwan_PingLord 的 generation 為 1，登記期限已於台灣時間 2026-10-19 14:38 到期。
+目前沒有有效邀請碼、目前代次邀請或獎勵動作；舊 generation 0 的 UNLINKED 邀請保留。
+線上與持久化的 `invitecode.test.qualified` 均為 false，適合先登記再手動達資格。
+同網路測試仍為 ALLOW；default zh_TW／use-client-locale true，確認與聊天輸入期限各 60 秒。
+A Command1 的有效碼保留。沒有新邀請或獎勵由 Agent 建立。
+
+### 尚待核准的精確操作
+
+先以一致性 SQLite 備份與設定／key／權限快照保存現況，重新核對 B 的狀態及在線人數後，
+僅對這台 Folia 執行一次：
+
+```text
+ic admin eligibility reset Taiwan_PingLord command-feedback-human-20261030
+```
+
+預期只更新 B 的登記起點至執行當下、generation 1 → 2，以及新增 1 筆稽核；
+重新開啟原設定的 24 小時登記視窗。A、碼、舊邀請、獎勵、世界、設定與權限不變。
+不需 unlink，不直接編輯 SQL、不回灌舊 DB；結果不明時先核對，不重送。
+這個資料變更尚未取得本次精確授權，尚未執行；現在不要開始 claim。
+
+### 重設完成並核對後使用的簡單清單（目前未就緒）
+
+只測 Folia，不重做已通過的 help／語系／reload。A、B 經 localhost:25565，輸入
+`/server invitecode-folia-26.1.2`；A 是 Command1，B 是 Taiwan_PingLord。
+
+1. A `/ic code` 查看原碼；B `/ic status` 應可登記。B 不執行 `/ic code`。
+2. B `/ic claim` 後取消輸入，應不建立關係。
+3. B 重開 claim，輸入 A 的碼，在確認畫面按不同意，應仍可登記。
+4. B 再次進入確認畫面，等超過 60 秒再同意，應拒絕過期操作，沒有登記。
+5. B 最後重做並在期限內同意，應只建立一筆新關係，等待資格；再 claim 應立即拒絕。
+   回報「登記完成」後先由 Agent 唯讀核對新關係／generation／舊資料保留。
+6. A 先退出伺服器（不依賴 lobby 開服），B 留在 Folia。管理員在約定步驟用後台
+   `lp user Taiwan_PingLord permission set invitecode.test.qualified true` 達成測試資格。
+   這是後續測試權限操作，尚未由 Agent 執行；記錄並在最後還原目前 false。
+7. 等待資格檢查，或讓 B 重新進入 Folia。B 應達資格；A 回服收到離線獎勵，再退出／回服不重複。
+   由 Agent 唯讀核對每筆交付狀態，不能只靠聊天畫面推定一次性正確。
+
+畫面預期：Dialog 置中、prefix 獨立且無尾端空格；同意綠／不同意紅，期限末尾無冒號。
+AUTO 使用原生介面時不要求本輪重測舊版聊天 cancel；該路徑隨 Spigot 版本另驗。
+已登記、視窗到期、原生介面失敗或出現非預期獎勵時停在該步回報，不連續重試或 reset。
+回覆 `Folia 1a83b73：取消／不同意／逾時／同意／資格／離線補發／再次登入不重複：通過、失敗或未測`。
+通過後仍待正常重啟保留、臨時設定還原與其他核心；沒有 push／PR／merge。
+以下為歷史驗收安排，以本輪 preflight 的未就緒狀態為準。
+
+
 ## 2026-10-30 最新確認：雙語與 reload 真人驗收通過
 
 使用者補充確認：reload 後回覆即生效，各語言 prefix 正確；`use-client-locale` 的 true／false 都測過並正確套用。

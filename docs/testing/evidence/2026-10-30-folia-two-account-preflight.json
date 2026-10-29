@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-30",
+  "checkedUtc": "2026-10-29T17:31:58.586488+00:00",
+  "instance": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2",
+  "sourceCommit": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "pluginSha256": "5D7E7782E8BAEA222785DA8FA8B15416E777649517C5F63AD53101D48BE6733D",
+  "coreSha256": "607AFD1C3320008E1FFD2EAEE6780ACE4419D5F8C527B75E79F259BE79EBF57B",
+  "minecraftVersion": "26.1.2",
+  "core": "Folia",
+  "coreIdentity": "unchanged from previously verified stable build 8",
+  "port": 30101,
+  "serverState": "Listening",
+  "runId": "61949b6f08e948319f7e8b1af192f370",
+  "route": "invitecode-folia-26.1.2 = 127.0.0.1:30101",
+  "language": {
+    "default": "zh_TW",
+    "use-client-locale": true
+  },
+  "claim": {
+    "window": "24h",
+    "input-mode": "AUTO",
+    "confirmation-timeout": "60s",
+    "chat-input-timeout": "60s",
+    "existing-player-policy": "START_WINDOW"
+  },
+  "sameNetworkAction": "ALLOW",
+  "B": {
+    "name": "Taiwan_PingLord",
+    "generation": 1,
+    "firstSeen": "2026-10-18T06:38:31.389488600Z",
+    "expiredDeadlineTaipei": "2026-10-19 14:38:31 +08:00",
+    "eligible": false,
+    "blockingReason": "CLAIM_WINDOW_EXPIRED",
+    "activeCodeCount": 0,
+    "currentGenerationInvitationCount": 0,
+    "oldInvitations": [
+      {
+        "status": "UNLINKED",
+        "invitee_eligibility_generation": 0
+      }
+    ],
+    "rewardActionCount": 0,
+    "qualificationPermission": "false in persisted LuckPerms and live read-only check"
+  },
+  "A": {
+    "name": "Command1",
+    "activeCodePreserved": true
+  },
+  "rewardTypes": [
+    "MESSAGE",
+    "MESSAGE"
+  ],
+  "proposedOperation": {
+    "state": "awaiting explicit authorization",
+    "command": "ic admin eligibility reset Taiwan_PingLord command-feedback-human-20261030",
+    "scope": "Folia B only",
+    "firstSeenAt": "set to execution time",
+    "generation": "1 -> 2",
+    "newAuditRecords": 1,
+    "preserve": [
+      "A",
+      "invite codes",
+      "old UNLINKED invitation",
+      "reward records",
+      "worlds",
+      "key",
+      "config",
+      "permissions"
+    ],
+    "noUnlinkNeeded": true,
+    "backup": "consistent SQLite backup and settings/key/permissions snapshot before operation; no old DB restore"
+  },
+  "completedPhase": "1/3 read-only preflight",
+  "remainingPhases": [
+    "2/3 approved backup and B eligibility reset",
+    "3/3 human confirmation and reward testing with data verification"
+  ],
+  "remoteWrites": false,
+  "dataMutations": false
+}

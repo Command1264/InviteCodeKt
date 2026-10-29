@@ -192,3 +192,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 使用者確認有效 reload、新回覆及各語言 prefix、use-client-locale true／false，以及錯誤 config 拒絕並保留上一有效快照均正常；先前還原回報保留。見 ../testing/evidence/2026-10-30-folia-reload-human-acceptance.json。這滿足雙語與 reload 真人門檻，不要求重做先前數字 prefix 範例；不宣稱該具體錯誤型別已測。前輪未測判定已由補充證據取代。
 下一步建議為第四階段兩帳號流程準備，第一個動作是唯讀核對候選、B 登記期限／角色／現有邀請與待處理獎勵。核對完成前不要求玩家 claim，也不自動重設／unlink；需資料變更時精確列出另行確認。之後依序做確認互動、資格與離線補發、重啟還原、其他核心驗收。本輪沒有 live server 操作或 remote write。
+
+
+## 2026-10-30 兩帳號唯讀 preflight 完成
+
+依使用者核准完成第 1／3 階段：Folia 實際 JAR 仍為 1a83b73、hash 與核心身份一致，Listening／Managed；設定還原。B 無目前代次邀請／碼／獎勵，但 24h 視窗於 10 月 19 日 14:38 台灣時間已過期。測試資格 false，舊 UNLINKED 不需重做 unlink。來源 ../testing/evidence/2026-10-30-folia-two-account-preflight.json。
+下一步需先核准精確的 B-only reset：備份後僅更新登記起點、generation 1→2、加一稽核，其他歷史／A／碼／獎勵保留；尚未執行。第 2／3 階段為核准後備份與 reset，第 3／3 階段為兩帳號確認及離線補發真人驗收與唯讀資料核對。流程已準備但未就緒，不要求現在 claim；之後仍有重啟還原及其他核心驗收。沒有啟停、部署、資料或 remote write。

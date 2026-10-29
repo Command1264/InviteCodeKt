@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "humanReport": "以上确认完成，确认没有问题。",
+  "accepted": [
+    "qualification notification",
+    "offline rewards",
+    "no duplicate reward on rejoin"
+  ],
+  "generation": 2,
+  "invitationCount": 1,
+  "invitationStatus": "QUALIFIED",
+  "actions": [
+    {
+      "action_type": "MESSAGE",
+      "status": "DELIVERED",
+      "position": 0,
+      "recipient": "A"
+    },
+    {
+      "action_type": "MESSAGE",
+      "status": "DELIVERED",
+      "position": 1,
+      "recipient": "B"
+    }
+  ],
+  "deliveries": [
+    {
+      "status": "DELIVERED",
+      "count": 1
+    }
+  ],
+  "oldUnlinkedPreserved": true,
+  "agentMutations": false
+}

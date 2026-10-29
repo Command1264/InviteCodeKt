@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+  "jarSha256": "B0FB78588CA317650A83F7385441576DC5034612249318E865BB89FAB083EF72",
+  "instance": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2",
+  "core": "Folia 26.1.2 stable build 8",
+  "port": 30101,
+  "java": "local-25 / JDK 25.0.4.1",
+  "previousRunStopped": {
+    "runId": "9d3165afa9e54149b9e41183cd88aa9c",
+    "exitCode": 0,
+    "outputDrained": true
+  },
+  "backup": {
+    "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\claim-ux-20261029-190401-01167f8f",
+    "files": 21,
+    "hashVerified": true,
+    "worldsRetainedInPlace": true,
+    "worldHeaderHashVerifiedDuringDeployment": true
+  },
+  "deployment": "JAR and zh_TW/en_US only; one installed JAR, workspace metadata updated",
+  "postStart": {
+    "ready": true,
+    "runId": "778f50e16f4a49c0994aa1449851aaf8",
+    "hostPid": 49208,
+    "childPid": 59756,
+    "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+    "jarSha256": "B0FB78588CA317650A83F7385441576DC5034612249318E865BB89FAB083EF72",
+    "doctorPassed": true,
+    "newHelpErrorCopyPassed": true,
+    "noRawColors": true,
+    "startupErrors": false,
+    "invitationStatus": "QUALIFIED",
+    "deliveredActions": 2,
+    "qualificationPermissionRestoredToFalse": true,
+    "routeConfirmed": true,
+    "velocityListening": true,
+    "otherServers": [
+      {
+        "name": "invitecode-paper-26.3",
+        "state": "Stopped"
+      },
+      {
+        "name": "invitecode-spigot-1.8.8",
+        "state": "Stopped"
+      }
+    ],
+    "humanNewCandidateAcceptance": "pending"
+  },
+  "preservation": {
+    "dbQuickCheck": "ok",
+    "allHistoricalInvitationAndRewardRowsPreserved": true,
+    "runtimeNetworkTimestampRefresh": [],
+    "configAndKeyPreserved": true,
+    "databaseRestoredFromBackup": false,
+    "newResetOrClaim": false
+  },
+  "permissionRestoration": {
+    "player": "Taiwan_PingLord",
+    "permission": "invitecode.test.qualified",
+    "before": true,
+    "expectedAfter": false,
+    "reason": "Restore agreed temporary qualification override after completed reward acceptance",
+    "state": "verified",
+    "after": false,
+    "onlyTargetNodeChanged": true
+  },
+  "rewardHumanAcceptance": "2026-10-30-folia-reward-human-acceptance.json",
+  "humanNewCandidateAcceptance": "pending",
+  "remaining": [
+    "Player status primary-reason and error-style visual checks",
+    "Native input label and timeout visual checks require an eligible account; current A and B cannot claim; do not auto-reset",
+    "Remaining temporary qualifications/same-network settings restoration after acceptance",
+    "Other core acceptance and release gates"
+  ],
+  "remoteWrites": false
+}

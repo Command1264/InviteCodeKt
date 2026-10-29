@@ -210,3 +210,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 沿原分支完成候選 5702e91；見 ../testing/evidence/2026-10-30-claim-ux-fixes.json。Java 8／11 check shadowJar、JAR／bytecode 通過，314 pass／24 MySQL skip／0 fail；獨立 review 無具體 High／Critical。修正單一主要 status 理由、17 雙語鍵、輸入框期限邊界與早觸發重排／原子逾時提交。原生客戶端尚未複驗，沒有新 production dependency、schema 或領域資格規則變更。
 使用者報告登記完成，唯讀確認目前 generation 2 一筆 CLAIMED、舊 UNLINKED 保留、獎勵 0；UI 缺陷不混算通過。使用者選先完成既有資格／離線補發，再停服部署；故本輪不動 Human runtime 或 B。下一個前置條件已滿足的是真人清單最新節的資格／離線補發，先由 A 斷線、管理員在約定步驟設測試資格 true。回報後再唯讀核對交付，接停服備份部署／新候選 UI／重啟還原與其他核心。/ic claim 多原因回覆仍列原文待討論，沒有 push／merge。
+
+
+## 2026-10-30 資格補發驗收與新候選部署完成
+
+使用者確認舊候選的資格／離線補發／重入不重複；資料核對一筆 generation 2 QUALIFIED、單一 delivery 與 A／B 兩個 MESSAGE actions 均 DELIVERED，舊 UNLINKED 保留。依已選定順序正常停服、21 檔備份後更新 Folia 到 5702e91，驗證 ready run、doctor／錯誤句、逐表保留；B 測試權限單 node 還原 false，資格與交付不倒退。證據 ../testing/evidence/2026-10-30-claim-ux-folia-deployment.json。其他測服停止，沒有 push／merge。
+下一個前置條件已滿足的項目為本日最新真人清單的 A status／help 錯誤色彩與重啟資料保留局部驗收：候選、核心、入口與既有帳號均已就緒，不需要再 claim。原生輸入框複驗需合資格帳號，A／B 目前皆不符合，先保留缺口，不自行 reset。其後仍需其餘臨時設定還原及其他核心，不能把部署／smoke 當作整個分支真人通過。

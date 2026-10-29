@@ -1,5 +1,35 @@
 # 訊息與 prefix：第四階段真人驗收
 
+## 2026-10-30 補發驗收通過；5702e91 已部署 Folia，待介面局部複驗
+
+使用者確認資格、離線補發、再次登入不重複均沒有問題。
+[真人驗收與唯讀核對](evidence/2026-10-30-folia-reward-human-acceptance.json)：generation 2 唯一邀請 QUALIFIED，
+單一 delivery DELIVERED，A／B 各一個 MESSAGE action DELIVERED，舊 UNLINKED 保留。這組不要求重做。
+
+依先前選定順序，已正常停服（退出 0、排空）、21 檔備份驗 hash、僅更新 Folia 至候選 `5702e91` 並啟動核對。
+[部署證據](evidence/2026-10-30-claim-ux-folia-deployment.json)／[步驟摘要](evidence/2026-10-30-claim-ux-folia-deployment.md)。
+重啟後邀請／獎勵逐表保留；config／key／世界保留，無新 reset／claim。doctor 與新錯誤句 smoke 通過。
+B 測試權限已由 true 還原為原 false，只有這個 node 改變，既有 QUALIFIED／DELIVERED 不倒退。
+其他兩台維持停止，沒有 push／PR／merge。
+
+### 下一輪先做不改資料的介面核對
+
+1. A Command1 連 localhost:25565，再 `/server invitecode-folia-26.1.2`。
+2. A `/ic status`：無法登記原因只顯示「你已建立自己的邀請碼」，不另列期限已結束。
+   不保證窄聊天視窗或自訂字型完全不折行，但程式不再插入第二原因行。
+3. 玩家或主控台執行 `ic help not-a-topic`（玩家加 `/`）：錯誤與重試指引是同句紅色。
+   切英文重做可一併檢查雙語，不需要改 config。
+4. A `/ic stats`、B `/ic status` 確認重啟後本輪結果仍在，沒有再次補發。這是保留核對，不重做資格／claim。
+5. 回覆 `Folia 5702e91：status 主要原因／單句紅色／資料保留：通過、失敗或未測`。
+
+新原生輸入框還需真人確認標籤為「邀請碼」、60 秒自動關閉及提示、晚提交／取消回覆。
+目前 A 有自己的碼、B 已登記，兩者都會在 `/ic claim` 前置拒絕；不要用它們重跑輸入框，也不要自行 reset／unlink。
+合資格測試帳號的準備另行安排；本次未因補發通過而擅自再重設 B。
+新候選真人外觀尚未通過。其後還有暫設 qualification profile／同網路 ALLOW 還原與其他核心驗收；
+本次 Agent 正常重啟及 DB 保留證據不替代新畫面人眼驗收。
+以下為歷史未部署安排，以本節為準。
+
+
 ## 2026-10-30 登記核對通過；四項介面修正候選尚未部署
 
 B 已回報「登記完成」。[真人回報與唯讀核對](evidence/2026-10-30-folia-claim-human-acceptance.json) 確認 A→B 只有一筆

@@ -1,5 +1,29 @@
 # 訊息與 prefix：第四階段真人驗收
 
+## 2026-10-30 輸入框五項真人複驗通過，Folia 進入收尾
+
+使用者明確回報：「標籤／逾時關閉／逾時提示／格式錯誤／取消：通過」。
+候選 `5702e91` 的本輪輸入框複驗已通過，不再要求重做。
+[真人回報與唯讀資料核對](evidence/2026-10-30-folia-input-dialog-human-acceptance.json)：
+B generation 3 沒有新邀請；generation 0 的 UNLINKED、generation 2 的 QUALIFIED 與兩個 DELIVERED 保留，
+測試資格權限仍 false。本輪沒有新 reset、設定或 runtime 變更。
+
+結合前輪，Folia 已安排的顯示／help／權限 Tab、雙語與 reload、登記確認、資格與離線補發、
+重入不重複、重啟資料保留，以及本次輸入框檢查都有各自回報與證據；這不推定其他核心或整個分支通過。
+
+下一步建議先完成 Folia 的暫設收尾，再準備其他核心，避免同時擴大測試：
+1. 從已驗證的原備份核對 qualification profile 與 matching-ip-action 的原值。
+   目前仍是 manual-human-test PERMISSION 與同網路 ALLOW；尚未還原，不猜測或整份覆寫自訂 config。
+2. 先備份現況，只還原約定的測試差異，reload／重新核對，保留 DB／key／世界與所有邀請／獎勵。
+   B 測試權限已 false，不需重做；也不重設已完成的帳號資料。
+3. 再盤點既有 Spigot 1.8.8／Paper 26.3 的核心、JAR、設定、資料與路由，提出部署同一候選及分工清單。
+   未經新安排，不自行啟動或部署另外兩台。
+
+後續仍有其他核心真人驗收、暫設完整還原、Paper 26.2 adapter 複驗與最新 Folia ALPHA 已知缺口；
+不把穩定 Folia 26.1.2 通過等同最新 ALPHA 通過。push／PR／merge／發布都尚未取得本輪授權。
+原生輸入逾時的本輪真人缺口現已補齊。以下保留歷史清單，不代表仍要求重測。
+
+
 ## 2026-10-30 輸入框複驗已準備：B generation 3，僅輸入與取消
 
 使用者已核准這次 Folia B-only reset。正常停服／退出 0 與排空確認後，20 檔備份與 hash 通過；

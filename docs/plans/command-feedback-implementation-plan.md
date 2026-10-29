@@ -228,3 +228,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 正常停服後備份 20 檔並驗 hash／quick_check，只啟動原 Folia 候選 5702e91 執行一次 reset。B generation 2→3、起點更新與一筆稽核，舊 UNLINKED／QUALIFIED 與兩個 DELIVERED 保留；A／碼／設定／key／權限不變，沒有新邀請。期限至台灣時間 10 月 31 日 03:25。證據 ../testing/evidence/2026-10-30-folia-input-dialog-reset-ready.json。
 下一個前置條件已滿足的項目為最新真人清單的輸入框標籤、60 秒自動關閉與紅色提示、格式錯誤及取消：候選、入口與可 claim 的 B 已備妥。只輸入／取消，禁止按同意，不重做獎勵。回報後唯讀核對 generation 3 無新邀請與歷史保留；其後仍需其餘暫設還原與其他核心，沒有 push／merge。
+
+
+## 2026-10-30 輸入框五項真人複驗通過與下一步
+
+使用者確認 5702e91 的標籤、逾時關閉、逾時提示、格式錯誤、取消全通過。唯讀核對 generation 3 無新邀請、舊 UNLINKED／QUALIFIED 及兩個 DELIVERED 保留，B 測試權限 false。證據 ../testing/evidence/2026-10-30-folia-input-dialog-human-acceptance.json。Folia 已安排的本輪真人項目有對應回報；不推定整個分支或其他核心通過。
+下一個前置條件已滿足的工作是 Folia 暫設收尾：先唯讀核對原備份的 qualification profile／matching-ip-action，再備份現況並只還原測試差異，reload 核對。現在仍為測試 PERMISSION／ALLOW，尚未執行還原。之後才盤點與安排 Spigot 1.8.8／Paper 26.3 同一候選的驗收；本輪沒有操作其他測服。最新 Folia ALPHA 與 Paper 26.2 adapter 缺口保留。沒有 push／PR／merge。

@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+  "platform": "Folia 26.1.2",
+  "humanReport": "標籤／逾時關閉／逾時提示／格式錯誤／取消：通過",
+  "accepted": [
+    "input label without fixed length",
+    "automatic input dialog close at timeout",
+    "timeout feedback",
+    "single-red invalid-format message",
+    "cancel/decline without registration"
+  ],
+  "runtimeState": "Listening",
+  "BGeneration": 3,
+  "currentGenerationInvitationCount": 0,
+  "historicalInvitations": [
+    {
+      "status": "UNLINKED",
+      "generation": 0
+    },
+    {
+      "status": "QUALIFIED",
+      "generation": 2
+    }
+  ],
+  "rewardActions": [
+    {
+      "status": "DELIVERED",
+      "count": 2
+    }
+  ],
+  "qualificationPermission": false,
+  "temporarySameNetworkAction": "ALLOW",
+  "temporaryQualificationPolicy": {
+    "config-version": 1,
+    "policies": {
+      "new-player": {
+        "any-of": [
+          {
+            "all-of": [
+              {
+                "id": "manual-human-test",
+                "type": "PERMISSION",
+                "permission": "invitecode.test.qualified"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "agentMutations": false,
+  "remoteWrites": false,
+  "remaining": [
+    "Restore remaining temporary Folia same-network and qualification-profile settings using verified original backups",
+    "Prepare same-candidate Spigot 1.8.8 and Paper 26.3 acceptance",
+    "Retain latest Folia ALPHA and Paper 26.2 adapter verification gaps until addressed"
+  ],
+  "note": "Folia assigned input UI checks passed; this does not mark other cores or the entire branch accepted."
+}

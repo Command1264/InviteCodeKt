@@ -216,3 +216,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 使用者確認舊候選的資格／離線補發／重入不重複；資料核對一筆 generation 2 QUALIFIED、單一 delivery 與 A／B 兩個 MESSAGE actions 均 DELIVERED，舊 UNLINKED 保留。依已選定順序正常停服、21 檔備份後更新 Folia 到 5702e91，驗證 ready run、doctor／錯誤句、逐表保留；B 測試權限單 node 還原 false，資格與交付不倒退。證據 ../testing/evidence/2026-10-30-claim-ux-folia-deployment.json。其他測服停止，沒有 push／merge。
 下一個前置條件已滿足的項目為本日最新真人清單的 A status／help 錯誤色彩與重啟資料保留局部驗收：候選、核心、入口與既有帳號均已就緒，不需要再 claim。原生輸入框複驗需合資格帳號，A／B 目前皆不符合，先保留缺口，不自行 reset。其後仍需其餘臨時設定還原及其他核心，不能把部署／smoke 當作整個分支真人通過。
+
+
+## 2026-10-30 5702e91 三項局部真人複驗通過
+
+使用者確認 status 主要理由、單句紅色、資料保留皆正常。唯讀重核候選與 JAR、B generation 2 的 QUALIFIED、兩個 DELIVERED 保留。證據 ../testing/evidence/2026-10-30-folia-ux-three-checks-human-acceptance.json。沒有新增 runtime 變更。
+下一項為原生輸入框標籤／60 秒關閉與提示；A／B 現在都不可 claim。第一步需取得合資格帳號：建議先備份，再僅重設 Folia B generation 2→3、起點更新與一筆稽核，保留歷史及獎勵；這是新的資料變更，尚未核准，不沿用上次單次 reset 授權。完整條件及最小清單已列真人文件最新節；不建立新邀請／獎勵。該項通過後仍有其餘暫設還原與其他核心，沒有 push／merge。

@@ -222,3 +222,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 使用者確認 status 主要理由、單句紅色、資料保留皆正常。唯讀重核候選與 JAR、B generation 2 的 QUALIFIED、兩個 DELIVERED 保留。證據 ../testing/evidence/2026-10-30-folia-ux-three-checks-human-acceptance.json。沒有新增 runtime 變更。
 下一項為原生輸入框標籤／60 秒關閉與提示；A／B 現在都不可 claim。第一步需取得合資格帳號：建議先備份，再僅重設 Folia B generation 2→3、起點更新與一筆稽核，保留歷史及獎勵；這是新的資料變更，尚未核准，不沿用上次單次 reset 授權。完整條件及最小清單已列真人文件最新節；不建立新邀請／獎勵。該項通過後仍有其餘暫設還原與其他核心，沒有 push／merge。
+
+
+## 2026-10-30 輸入框用 B-only reset 已核准並完成
+
+正常停服後備份 20 檔並驗 hash／quick_check，只啟動原 Folia 候選 5702e91 執行一次 reset。B generation 2→3、起點更新與一筆稽核，舊 UNLINKED／QUALIFIED 與兩個 DELIVERED 保留；A／碼／設定／key／權限不變，沒有新邀請。期限至台灣時間 10 月 31 日 03:25。證據 ../testing/evidence/2026-10-30-folia-input-dialog-reset-ready.json。
+下一個前置條件已滿足的項目為最新真人清單的輸入框標籤、60 秒自動關閉與紅色提示、格式錯誤及取消：候選、入口與可 claim 的 B 已備妥。只輸入／取消，禁止按同意，不重做獎勵。回報後唯讀核對 generation 3 無新邀請與歷史保留；其後仍需其餘暫設還原與其他核心，沒有 push／merge。

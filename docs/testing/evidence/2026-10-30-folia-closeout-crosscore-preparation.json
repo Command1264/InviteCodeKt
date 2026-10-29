@@ -1,0 +1,184 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+  "jarSha256": "B0FB78588CA317650A83F7385441576DC5034612249318E865BB89FAB083EF72",
+  "candidateJavaValidation": [
+    "Java 11 check shadowJar",
+    "Java 8 check shadowJar",
+    "verifyPluginJar",
+    "verifyJava8Bytecode"
+  ],
+  "foliaCloseout": {
+    "restoration": {
+      "settingsRestored": true,
+      "originalPolicy": "PLAY_TIME >= 30m AND LOGIN_DAYS >= 2",
+      "sameNetworkAction": "DENY",
+      "reloadPassed": true,
+      "doctorPassed": true,
+      "allOtherProtectedDataPreserved": true,
+      "runId": "a01e5100080543178a140df507e03ae5"
+    },
+    "backupPath": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\folia-closeout-20261029-195818-fe553e57",
+    "backupFiles": 20,
+    "originalBackup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\command-feedback-20261018-063038-7d440eea",
+    "finalState": "Stopped",
+    "exitCode": 0,
+    "outputDrained": true,
+    "dataPreserved": true
+  },
+  "crosscoreBackups": [
+    {
+      "name": "invitecode-spigot-1.8.8",
+      "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-spigot-1.8.8\\.invitecode-backups\\crosscore-20261029-200012-c51e9448",
+      "files": 20,
+      "hashVerified": true,
+      "worldsRetainedInPlace": true
+    },
+    {
+      "name": "invitecode-paper-26.3",
+      "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-paper-26.3\\.invitecode-backups\\crosscore-20261029-200012-940ad1d0",
+      "files": 18,
+      "hashVerified": true,
+      "worldsRetainedInPlace": true
+    }
+  ],
+  "runtime": {
+    "instances": [
+      {
+        "name": "invitecode-spigot-1.8.8",
+        "ready": true,
+        "runId": "14af70d2993c40d2b2ebcafef1c6fbe8",
+        "hostPid": 62084,
+        "childPid": 42292,
+        "port": 10101,
+        "javaAlias": "local-8",
+        "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+        "pluginSha256": "B0FB78588CA317650A83F7385441576DC5034612249318E865BB89FAB083EF72",
+        "coreLines": [
+          "[04:02:50] [Server thread/INFO]: This server is running CraftBukkit version git-Spigot-3c60ece-741a1bd (MC: 1.8.8) (Implementing API version 1.8.8-R0.1-SNAPSHOT)"
+        ],
+        "coreSha256": "6ED6046687CE9255228FE7BD31E097DA49BEFF2A0C577E7BE56D14F09753239C",
+        "consoleProbesPassed": true,
+        "dialog": "NONE",
+        "rawColors": false,
+        "startupErrors": false,
+        "legacyForwardingConfig": true,
+        "BGeneration": 2,
+        "newInvitations": 0,
+        "historicalDeliveredActions": 2
+      },
+      {
+        "name": "invitecode-paper-26.3",
+        "ready": true,
+        "runId": "d4c297c90da84d68ae4e52fecadb0243",
+        "hostPid": 57144,
+        "childPid": 61724,
+        "port": 20102,
+        "javaAlias": "local-25",
+        "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+        "pluginSha256": "B0FB78588CA317650A83F7385441576DC5034612249318E865BB89FAB083EF72",
+        "coreLines": [
+          "[04:02:49] [ServerMain/INFO]: [bootstrap] Loading Paper 26.3-202-main@29aeb60 (2026-10-17T14:15:06Z) for Minecraft 26.3",
+          "[04:03:03] [Server thread/INFO]: Starting minecraft server version 26.3",
+          "[04:03:03] [Server thread/INFO]: This server is running Paper version 26.3-202-main@29aeb60 (2026-10-17T14:15:06Z) (Implementing API version 26.3.build.202-stable)"
+        ],
+        "coreSha256": "1B243442FC3B3CBE945628F8AF7911E4BE439CA8B22106FB1568AC81D5A5792B",
+        "consoleProbesPassed": true,
+        "dialog": "PAPER",
+        "rawColors": false,
+        "startupErrors": false,
+        "legacyForwardingConfig": true,
+        "BGeneration": 2,
+        "newInvitations": 0,
+        "historicalDeliveredActions": 2
+      }
+    ],
+    "velocityListening": true,
+    "routeMappingVerified": true,
+    "forwarding": "legacy",
+    "proxyTranslationJarsPresent": [
+      "ViaVersion-5.12.0.jar",
+      "ViaBackwards-5.12.0.jar",
+      "ViaRewind-4.2.0.jar"
+    ],
+    "nativeClientAcceptance": "pending",
+    "foliaState": "Stopped"
+  },
+  "resets": [
+    {
+      "state": "verified",
+      "instance": "invitecode-spigot-1.8.8",
+      "runId": "14af70d2993c40d2b2ebcafef1c6fbe8",
+      "player": "Taiwan_PingLord",
+      "generationBefore": 1,
+      "command": "ic admin eligibility reset Taiwan_PingLord command-feedback-crosscore-20261030",
+      "authorized": true,
+      "requestedUtc": "2026-10-29T20:03:38.414369+00:00",
+      "firstSeenUtc": "2026-10-29T20:03:38.487Z",
+      "generationAfter": 2,
+      "deadlineTaipei": "2026-10-31T04:03:38.487000+08:00",
+      "auditRecordsAdded": 1,
+      "changedTables": [
+        "invitecode_players",
+        "invitecode_audit_records"
+      ],
+      "otherPlayerCodeInvitationRewardDataPreserved": true,
+      "configurationKeyPermissionsPreserved": true
+    },
+    {
+      "state": "verified",
+      "instance": "invitecode-paper-26.3",
+      "runId": "d4c297c90da84d68ae4e52fecadb0243",
+      "player": "Taiwan_PingLord",
+      "generationBefore": 1,
+      "command": "ic admin eligibility reset Taiwan_PingLord command-feedback-crosscore-20261030",
+      "authorized": true,
+      "requestedUtc": "2026-10-29T20:03:39.497956+00:00",
+      "firstSeenUtc": "2026-10-29T20:03:39.615258700Z",
+      "generationAfter": 2,
+      "deadlineTaipei": "2026-10-31T04:03:39.615258+08:00",
+      "auditRecordsAdded": 1,
+      "changedTables": [
+        "invitecode_players",
+        "invitecode_audit_records"
+      ],
+      "otherPlayerCodeInvitationRewardDataPreserved": true,
+      "configurationKeyPermissionsPreserved": true
+    }
+  ],
+  "failedReloadValidation": [
+    {
+      "name": "invitecode-spigot-1.8.8",
+      "invalidBooleanRejected": true,
+      "validGenerationRetained": true,
+      "originalFileRestoredByteForByte": true,
+      "validReloadPassed": true,
+      "configSha256": "9E6DC6996C5A7EB99E27711E95F34C556CDBAD996C7F8675FE25594EB66EF61C"
+    },
+    {
+      "name": "invitecode-paper-26.3",
+      "invalidBooleanRejected": true,
+      "validGenerationRetained": true,
+      "originalFileRestoredByteForByte": true,
+      "validReloadPassed": true,
+      "configSha256": "9E6DC6996C5A7EB99E27711E95F34C556CDBAD996C7F8675FE25594EB66EF61C"
+    }
+  ],
+  "historicalData": {
+    "oldGeneration0QualifiedPreserved": true,
+    "oldDeliveredActionsPerServer": 2,
+    "newGeneration2InvitationsPerServer": 0,
+    "AAndOriginalCodePreserved": true,
+    "dbQuickCheckPerServer": "ok",
+    "allOtherSettingsKeyAndPermissionsPreserved": true
+  },
+  "humanAcceptance": "pending; no player automation used",
+  "temporaryConditions": {
+    "bothSameNetworkAction": "ALLOW preserved for same-PC tests",
+    "spigotQualification": "invitecode.command.basic; may qualify immediately; inviter must disconnect BEFORE final agreement",
+    "paperQualification": "invitecode.test.qualified false; console true only after inviter disconnects",
+    "spigotThirdPartyLimitation": "LuckPerms 5.4.145 existing Gson JSON save issue; no lp permission writes in this test",
+    "proxyVersionTranslation": "JARs present; native-client connection and transfer still require human acceptance"
+  },
+  "remoteWrites": false
+}

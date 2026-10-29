@@ -234,3 +234,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 使用者確認 5702e91 的標籤、逾時關閉、逾時提示、格式錯誤、取消全通過。唯讀核對 generation 3 無新邀請、舊 UNLINKED／QUALIFIED 及兩個 DELIVERED 保留，B 測試權限 false。證據 ../testing/evidence/2026-10-30-folia-input-dialog-human-acceptance.json。Folia 已安排的本輪真人項目有對應回報；不推定整個分支或其他核心通過。
 下一個前置條件已滿足的工作是 Folia 暫設收尾：先唯讀核對原備份的 qualification profile／matching-ip-action，再備份現況並只還原測試差異，reload 核對。現在仍為測試 PERMISSION／ALLOW，尚未執行還原。之後才盤點與安排 Spigot 1.8.8／Paper 26.3 同一候選的驗收；本輪沒有操作其他測服。最新 Folia ALPHA 與 Paper 26.2 adapter 缺口保留。沒有 push／PR／merge。
+
+
+## 2026-10-30 Folia 收尾與兩核心準備完成
+
+Folia 原備份 hash 核對後，已備份並精確還原 30m＋2 日資格與同網路 DENY，reload／doctor／逐表保留通過，正常退出後關閉。Spigot 1.8.8／Paper 26.3 build202 已各備份、部署 5702e91、實際 Java8／25 啟動，指令與無效 reload 原快照保留／原檔還原核對通過。使用者另明確核准兩台 B 各一次 gen1→2 reset，時間／代次／稽核以外資料保留，期限到台灣時間10月31日04:03。證據 ../testing/evidence/2026-10-30-folia-closeout-crosscore-preparation.json。
+下一個前置條件已滿足的項目為 ../testing/command-feedback-crosscore-human-acceptance.md 的兩台真人完整流程；先 Spigot 聊天，再 Paper 原生Dialog。Spigot 既有 LP Gson 寫入限制未修，不能 lp set，A 最後同意前就離線；Paper 登記後 A 離線再由主控台 true 達資格。不要把舊 gen0 已完成邀請算新 gen2結果。回報後資料核對、暫設還原、關閉不用服務及剩餘 gate，再整理交付；沒有 push／PR／merge。

@@ -1,5 +1,27 @@
 # 訊息與 prefix：第四階段真人驗收
 
+## 2026-10-30 Folia 收尾完成；Spigot／Paper 已就緒
+
+Folia 已核對原備份並還原 qualification profile（PLAY_TIME 30m 且 LOGIN_DAYS 2）與同網路 DENY，
+備份、reload／doctor、逐表保留確認通過，再正常停服。B 測試權限保持已還原 false，不重設、不回灌 DB。
+
+Spigot 1.8.8、Paper 26.3 build 202 已備份部署同一 `5702e91` 並啟動，實際 JDK 分別為 8／25；
+路由與 legacy forwarding 核對，startup／指令 smoke／錯誤 reload 保留快照與還原均通過。
+使用者已核准兩台各 reset B 一次：generation 1→2、各一筆稽核，舊 QUALIFIED／兩個 DELIVERED、A／碼／世界／key 保留。
+目前兩台各自 generation 2 沒有新邀請，期限至台灣時間 **10 月 31 日 04:03**。
+[準備證據](evidence/2026-10-30-folia-closeout-crosscore-preparation.json)。
+
+**現在照 [兩核心完整真人流程](command-feedback-crosscore-human-acceptance.md)，一次測一台。**
+原生版本建議 Spigot 用 1.8.8、Paper 用 26.3，兩者都走 localhost:25565，再切對應 `/server`。
+Proxy 有 ViaVersion／ViaBackwards／ViaRewind，但尚不以 JAR 存在推定實際轉版可用。
+Spigot 只用聊天；既有 LuckPerms Gson JSON 寫入限制保留，不執行 lp permission set，A 必須最終同意前離線。
+Paper 用原生 Dialog，先登記，再讓 A 離線後由 Paper 後台設 test.qualified true。
+每台碼與資料獨立，不用 Folia 碼；B 不用 code。Folia 已通過項目不重測。
+
+真人結果尚未回報，不宣稱兩核心通過。回報後由 Agent 逐台資料核對與暫設還原，再整理後續交付；沒有 push／PR／merge。
+以下保留 Folia 與前輪歷史，兩核心操作以新完整流程為準。
+
+
 ## 2026-10-30 輸入框五項真人複驗通過，Folia 進入收尾
 
 使用者明確回報：「標籤／逾時關閉／逾時提示／格式錯誤／取消：通過」。

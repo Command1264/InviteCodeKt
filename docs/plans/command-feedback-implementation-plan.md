@@ -169,3 +169,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 使用者核准後已沿原分支完成語意值翻譯、配色與回歸，來源 1a83b73。Java 8／11、JAR 與四項新增回歸通過；僅 Folia 備份部署並核對 ready run、13 行翻譯與 log 標頭。330 項中 306 通過、24 MySQL 條件跳過，沒有失敗。
 下一個前置條件已滿足的項目是最新真人清單的 Folia doctor 局部翻譯／顏色驗收；已有候選與保留資料的測服。之後回到第四階段剩餘項目，不推定其他核心或完整流程通過。Git／編譯時間需求另存 notes/build-provenance-draft.md，未改建置機制、未開分支或 Issue，待本分支完成。沒有 push／merge。
+
+
+## 2026-10-29 doctor 顯示驗收通過與下一步
+
+使用者回報 1a83b73 本次更改通過；證據見 ../testing/evidence/2026-10-29-doctor-human-acceptance.json。範圍限 Folia doctor 顯示，未逐項確認英文或其他核心。使用者已停止測服，本輪不重啟、不部署。
+下一個前置條件已具備的驗收項目為第四階段 Folia 剩餘指令面板（首頁點擊／停用、權限 Tab、status／stats 與複製、Console Tab），不需先重設 B 或建立邀請。實際執行前由使用者開啟 Folia 或授權啟動，再核對候選；其他核心及完整兩帳號流程仍待後續。沒有 push／merge。

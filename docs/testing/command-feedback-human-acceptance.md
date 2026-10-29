@@ -1,8 +1,32 @@
 # 訊息與 prefix：第四階段真人驗收
 
+## 2026-10-29 健康檢查候選：Agent 驗證完成，待局部真人驗收
+
+來源 `1a83b73`。僅更新並啟動 Folia 26.1.2；Paper／Spigot 維持停止。
+[Agent 證據](evidence/2026-10-29-doctor-localization.json) 保留 hash、run、備份及檢查結果。
+既有世界與資料保留。前版 Console／玩家報告排版驗收仍有效；本次複驗新翻譯與配色。
+
+1. 主控台輸入 `ic admin doctor`：每行有時間戳、INFO、prefix；一般欄位與狀態使用繁中，專有名詞保留。
+2. A 帳號連線 `localhost:25565`，輸入 `/server invitecode-folia-26.1.2`，再輸入 `/ic admin doctor`。
+   不需要 B 帳號，不執行 claim／reset／unlink。玩家標題 prefix 一次，後續一行一欄。
+3. 檢查「運作中」「接受新工作」「支援」為綠；「未啟用」「不可用」為紅；三項獎勵數量 0 為灰。
+   選配整合不可用不等於故障。健康檢查不應露出 ACTIVE／ACCEPTING 或布林原碼。
+4. 將客戶端語言切英文後重跑，應顯示英文欄位及語意狀態；改回繁中後重跑確認。若設定關閉客戶端語系，應跟隨預設語言。
+5. 回覆「Folia 1a83b73：Console 翻譯／玩家翻譯／布林色／零值／雙語：通過、失敗或未測」，失敗附截圖。
+
+目前固定測服的三項獎勵數量皆為 0；正數待執行黃、執行中青、結果待確認金已由測試 fixture 驗證，
+不為外觀製造獎勵或故障資料。畫面尚未真人通過；其他核心與完整兩帳號流程仍另行安排。
+Velocity 現行路由指向 30101，入口有監聽；fallback Play 20401 有監聽、lobby 10001 未監聽，
+未變更共用服務或路由。設定及 port 不代替客戶端切服驗收。
+
+Git commit／編譯時間目前未嵌入 JAR；已記錄容器 notes/build-provenance-draft.md，待本分支完成後另行評估。
+完成本次局部驗收後，依第四階段清單補尚未通過的 help／權限 Tab、雙語 reload 與兩帳號流程；開始 claim 前重核 B 資格。
+沒有 push。以下為歷史紀錄，不代表目前仍在討論階段。
 
 
-## 2026-10-29 最新回報：Console／玩家報告排版通過，doctor 翻譯配色待討論
+
+
+## 2026-10-29 歷史回報：Console／玩家報告排版通過，當時 doctor 翻譯配色待討論
 
 使用者確認目前交付的 `53893c4` 在 Folia：Console 通過、玩家報告通過。
 [驗收與後續要求](evidence/2026-10-29-folia-console-player-acceptance.json) 及

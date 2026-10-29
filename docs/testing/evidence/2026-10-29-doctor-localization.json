@@ -1,0 +1,59 @@
+{
+  "sourceCommit": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "sha256": "5D7E7782E8BAEA222785DA8FA8B15416E777649517C5F63AD53101D48BE6733D",
+  "bytes": 19929689,
+  "tests": {
+    "tests": 330,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 24
+  },
+  "passed": 306,
+  "checks": [
+    "Java 11 check shadowJar",
+    "Java 8 check shadowJar",
+    "verifyJava8Bytecode",
+    "verifyPluginJar",
+    "4 doctor regression tests",
+    "independent review"
+  ],
+  "date": "2026-10-29",
+  "scope": "Folia 26.1.2 doctor localization and semantic colors",
+  "agentRuntime": {
+    "ready": true,
+    "runId": "1793b599a747476ca11693f29457144b",
+    "doctorLines": 13,
+    "translatedValues": true,
+    "nativeLogHeaders": true,
+    "errors": false
+  },
+  "preservation": {
+    "protectedConfigurationAndKeyUnchanged": true,
+    "databaseRowsRetained": true,
+    "runtimeTimestampRefresh": [],
+    "otherServers": [
+      {
+        "name": "invitecode-paper-26.3",
+        "state": "Stopped"
+      },
+      {
+        "name": "invitecode-spigot-1.8.8",
+        "state": "Stopped"
+      }
+    ],
+    "worldsPreservedDuringDeployment": true
+  },
+  "backupPath": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\doctor-colors-20261029-153124-9da4ca5b",
+  "instance": "D:/Code/Java/Plugin/InstanceHarbor/instances/Human/InviteCode/invitecode-folia-26.1.2",
+  "port": 30101,
+  "java": "local-25 / JDK 25.0.4.1",
+  "humanAcceptance": "pending",
+  "remoteWrites": false,
+  "limits": [
+    "MySQL conditional tests skipped (24)",
+    "Player colors and English client locale still need human acceptance",
+    "Positive reward counts checked with automated fixtures only",
+    "Latest Folia ALPHA gap retained",
+    "Git and build-time provenance deferred to separate draft"
+  ]
+}

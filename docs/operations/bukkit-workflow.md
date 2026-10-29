@@ -161,3 +161,8 @@ Console 導航只列實際可輸入的上一頁／返回／下一頁命令，不
 新增可自訂語系鍵 runtime.help-console-home-header、runtime.help-topic.console、
 runtime.help-console-navigation-title、admin.inspect-*-title 及 admin.inspect-* 報告模板。
 既有檔案通常不自動覆寫；本輪獲准更新 Folia 時先備份再部署完整雙語文案，其他核心不部署。
+
+
+## 2026-10-29 Doctor 語系值與色彩
+
+健康檢查的一般欄位與已知狀態透過 `admin.doctor-value.*` 翻譯，沿用 config 的預設／客戶端語系政策。選配整合未啟用顯示紅色說明，不等於插件健康失敗；未知代碼中性灰保留原值。0 獎勵數量灰色，正數待執行黃／執行中青／結果待確認金。Console 使用黑底可讀的 legacy 色與每行 prefix，玩家標題 prefix 一次。僅 Folia 更新，驗收及資料保留證據見 `../testing/evidence/2026-10-29-doctor-localization.json`。

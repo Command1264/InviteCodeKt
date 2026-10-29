@@ -181,3 +181,8 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 使用者確認首頁／停用導航、權限與 Tab、status／stats／碼 hover 複製、Console Tab 通過，對應 1a83b73；見 ../testing/evidence/2026-10-30-folia-command-panel-human-acceptance.json。不重做已通過項目。
 下一個前置條件已具備的項目為第四階段雙語與 messages reload（真人清單本日最新章節）。先核對候選、語系政策與備份，再由 Agent 準備暫改 prefix、有效／失敗 reload、完整還原；玩家核對繁英與可見回覆。本輪尚未執行任何設定／伺服器操作。之後仍待兩帳號流程、重啟還原及其他核心驗收，不代表分支完整通過或取得 push／merge 授權。
+
+
+## 2026-10-30 語系驗收補充與 reload 證據界線
+
+使用者確認繁英顯示、Console 預設繁中正常，實際只更改 use-client-locale 並還原。證據見 ../testing/evidence/2026-10-30-folia-locale-human-acceptance.json。prefix 模板未修改，故有效 prefix reload、錯誤型別拒絕保留快照及該情境的 prefix 還原仍未驗證，不算失敗。下一步建議由 Agent 先核對目標與備份，再補這三個案例及完整還原；這輪只有文件記錄，沒有開始操作。其後仍按第四階段安排兩帳號、重啟與其他核心。

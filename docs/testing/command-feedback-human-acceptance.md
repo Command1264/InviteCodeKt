@@ -1,6 +1,21 @@
 # 訊息與 prefix：第四階段真人驗收
 
 
+
+## 2026-10-29 最新回報：Console／玩家報告排版通過，doctor 翻譯配色待討論
+
+使用者確認目前交付的 `53893c4` 在 Folia：Console 通過、玩家報告通過。
+[驗收與後續要求](evidence/2026-10-29-folia-console-player-acceptance.json) 及
+[使用者截圖](evidence/2026-10-29-folia-doctor-localization-feedback.png) 已保存。
+本次通過範圍為排版，不推定英文語系、其他核心、完整互動／獎勵／重啟或整個分支通過。
+不重做已通過排版。新增 doctor 的翻譯／配色要求另列：true 綠、false 紅；其他顏色先討論。
+本輪只記錄與提案，不修改插件、建置、部署或啟停，沒有 push／merge。
+
+建議下一步是確認 doctor 的狀態翻譯與配色語意，再沿目前分支實作及局部複驗。
+語系建議沿 config 的既有選擇規則（use-client-locale 啟用時玩家用客戶端語系，否則預設語系；Console 用預設），
+不趁此更改語系選擇或資料庫。詳細提案見同一 HTML 的 help-update；尚非定稿規格。
+
+
 ## 最新待驗收：Console 逐行與報告排版（只測 Folia）
 
 候選 `53893c475fdeaf631ca5b174493f33754660e0ad`，SHA-256 `6E7EB72D59896AF141FE17029FDAD5A0322EADA7F019929F5E78D11C20C8664E`。只更新 Folia 26.1.2；另兩台保持停止。

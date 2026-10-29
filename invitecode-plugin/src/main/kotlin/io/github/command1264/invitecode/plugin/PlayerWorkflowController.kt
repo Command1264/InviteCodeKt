@@ -281,7 +281,14 @@ class PlayerWorkflowController(
             onSubmit = { rawCode ->
                 tasks.player(player, operation = {
                     if (tasks.onlinePlayer(playerId) === player) {
-                        sessions.consumeDialogInput(playerId, rawCode)?.let { beginClaim(player, it) }
+                        when (val input = sessions.consumeDialogInputResult(playerId, rawCode)) {
+                            is io.github.command1264.invitecode.platform.bukkit.DialogInputResult.Code -> beginClaim(player, input.value)
+                            io.github.command1264.invitecode.platform.bukkit.DialogInputResult.Expired -> {
+                                nativeDialogInput.cancel(player)
+                                send(playerId, "command.claim.dialog-timeout")
+                            }
+                            null -> Unit
+                        }
                     }
                 })
             },
@@ -775,8 +782,18 @@ class PlayerWorkflowController(
     }
 
     private fun scheduleTimeout(player: Player, duration: Duration, operation: () -> Unit) {
-        val ticks = ((duration.toMillis() + 49L) / 50L).coerceAtLeast(1L)
-        tasks.delayPlayer(player, ticks, operation)
+        val deadline = now().plus(duration)
+        fun scheduleRemaining() {
+            val remaining = Duration.between(now(), deadline)
+            if (remaining.isNegative || remaining.isZero) {
+                operation()
+            } else {
+                // Server ticks need not reach the wall-clock deadline on the first callback.
+                val ticks = ((remaining.toMillis() + 49L) / 50L).coerceAtLeast(1L)
+                tasks.delayPlayer(player, ticks, ::scheduleRemaining)
+            }
+        }
+        scheduleRemaining()
     }
 
     private sealed class PreparedClaim {

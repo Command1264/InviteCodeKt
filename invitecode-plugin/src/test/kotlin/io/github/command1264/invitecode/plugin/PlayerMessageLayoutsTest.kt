@@ -16,7 +16,8 @@ class PlayerMessageLayoutsTest {
         val layout = PlayerMessageLayouts(BukkitConfigurationLoader(directory) {}.load().messages, "en_US", MessageAudience.LEGACY_PLAYER)
         val status = layout.status(false, "claimed", 2, listOf("already registered", "claim period ended"))
         assertEquals(1, Regex("\\[InviteCode]").findAll(status.plainText).count())
-        assertTrue(status.plainText.endsWith("Cannot register: already registered\nclaim period ended"))
+        assertTrue(status.plainText.endsWith("Cannot register: already registered"))
+        assertFalse(status.plainText.contains("claim period ended"))
         assertFalse(layout.status(true, "none", 0, emptyList()).plainText.contains("Cannot register"))
     }
 
@@ -50,7 +51,7 @@ class PlayerMessageLayoutsTest {
         val input = layout.inputDialog()
         assertEquals("Enter Invite Code", input.title)
         assertTrue(input.presentation!!.body.isEmpty())
-        assertEquals("Six-character Invite Code", input.presentation!!.inputLabel!!.plainText)
+        assertEquals("Invite code", input.presentation!!.inputLabel!!.plainText)
     }
 
     @Test

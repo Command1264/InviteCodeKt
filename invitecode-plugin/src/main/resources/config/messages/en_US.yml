@@ -5,7 +5,7 @@ presentation:
   prefix: "&7[&6InviteCode&7]&r"
 runtime:
   raw-output: "{text}"
-  usage: "&cInvalid command usage. &fUse /{label} help for instructions."
+  usage: "&cInvalid command usage, so use /{label} help for instructions."
   no-permission: "&cYou do not have permission to use this command."
   player-only: "&eOnly a player can run this command."
   unavailable: "&cThis operation is currently unavailable: {detail}"
@@ -80,7 +80,7 @@ runtime:
   help-next: "&eNext"
   help-back: "&eBack"
   help-open-detail: "Click to view command details"
-  help-page-error: "&cThat page or topic was not found. &fUse /ic help to return to common commands."
+  help-page-error: "&cThat page or topic was not found, so use /ic help to return to common commands."
   help-detail:
     help: |-
       &7Opens the player-command index
@@ -190,14 +190,14 @@ command:
     chat-started: |-
       &fEnter the Invite Code in chat within {seconds} seconds. It will not be public.
       &7Type cancel to stop.
-    chat-timeout: "&eCode input has expired. &fRun /invitecode claim again."
+    chat-timeout: "&cCode input expired, so run /invitecode claim again."
     dialog-title: "Enter Invite Code"
-    dialog-label: "Six-character Invite Code"
+    dialog-label: "Invite code"
     dialog-confirm: "Continue"
     dialog-cancel: "Cancel"
-    dialog-timeout: "&eCode input has expired. &fRun /invitecode claim again."
-    invalid-code: "&cInvalid Invite Code format. &fCheck the code and enter it again."
-    unavailable: "&cThis Invite Code does not exist or is no longer active. &fAsk the inviter for their current code."
+    dialog-timeout: "&cCode input expired, so run /invitecode claim again."
+    invalid-code: "&cThe Invite Code format is invalid, so check it and enter the code again."
+    unavailable: "&cThis Invite Code does not exist or is no longer active, so ask the inviter for their current code."
     self: "&cYou cannot use your own Invite Code."
     # The renderer adds the prefix as line 1 and the action buttons as line 7.
     confirmation: |-
@@ -215,13 +215,13 @@ command:
     disagree: "&cDisagree"
     agree-hover: "Click to agree and use this Invite Code"
     disagree-hover: "Click to disagree and cancel"
-    confirmation-timeout: "&eInvitation confirmation has expired. &fRun /invitecode claim again."
-    no-confirmation: "&eThere is no invitation to confirm, or it has expired. &fRun /invitecode claim again."
+    confirmation-timeout: "&cInvitation confirmation expired, so run /invitecode claim again."
+    no-confirmation: "&cThere is no invitation to confirm, or it has expired, so run /invitecode claim again."
     claimed: |-
       &aYour invitation has been registered.
       &7View your status: /ic status
     matching-network-warning: "&eYou and the inviter recently used the same network. This claim was allowed but may be reviewed by an administrator."
-    matching-network-denied: "&cServer rules prevent this claim because you and the inviter recently used the same network. &fContact an administrator if you need help."
+    matching-network-denied: "&cServer rules prevent this claim because you and the inviter recently used the same network, so contact an administrator if you need help."
     ineligible: "&cYou cannot use an Invite Code: {reasons}."
     reason:
       already_inviter: "you have already created your own Invite Code"
@@ -241,8 +241,8 @@ command:
       &fMy referral statistics
       &7Awaiting qualification: &f{claimed}
       &7Qualified: &f{qualified}
-  error: "&cThe operation failed. &fContact an administrator to check the server log."
-  stopping: "&eThe plugin is stopping and cannot accept operations. &fTry again later."
+  error: "&cThe operation failed, so contact an administrator to check the server log."
+  stopping: "&cThe plugin is stopping and cannot accept operations, so try again later."
 value:
   reason-separator: ", "
   'yes': "yes"
@@ -292,17 +292,17 @@ admin:
   eligibility-reset: "&aClaim eligibility reset for player {player}."
   reward-resolved: "&aReward action {action} resolved as {status}."
   code-rotated: "&aPlayer {player}'s Invite Code rotated from {previous} to {current}."
-  error: "&cThe administrative operation failed. &fCheck the server log."
+  error: "&cThe administrative operation failed, so check the server log."
   stopping: "&eThe plugin is stopping and cannot accept administrative operations."
   reload-stopping: "&eThe plugin is stopping and cannot reload configuration."
   reload-success: "&aConfiguration and messages validated and applied."
   reload-storage-restart: "&estorage.yml changes were not applied. &fFollow the storage cutover procedure, then restart the server."
-  reload-failed: "&cReload failed. The previous configuration remains active. &fCheck the server log and fix the configuration."
+  reload-failed: "&cReload failed while the previous configuration remains active, so check the server log and fix the configuration."
   storage-unsupported: "&cThe migration target must match the configured SQLITE or MYSQL storage backend."
-  storage-config-unavailable: "&cConfiguration is not loaded, so the storage location is unknown. &fCheck the server log."
+  storage-config-unavailable: "&cBecause configuration is not loaded, the storage location is unknown, so check the server log."
   storage-stopping: "&eThe plugin is stopping and cannot update the storage schema."
   storage-success: "&aStorage schema updated to version {version}."
-  storage-failed: "&cStorage schema update failed. &fCheck the server log."
+  storage-failed: "&cStorage schema update failed, so check the server log."
   doctor-runtime: |-
     &fRuntime: {phase}
     &fConfiguration generation: {generation}
@@ -320,7 +320,7 @@ admin:
     &fPending rewards: {pending}
     &fProcessing rewards: {processing}
     &fAwaiting result confirmation: {uncertain}
-  doctor-storage-failed: "&cThe storage health check failed. &fCheck the server log."
+  doctor-storage-failed: "&cThe storage health check failed, so check the server log."
   doctor-executor-stopping: "&eThe executor is stopping and cannot query pending reward actions."
   doctor-value:
     phase:

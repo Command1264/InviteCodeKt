@@ -14,6 +14,39 @@ import java.util.UUID
 
 class ClaimInteractionSessionsTest {
     @Test
+    fun `dialog submission distinguishes expiration from an absent session atomically`() {
+        var now = Instant.EPOCH
+        val id = UUID.randomUUID()
+        val sessions = ClaimInteractionSessions { now }
+        assertNull(sessions.consumeDialogInputResult(id, "secret"))
+        sessions.startDialogInput(id, Duration.ofSeconds(60))
+        now = now.plusSeconds(60)
+        assertEquals(DialogInputResult.Expired, sessions.consumeDialogInputResult(id, "secret"))
+        assertNull(sessions.consumeDialogInputResult(id, "second"))
+        sessions.startDialogInput(id, Duration.ofSeconds(60))
+        assertEquals(DialogInputResult.Code("A1B2C3"), sessions.consumeDialogInputResult(id, " A1B2C3 "))
+    }
+    @Test
+    fun `all interaction types expire exactly at their deadline and only once`() {
+        var now = Instant.EPOCH
+        val sessions = ClaimInteractionSessions { now }
+        val id = UUID.randomUUID()
+        val timeout = Duration.ofSeconds(60)
+        sessions.startDialogInput(id, timeout)
+        now = now.plus(timeout)
+        assertTrue(sessions.expireDialogInput(id))
+        assertFalse(sessions.expireDialogInput(id))
+        sessions.startChatInput(id, timeout)
+        now = now.plus(timeout)
+        assertTrue(sessions.expireChatInput(id))
+        assertNull(sessions.consumeChatInput(id, "secret"))
+        sessions.startConfirmation(ClaimConfirmation.present(id, UUID.randomUUID(), "Inviter",
+            InviteCode.parse("A1B2C3"), now, timeout))
+        now = now.plus(timeout)
+        assertTrue(sessions.expireConfirmation(id))
+        assertNull(sessions.consumeConfirmation(id))
+    }
+    @Test
     fun `chat input does not consume an active confirmation`() {
         val now = Instant.parse("2026-01-01T00:00:00Z")
         val playerId = UUID.randomUUID()

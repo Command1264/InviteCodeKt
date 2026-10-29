@@ -104,12 +104,77 @@ class PlayerWorkflowPresentationIntegrationTest {
         assertEquals(1, f.storage!!.invitationsByInvitee(f.inviteeId).size)
     }
 
-    private fun fixture(): Fixture = Fixture(directory).also { fixture = it }
+    @Test
+    fun `native input closes and explains timeout exactly at its deadline`() {
+        val dialog = FakeDialog()
+        val f = fixture(dialog)
+        f.controller.handle(f.invitee, command("claim"))
+        f.awaitDialog(dialog)
+        f.advanceClock(Duration.ofSeconds(30))
+        f.dispatcher.runAllDelays()
+        assertEquals(1, dialog.closed)
+        assertTrue(f.awaitOutput().flattenText().contains("expired"))
+        assertTrue(f.storage.invitationsByInvitee(f.inviteeId).isEmpty())
+    }
+
+    @Test
+    fun `early native input timeout task reschedules until the wall clock deadline`() {
+        val dialog = FakeDialog()
+        val f = fixture(dialog)
+        f.controller.handle(f.invitee, command("claim"))
+        f.awaitDialog(dialog)
+        f.advanceClock(Duration.ofSeconds(29))
+        f.dispatcher.runOneDelay()
+        assertEquals(0, dialog.closed)
+        f.advanceClock(Duration.ofSeconds(1))
+        f.dispatcher.runAllDelays()
+        assertEquals(1, dialog.closed)
+        assertTrue(f.awaitOutput().flattenText().contains("expired"))
+    }
+
+    @Test
+    fun `late native input submission reports expiration instead of silently consuming it`() {
+        val dialog = FakeDialog()
+        val f = fixture(dialog)
+        f.controller.handle(f.invitee, command("claim"))
+        f.awaitDialog(dialog)
+        f.advanceClock(Duration.ofSeconds(31))
+        dialog.submit!!(f.inviterCode)
+        assertTrue(f.awaitOutput().flattenText().contains("expired"))
+        f.dispatcher.runAllDelays()
+        assertTrue(f.storage.invitationsByInvitee(f.inviteeId).isEmpty())
+    }
+
+    @Test
+    fun `expired inviter status displays the inviter reason without a second reason line`() {
+        val f = fixture()
+        f.advanceClock(Duration.ofHours(25))
+        f.controller.handle(f.inviter, command("status"))
+        val text = f.awaitOutput().flattenText()
+        assertTrue(text.contains("you have already created your own Invite Code"))
+        assertFalse(text.contains("the claim period has ended"))
+        assertEquals(5, text.lines().size)
+    }
+
+    @Test
+    fun `late native input cancel remains an explicit cancellation if timer has not run`() {
+        val dialog = FakeDialog()
+        val f = fixture(dialog)
+        f.controller.handle(f.invitee, command("claim"))
+        f.awaitDialog(dialog)
+        f.advanceClock(Duration.ofSeconds(31))
+        dialog.cancelInput!!()
+        assertTrue(f.awaitOutput().flattenText().contains("cancelled"))
+        f.dispatcher.runAllDelays()
+        assertTrue(f.storage.invitationsByInvitee(f.inviteeId).isEmpty())
+    }
+
+    private fun fixture(dialog: FakeDialog? = null): Fixture = Fixture(directory, dialog).also { fixture = it }
 
     private fun command(vararg args: String): ParsedInviteCodeCommand =
         InviteCodeCommandParser.parse(args.toList()) as ParsedInviteCodeCommand
 
-    private inner class Fixture(directory: Path) : AutoCloseable {
+    private inner class Fixture(directory: Path, dialog: FakeDialog?) : AutoCloseable {
         private val guard = BlockingOperationGuard { }
         private val clock = AtomicReference(Instant.parse("2026-01-01T00:00:00Z"))
         private val now: Instant get() = clock.get()
@@ -138,7 +203,7 @@ class PlayerWorkflowPresentationIntegrationTest {
             config = loaded.copy(
                 general = loaded.general.copy(
                     claim = loaded.general.claim.copy(
-                        inputMode = InputMode.CHAT,
+                        inputMode = if (dialog == null) InputMode.CHAT else InputMode.DIALOG,
                         confirmationTimeout = Duration.ofSeconds(30),
                         chatInputTimeout = Duration.ofSeconds(30),
                     ),
@@ -158,8 +223,8 @@ class PlayerWorkflowPresentationIntegrationTest {
                 ClaimInteractionSessions { now },
                 QualificationProviderRegistry(),
                 AtomicReference(null),
-                PlatformCapabilities(nativeDialogInput = false, rgbText = false),
-                UnavailableNativeDialogInput,
+                PlatformCapabilities(nativeDialogInput = dialog != null, rgbText = false),
+                dialog ?: UnavailableNativeDialogInput,
                 LegacyInviteCodeDisplayFormatter,
                 now = { now },
             )
@@ -175,6 +240,15 @@ class PlayerWorkflowPresentationIntegrationTest {
         }
 
         fun advanceClock(duration: Duration) { clock.updateAndGet { it.plus(duration) } }
+
+        fun awaitDialog(dialog: FakeDialog) {
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+            while (dialog.submit == null && System.nanoTime() < deadline) {
+                dispatcher.runOneTask()
+                Thread.sleep(1)
+            }
+            assertNotNull(dialog.submit)
+        }
 
         fun awaitOutput(): List<List<BaseComponent>> = playerOutput.awaitOutput(dispatcher)
 
@@ -222,9 +296,25 @@ class PlayerWorkflowPresentationIntegrationTest {
         fun runAllDelays() {
             while (true) (delays.poll() ?: break).invoke()
         }
+        fun runOneDelay() { delays.poll()?.invoke() }
         fun runOneTask() {
             (playerWork.poll() ?: callbacks.poll())?.invoke()
         }
+    }
+
+    private class FakeDialog : NativeDialogInput {
+        override val available = true
+        var submit: ((String) -> Unit)? = null
+        var cancelInput: (() -> Unit)? = null
+        var closed = 0
+        override fun show(player: Player, request: NativeDialogRequest, onSubmit: (String) -> Unit, onCancel: () -> Unit): Boolean {
+            submit = onSubmit
+            cancelInput = onCancel
+            return true
+        }
+        override fun cancel(player: Player) { closed++ }
+        override fun disconnect(playerId: UUID) = Unit
+        override fun close() = Unit
     }
 
     private fun player(id: UUID, name: String, output: PlayerOutput): Player {

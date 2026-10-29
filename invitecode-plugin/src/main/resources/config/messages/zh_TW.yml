@@ -5,7 +5,7 @@ presentation:
   prefix: "&7[&6InviteCode&7]&r"
 runtime:
   raw-output: "{text}"
-  usage: "&c指令用法不正確。&f請使用 /{label} help 查看說明。"
+  usage: "&c指令用法不正確，請使用 /{label} help 查看說明。"
   no-permission: "&c你沒有使用此指令的權限。"
   player-only: "&e此指令只能由玩家執行。"
   unavailable: "&c目前無法執行此操作：{detail}"
@@ -80,7 +80,7 @@ runtime:
   help-next: "&e下一頁"
   help-back: "&e返回"
   help-open-detail: "點擊查看指令詳細說明"
-  help-page-error: "&c找不到此頁面或主題。&f請使用 /ic help 返回常用指令。"
+  help-page-error: "&c找不到此頁面或主題，請使用 /ic help 返回常用指令。"
   help-detail:
     help: |-
       &7查看玩家指令索引
@@ -193,14 +193,14 @@ command:
     chat-started: |-
       &f請在 {seconds} 秒內於聊天輸入邀請碼，內容不會公開。
       &7輸入 cancel 可取消。
-    chat-timeout: "&e邀請碼輸入已逾時。&f請重新執行 /invitecode claim。"
+    chat-timeout: "&c邀請碼輸入已逾時，請重新執行 /invitecode claim。"
     dialog-title: "輸入邀請碼"
-    dialog-label: "六位邀請碼"
+    dialog-label: "邀請碼"
     dialog-confirm: "繼續"
     dialog-cancel: "取消"
-    dialog-timeout: "&e邀請碼輸入已逾時。&f請重新執行 /invitecode claim。"
-    invalid-code: "&c邀請碼格式不正確。&f請檢查後重新輸入。"
-    unavailable: "&c這組邀請碼不存在或已失效。&f請向邀請人確認目前的邀請碼。"
+    dialog-timeout: "&c邀請碼輸入已逾時，請重新執行 /invitecode claim。"
+    invalid-code: "&c邀請碼格式不正確，請檢查後重新輸入。"
+    unavailable: "&c這組邀請碼不存在或已失效，請向邀請人確認目前的邀請碼。"
     self: "&c你不能使用自己的邀請碼。"
     # 聊天 renderer 先單獨輸出 prefix，下列為第 2–6 行；互動按鈕為第 7 行。
     # Dialog 以 prefix 為標題，其他欄位使用等價內容。
@@ -219,13 +219,13 @@ command:
     disagree: "&c不同意"
     agree-hover: "點擊同意並使用邀請碼"
     disagree-hover: "點擊不同意並取消"
-    confirmation-timeout: "&e邀請確認已逾時。&f請重新執行 /invitecode claim。"
-    no-confirmation: "&e目前沒有可確認的邀請，或確認已逾時。&f請重新執行 /invitecode claim。"
+    confirmation-timeout: "&c邀請確認已逾時，請重新執行 /invitecode claim。"
+    no-confirmation: "&c目前沒有可確認的邀請，或確認已逾時，請重新執行 /invitecode claim。"
     claimed: |-
       &a邀請關係已建立。
       &7查看目前狀態：/ic status
     matching-network-warning: "&e你與邀請人近期使用相同網路。本次登記已允許，但可能由管理員檢查。"
-    matching-network-denied: "&c你與邀請人近期使用相同網路，依伺服器規則無法登記。&f如需協助，請聯絡管理員。"
+    matching-network-denied: "&c你與邀請人近期使用相同網路，依伺服器規則無法登記，如需協助請聯絡管理員。"
     ineligible: "&c目前無法使用邀請碼：{reasons}。"
     reason:
       already_inviter: "你已建立自己的邀請碼"
@@ -245,8 +245,8 @@ command:
       &f我的邀請統計
       &7等待達成資格：&f{claimed} 人
       &7已達成資格：&f{qualified} 人
-  error: "&c操作失敗。&f請聯絡管理員檢查伺服器紀錄。"
-  stopping: "&e插件正在停止，暫時無法操作。&f請稍後再試。"
+  error: "&c操作失敗，請聯絡管理員檢查伺服器紀錄。"
+  stopping: "&c插件正在停止，暫時無法操作，請稍後再試。"
 value:
   reason-separator: "、"
   'yes': "是"
@@ -296,17 +296,17 @@ admin:
   eligibility-reset: "&a已重設玩家 {player} 的邀請碼登記資格。"
   reward-resolved: "&a已將獎勵動作 {action} 處理為 {status}。"
   code-rotated: "&a玩家 {player} 的邀請碼已由 {previous} 輪替為 {current}。"
-  error: "&c管理操作失敗。&f請檢查伺服器紀錄。"
+  error: "&c管理操作失敗，請檢查伺服器紀錄。"
   stopping: "&e插件正在停止，無法執行管理操作。"
   reload-stopping: "&e插件正在停止，無法重新載入設定。"
   reload-success: "&a設定與訊息已通過驗證並套用。"
   reload-storage-restart: "&estorage.yml 的變更尚未套用。&f請依儲存切換流程操作，再重新啟動伺服器。"
-  reload-failed: "&c重新載入失敗，仍使用上一份有效設定。&f請檢查伺服器紀錄並修正設定。"
+  reload-failed: "&c重新載入失敗，仍使用上一份有效設定，請檢查伺服器紀錄並修正設定。"
   storage-unsupported: "&c遷移目標必須與目前設定的 SQLITE 或 MYSQL 儲存類型相同。"
-  storage-config-unavailable: "&c設定尚未成功載入，無法判定儲存位置。&f請檢查伺服器紀錄。"
+  storage-config-unavailable: "&c設定尚未成功載入，無法判定儲存位置，請檢查伺服器紀錄。"
   storage-stopping: "&e插件正在停止，無法更新儲存結構。"
   storage-success: "&a儲存結構更新完成，目前版本為 {version}。"
-  storage-failed: "&c儲存結構更新失敗。&f請檢查伺服器紀錄。"
+  storage-failed: "&c儲存結構更新失敗，請檢查伺服器紀錄。"
   doctor-runtime: |-
     &f執行階段：{phase}
     &f設定世代：{generation}
@@ -326,7 +326,7 @@ admin:
     &f待執行獎勵：{pending}
     &f執行中獎勵：{processing}
     &f結果待確認：{uncertain}
-  doctor-storage-failed: "&c儲存健康檢查失敗。&f請檢查伺服器紀錄。"
+  doctor-storage-failed: "&c儲存健康檢查失敗，請檢查伺服器紀錄。"
   doctor-executor-stopping: "&e背景工作正在停止，無法查詢待處理的獎勵動作。"
   doctor-value:
     phase:

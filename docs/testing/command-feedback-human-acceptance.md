@@ -1,5 +1,28 @@
 # 訊息與 prefix：第四階段真人驗收
 
+## 2026-10-30 最新真人回報：Folia 指令面板四項通過
+
+使用者確認前輪列出的四項皆已測試，基本沒有問題。對應產品候選 `1a83b73`，
+記錄為首頁 help／停用導航、A／B 權限與 Tab、status／stats／邀請碼 hover 與複製、Console Tab 通過。
+[真人回報](evidence/2026-10-30-folia-command-panel-human-acceptance.json)。既有 doctor、報告排版與框線驗收保留，不重做。
+本輪只更新證據與計畫；沒有啟停、部署、修改測服設定或資料，未重新確認目前執行狀態。
+
+下一個前置條件已滿足的項目為第四階段「雙語與 messages reload」：
+
+1. A、B 將客戶端改 English (US)，執行 `/ic help`、`/ic status`、`/ic stats`；A 另看 `/ic help admin` 與 `/ic admin doctor`。
+   確認英文完整、prefix 一致、無缺鍵／色碼外洩，再改回繁中重做。
+2. Agent 先核對候選與設定、備份繁中 messages，再暫改 `presentation.prefix` 為字串 `[IC TEST]`。
+   Console `ic reload` 後，玩家及 Console 的新回覆應使用新 prefix，且不重複。
+3. Agent 將同一 prefix 暫改為數字 `123`，Console `ic reload` 應明確拒絕；新回覆仍用上一步有效的 `[IC TEST]`，不可半套更新。
+4. Agent 立即恢復原始檔案並執行 `ic reload`；確認成功且回復原 prefix。設定備份／暫改／還原由 Agent 準備，尚未執行。
+
+回覆方式：`Folia 1a83b73：英文／繁中／reload 生效／錯誤設定保留／還原：通過、失敗或未測`。
+不要求刪除檔案，缺檔復位已有 Agent 證據；不修改 storage、DB、key 或重設 B。
+本組完成後才安排兩帳號確認／資格／離線補發／重啟，開始前重核 B 的資格與現有關係。
+其他核心保持未驗收，待 Folia 完整流程通過後再部署同一候選並安排驗收。沒有 push／PR／merge。
+以下為歷史紀錄；舊的「待驗收」以本節與對應證據為準。
+
+
 ## 2026-10-29 最新真人回報：doctor 顯示通過，測服已由使用者停止
 
 使用者確認候選 `1a83b73` 本次更改可算通過，記錄為 Folia 健康檢查顯示驗收通過。

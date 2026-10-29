@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "platform": "Folia 26.1.2",
+  "humanReport": "以上四項都測試過，基本都沒有問題",
+  "accepted": [
+    "Home help click and disabled navigation",
+    "Administrator/general-player permissions and Tab boundaries",
+    "status/stats and invitation-code hover/copy",
+    "Console Tab completion and argument boundaries"
+  ],
+  "result": "passed",
+  "remaining": [
+    "Bilingual messages and valid/invalid reload with restoration",
+    "Two-account claim confirmation and qualification/reward delivery",
+    "Restart retention and temporary setting restoration",
+    "Other core human acceptance"
+  ],
+  "serverState": "Not inspected or changed in this documentation-only turn",
+  "remoteWrites": false
+}

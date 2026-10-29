@@ -175,3 +175,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 使用者回報 1a83b73 本次更改通過；證據見 ../testing/evidence/2026-10-29-doctor-human-acceptance.json。範圍限 Folia doctor 顯示，未逐項確認英文或其他核心。使用者已停止測服，本輪不重啟、不部署。
 下一個前置條件已具備的驗收項目為第四階段 Folia 剩餘指令面板（首頁點擊／停用、權限 Tab、status／stats 與複製、Console Tab），不需先重設 B 或建立邀請。實際執行前由使用者開啟 Folia 或授權啟動，再核對候選；其他核心及完整兩帳號流程仍待後續。沒有 push／merge。
+
+
+## 2026-10-30 Folia 指令面板四項通過
+
+使用者確認首頁／停用導航、權限與 Tab、status／stats／碼 hover 複製、Console Tab 通過，對應 1a83b73；見 ../testing/evidence/2026-10-30-folia-command-panel-human-acceptance.json。不重做已通過項目。
+下一個前置條件已具備的項目為第四階段雙語與 messages reload（真人清單本日最新章節）。先核對候選、語系政策與備份，再由 Agent 準備暫改 prefix、有效／失敗 reload、完整還原；玩家核對繁英與可見回覆。本輪尚未執行任何設定／伺服器操作。之後仍待兩帳號流程、重啟還原及其他核心驗收，不代表分支完整通過或取得 push／merge 授權。

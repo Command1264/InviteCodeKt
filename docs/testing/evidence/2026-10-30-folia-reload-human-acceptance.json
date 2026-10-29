@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "platform": "Folia 26.1.2",
+  "humanReport": "reload了之後，這個 reload 的訊息就已經生效了，並且不同的語言也有這個不同的 prefix，是沒有問題的。然後第二個部分是確定是拒絕 update 錯誤的這個 config 設定，並且保持原有的這個設定這樣子，也沒有跑到預設的這個 true 之類的。因為我有在先前將 true 跟 false 都 reload 過一遍，它確實有正確地按照這個開啟或關閉的這個功能。然後之後再將其改壞，確實有保留上一版的這個部分這樣子。",
+  "accepted": [
+    "Successful reload updates visible feedback",
+    "Locale-specific prefixes display correctly",
+    "use-client-locale true and false each apply correctly after reload",
+    "Invalid configuration reload is rejected and retains last valid settings instead of falling back to defaults"
+  ],
+  "result": "Bilingual and reload human acceptance passed within reported scope",
+  "clarification": "Invalid config case used use-client-locale; no claim that a numeric presentation.prefix template was specifically tested. The reported real invalid-config case satisfies this human reload gate; do not demand the earlier example again.",
+  "restoration": "User previously reported restoring use-client-locale; no Agent runtime changes this turn",
+  "supersedesPendingAssessment": "2026-10-30-folia-locale-human-acceptance.json",
+  "remaining": [
+    "Two-account confirmation flow",
+    "Qualification and offline once-only rewards",
+    "Restart retention and test-setting restoration",
+    "Other core human acceptance"
+  ],
+  "agentActions": "Documentation only; no server, settings, data or remote writes"
+}

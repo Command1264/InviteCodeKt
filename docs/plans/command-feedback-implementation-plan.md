@@ -186,3 +186,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 ## 2026-10-30 語系驗收補充與 reload 證據界線
 
 使用者確認繁英顯示、Console 預設繁中正常，實際只更改 use-client-locale 並還原。證據見 ../testing/evidence/2026-10-30-folia-locale-human-acceptance.json。prefix 模板未修改，故有效 prefix reload、錯誤型別拒絕保留快照及該情境的 prefix 還原仍未驗證，不算失敗。下一步建議由 Agent 先核對目標與備份，再補這三個案例及完整還原；這輪只有文件記錄，沒有開始操作。其後仍按第四階段安排兩帳號、重啟與其他核心。
+
+
+## 2026-10-30 reload 補充確認通過
+
+使用者確認有效 reload、新回覆及各語言 prefix、use-client-locale true／false，以及錯誤 config 拒絕並保留上一有效快照均正常；先前還原回報保留。見 ../testing/evidence/2026-10-30-folia-reload-human-acceptance.json。這滿足雙語與 reload 真人門檻，不要求重做先前數字 prefix 範例；不宣稱該具體錯誤型別已測。前輪未測判定已由補充證據取代。
+下一步建議為第四階段兩帳號流程準備，第一個動作是唯讀核對候選、B 登記期限／角色／現有邀請與待處理獎勵。核對完成前不要求玩家 claim，也不自動重設／unlink；需資料變更時精確列出另行確認。之後依序做確認互動、資格與離線補發、重啟還原、其他核心驗收。本輪沒有 live server 操作或 remote write。

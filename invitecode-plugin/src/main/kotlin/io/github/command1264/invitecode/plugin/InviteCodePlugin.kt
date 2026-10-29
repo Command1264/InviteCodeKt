@@ -386,7 +386,9 @@ class InviteCodePlugin : JavaPlugin() {
         )
         runtime.maintenanceReason?.let { sections.add("admin.doctor-maintenance" to mapOf("reason" to it)) }
         fun deliver(key: String, values: Map<String, String> = emptyMap()) {
-            BukkitMessageOutput.sendReport(sender, messages, "runtime.help-topic.doctor", sections + (key to values))
+            val layout = DoctorMessageLayouts(messages, (sender as? Player)?.let(BukkitLocaleCompatibility::locale),
+                BukkitMessageOutput.audience(sender))
+            BukkitMessageOutput.sendReport(sender, messages, "runtime.help-topic.doctor", sections + (key to values), layout::render)
         }
         if (store == null || executor == null) {
             deliver("admin.doctor-storage-offline")

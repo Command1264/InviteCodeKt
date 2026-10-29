@@ -306,22 +306,54 @@ admin:
   doctor-runtime: |-
     &fRuntime: {phase}
     &fConfiguration generation: {generation}
-    &fExecutor: {executor}
+    &fBackground tasks: {executor}
   doctor-integrations: |-
     &fPlaceholderAPI: {placeholder}
-    &fVault Economy: {vault}
-    &fDialog: {dialog}
-    &fRGB: {rgb}
+    &fVault economy service: {vault}
+    &fNative dialog: {dialog}
+    &fRGB colors: {rgb}
   doctor-maintenance: "&eMaintenance reason: {reason}"
   doctor-storage-offline: "&eStorage is offline. This check did not create or modify data."
   doctor-storage: |-
     &fStorage backend: {backend}
     &fSchema: {schema}
-    &fPENDING: {pending}
-    &fPROCESSING: {processing}
-    &fUNCERTAIN: {uncertain}
+    &fPending rewards: {pending}
+    &fProcessing rewards: {processing}
+    &fAwaiting result confirmation: {uncertain}
   doctor-storage-failed: "&cThe storage health check failed. &fCheck the server log."
   doctor-executor-stopping: "&eThe executor is stopping and cannot query pending reward actions."
+  doctor-value:
+    phase:
+      active: "&aActive"
+      starting: "&eStarting"
+      maintenance: "&6Maintenance"
+      stopping: "&eStopping"
+      stopped: "&7Stopped"
+    executor:
+      accepting: "&aAccepting new work"
+      stopped: "&7Not accepting new work"
+    enabled:
+      'true': "&aEnabled"
+      'false': "&cNot enabled"
+    available:
+      'true': "&aAvailable"
+      'false': "&cUnavailable"
+    supported:
+      'true': "&aSupported"
+      'false': "&cNot supported"
+    dialog:
+      paper: "&fPaper"
+      none: "&7No native interface"
+    backend:
+      sqlite: "&fSQLite"
+      mysql: "&fMySQL"
+      json: "&fJSON"
+    count:
+      zero: "&7{value}"
+      pending: "&e{value}"
+      processing: "&b{value}"
+      uncertain: "&6{value}"
+    unknown: "&7Unknown ({value})"
 invite:
   qualified:
     inviter: "&aA player you invited has qualified."

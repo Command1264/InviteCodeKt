@@ -28,20 +28,33 @@ internal object BukkitMessageOutput {
         if (sender is Player || prefix == PrefixPlacement.NONE) {
             sendPresented(sender, presenter.render(locale, key, variables, audience, prefix))
         } else {
-            val heading = presenter.render(locale, "presentation.prefix", audience = audience, prefix = PrefixPlacement.NONE)
-            val body = presenter.render(locale, key, variables, audience, PrefixPlacement.NONE)
-            lines(body).forEach { line ->
-                sendPresented(sender, PresentedMessage(if (heading.plainText.isEmpty()) line.segments
-                    else heading.segments + io.github.command1264.invitecode.platform.bukkit.MessageSegment(" ") + line.segments))
-            }
+            sendFormatted(sender, messages, presenter.render(locale, key, variables, audience, PrefixPlacement.NONE), prefix)
         }
     }
 
     fun sendReport(sender: CommandSender, messages: LocalizedMessages, title: String,
-        sections: List<Pair<String, Map<String, String>>>) {
+        sections: List<Pair<String, Map<String, String>>>,
+        formatter: ((String, Map<String, String>) -> PresentedMessage)? = null) {
         send(sender, messages, title)
-        sections.forEach { (key, variables) -> send(sender, messages, key, variables,
-            if (sender is Player) PrefixPlacement.NONE else PrefixPlacement.INLINE) }
+        sections.forEach { (key, variables) ->
+            val placement = if (sender is Player) PrefixPlacement.NONE else PrefixPlacement.INLINE
+            if (formatter == null) send(sender, messages, key, variables, placement)
+            else sendFormatted(sender, messages, formatter(key, variables), placement)
+        }
+    }
+
+    private fun sendFormatted(sender: CommandSender, messages: LocalizedMessages,
+        body: PresentedMessage, prefix: PrefixPlacement) {
+        if (prefix == PrefixPlacement.NONE) {
+            sendPresented(sender, body)
+            return
+        }
+        val heading = MessagePresenter(messages).render((sender as? Player)?.let(BukkitLocaleCompatibility::locale),
+            "presentation.prefix", audience = audience(sender), prefix = PrefixPlacement.NONE)
+        lines(body).forEach { line ->
+            sendPresented(sender, PresentedMessage(if (heading.plainText.isEmpty()) line.segments
+                else heading.segments + io.github.command1264.invitecode.platform.bukkit.MessageSegment(" ") + line.segments))
+        }
     }
 
     private fun lines(message: PresentedMessage): List<PresentedMessage> {

@@ -310,12 +310,12 @@ admin:
   doctor-runtime: |-
     &f執行階段：{phase}
     &f設定世代：{generation}
-    &fExecutor：{executor}
+    &f背景工作：{executor}
   doctor-integrations: |-
     &fPlaceholderAPI：{placeholder}
-    &fVault Economy：{vault}
-    &fDialog：{dialog}
-    &fRGB：{rgb}
+    &fVault 經濟服務：{vault}
+    &f原生對話框：{dialog}
+    &fRGB 色彩：{rgb}
   doctor-maintenance: "&e維護原因：{reason}"
   doctor-storage-offline: |-
     &e儲存尚未連線
@@ -323,11 +323,43 @@ admin:
   doctor-storage: |-
     &f儲存類型：{backend}
     &f結構版本：{schema}
-    &fPENDING：{pending}
-    &fPROCESSING：{processing}
-    &fUNCERTAIN：{uncertain}
+    &f待執行獎勵：{pending}
+    &f執行中獎勵：{processing}
+    &f結果待確認：{uncertain}
   doctor-storage-failed: "&c儲存健康檢查失敗。&f請檢查伺服器紀錄。"
-  doctor-executor-stopping: "&eExecutor 正在停止，無法查詢待處理的獎勵動作。"
+  doctor-executor-stopping: "&e背景工作正在停止，無法查詢待處理的獎勵動作。"
+  doctor-value:
+    phase:
+      active: "&a運作中"
+      starting: "&e啟動中"
+      maintenance: "&6維護中"
+      stopping: "&e停止中"
+      stopped: "&7已停止"
+    executor:
+      accepting: "&a接受新工作"
+      stopped: "&7不接受新工作"
+    enabled:
+      'true': "&a已啟用"
+      'false': "&c未啟用"
+    available:
+      'true': "&a可用"
+      'false': "&c不可用"
+    supported:
+      'true': "&a支援"
+      'false': "&c不支援"
+    dialog:
+      paper: "&fPaper"
+      none: "&7無原生介面"
+    backend:
+      sqlite: "&fSQLite"
+      mysql: "&fMySQL"
+      json: "&fJSON"
+    count:
+      zero: "&7{value}"
+      pending: "&e{value}"
+      processing: "&b{value}"
+      uncertain: "&6{value}"
+    unknown: "&7未知（{value}）"
 invite:
   qualified:
     inviter: "&a你邀請的玩家已達成資格。"

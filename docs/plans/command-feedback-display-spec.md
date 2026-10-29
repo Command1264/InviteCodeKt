@@ -118,6 +118,18 @@ Console 導航只列實際可輸入的上一頁／返回／下一頁命令，不
 核心與 storage 的本輪變更經去除字串後比對，僅訊息文字改變，沒有狀態、schema、備份或交易行為變更。
 原 value.reason-separator 保留相容鍵；狀態畫面的多原因目前固定逐行顯示。
 
+## 2026-10-29 健康檢查語系與語意配色
+
+`/ic admin doctor` 的欄位與狀態值共用 messages 語系選擇，Console 使用設定預設語言；
+玩家依 `use-client-locale` 決定是否使用客戶端語言。Paper、SQLite、MySQL、JSON、PlaceholderAPI、
+Vault 等名稱保留。布林改成符合欄位的已啟用／未啟用、可用／不可用、支援／不支援，正值綠、反值紅；
+整合未啟用不代表插件故障。
+
+運作中與接受新工作為綠；啟動／停止中為黃、維護中為金、已停止／不接受新工作為灰。
+獎勵數量 0 為灰；正數待執行為黃、執行中為青、結果待確認為金。未知值以灰色保留原始診斷值。
+顏色只由可信語系模板提供，動態值不重新解析格式。Console 沿用黑底可讀的 legacy 16 色輸出且不額外粗體。
+語系鍵使用 `admin.doctor-value.*`；玩家報告標題 prefix 一次，Console 每行一次並由核心提供 log 標頭。
+
 新增可自訂語系鍵 runtime.help-console-home-header、runtime.help-topic.console、
 runtime.help-console-navigation-title、admin.inspect-*-title 及 admin.inspect-* 報告模板。
 既有檔案通常不自動覆寫；本輪獲准更新 Folia 時先備份再部署完整雙語文案，其他核心不部署。

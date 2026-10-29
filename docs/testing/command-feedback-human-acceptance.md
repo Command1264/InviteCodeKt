@@ -1,5 +1,57 @@
 # 訊息與 prefix：第四階段真人驗收
 
+## 2026-10-30 兩帳號流程已就緒：先做到「同意登記」再回報
+
+使用者已明確核准備份及 B-only reset，並先停止測服。Agent 核對正常退出／排空、程序與 port 釋放，
+在管理鎖內備份 20 個檔案並逐一驗 hash，backup DB quick_check=ok；世界在原處保留，啟動前標頭未變。
+僅啟動 Folia，使用插件管理指令執行一次 B reset，沒有直接修改 SQL。
+[備份、重設及 runtime 證據](evidence/2026-10-30-folia-b-reset-ready.json)。
+
+B Taiwan_PingLord：generation 1 → 2，first_seen_at 更新，新增 1 筆 ELIGIBILITY_RESET 稽核；
+新登記期限至 **2026-10-31 01:47（台灣時間）**。A、原碼、舊 UNLINKED 邀請、獎勵均保留，
+其他資料表核對無額外變化；設定、key 與權限逐位元組保留。沒有 unlink、輪替碼或代玩家 claim。
+Folia 已到 Done／Listening，doctor 正常，資格權限 false，沒有啟動錯誤；另外兩台 InviteCode 測服仍停止。
+同網路 ALLOW 保留以支援同機兩帳號；待本輪結束還原原 DENY，不在流程中途關閉。
+
+### 現在先做 1–5，完成後回覆「登記完成」
+
+候選 `1a83b73`，只測 Folia 26.1.2。A=Command1（邀請人）；B=Taiwan_PingLord（受邀人）。
+兩人先連 `localhost:25565`，各輸入 `/server invitecode-folia-26.1.2`。
+入口與 Play fallback 有監聽，Folia 路由已核對；lobby 沒開，本輪離線步驟直接退出伺服器，不依賴 lobby。
+
+1. **A：**`/ic code` 取得原邀請碼。**B：**`/ic status` 確認可登記；不要執行 `/ic code`。
+2. **B：**`/ic claim` 後在原生輸入框按取消。再看 status，仍可登記；沒有新關係。
+3. **B：**重開 `/ic claim`，輸入 A 的碼，進入確認畫面後按「不同意」。仍可登記。
+4. **B：**再進確認畫面，等超過 60 秒才按同意，或用 `/ic confirm` 確認已逾時。
+   預期過期拒絕、沒有登記。這 60 秒從進入確認畫面開始，不是等待輸入的畫面。
+5. **B：**最後重開 claim、輸入 A 碼，在期限內同意。預期只成功一次，status 顯示等待資格。
+   再 `/ic claim` 應立即拒絕、不開輸入框。回覆「登記完成」，先由 Agent 唯讀核對唯一新關係、generation 2 與舊資料。
+
+步驟 2–5 看畫面：Dialog 置中、prefix 獨立且無尾端空格；同意綠／不同意紅，期限最後無冒號。
+原生框正常時不強制切聊天模式；舊版 cancel 在 Spigot 另驗。
+若 B 一開始不可登記、提前達資格、出現非預期獎勵或新錯誤，停在該步回報，不重設、不重送。
+期限到期也先回報，不自行繞過期限。
+
+### Agent 核對第 5 步後，再做 6–7
+
+6. **A：**退出伺服器，確保在 Folia 離線。**B：**留在 Folia。
+   **Folia 主控台（不加斜線）：**
+
+   ```text
+   lp user Taiwan_PingLord permission set invitecode.test.qualified true
+   ```
+
+   這是後續真人測試時由管理員執行的資格變更，目前 Agent 尚未設定 true。
+   等資格檢查約 60 秒，或 B 退出再加入 Folia；B 應收到資格通知。
+7. **A：**重新登入並切回 Folia，應補發離線獎勵；再退出／加入，不應重複補發。
+   A `/ic stats` 應有本輪的新達資格邀請。回報後由 Agent 核對獎勵交付，最後將 B 測試權限還原原本 false。
+
+回覆 `Folia 1a83b73：取消／不同意／逾時／同意／資格／離線補發／再次登入不重複：通過、失敗或未測`，
+若失敗附指令、實際結果與截圖，不貼 key 或網路資料。
+第 2／3 階段準備完成、第 3／3 階段真人流程待驗收；本組之後仍需正常重啟保留、臨時設定／權限還原及其他核心驗收。
+沒有 push／PR／merge。下方為歷史未就緒提案，目前已由本節備份與操作證據取代。
+
+
 ## 2026-10-30 兩帳號準備：唯讀核對完成，B 期限已過
 
 候選仍為 `1a83b73`，Folia 26.1.2 stable build 8 的核心 hash 與前次核對一致，port 30101、

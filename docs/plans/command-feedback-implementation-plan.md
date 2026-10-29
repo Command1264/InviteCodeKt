@@ -198,3 +198,9 @@ true綠／false紅是明確偏好，其他狀態、數量與專有名詞保留�
 
 依使用者核准完成第 1／3 階段：Folia 實際 JAR 仍為 1a83b73、hash 與核心身份一致，Listening／Managed；設定還原。B 無目前代次邀請／碼／獎勵，但 24h 視窗於 10 月 19 日 14:38 台灣時間已過期。測試資格 false，舊 UNLINKED 不需重做 unlink。來源 ../testing/evidence/2026-10-30-folia-two-account-preflight.json。
 下一步需先核准精確的 B-only reset：備份後僅更新登記起點、generation 1→2、加一稽核，其他歷史／A／碼／獎勵保留；尚未執行。第 2／3 階段為核准後備份與 reset，第 3／3 階段為兩帳號確認及離線補發真人驗收與唯讀資料核對。流程已準備但未就緒，不要求現在 claim；之後仍有重啟還原及其他核心驗收。沒有啟停、部署、資料或 remote write。
+
+
+## 2026-10-30 B-only reset 核准後完成，待兩帳號真人流程
+
+第 2／3 階段完成：使用者先停服並核准；20 檔停止備份與 hash／SQLite quick_check 通過，只啟動 Folia 執行一次 reset。B generation 1→2，登記期限至台灣時間 10 月 31 日 01:47；僅 B 起點／代次及一筆稽核改變，A／碼／歷史／獎勵／設定／key／權限保留。來源 ../testing/evidence/2026-10-30-folia-b-reset-ready.json。
+第 3／3 階段下一步為本日最新真人清單的 1–5：取消、不同意、逾時、最後同意。既有伺服器／候選與測試資格 false 均已備妥；第 5 步回報後由 Agent 先核對資料，再讓管理員設定測試資格 true 並測離線補發。lobby 未開，A 直接斷線代替回 lobby。之後正常重啟保留、還原 ALLOW／測試權限與其他核心仍未完成。本輪沒有真人 claim 或 remote write，沒有 push／merge。

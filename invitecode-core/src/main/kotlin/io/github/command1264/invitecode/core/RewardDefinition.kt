@@ -69,7 +69,7 @@ object RewardConfigurationParser {
         val version = (value["config-version"] as? Number)?.toString()?.toIntOrNull()
             ?: throw IllegalArgumentException("Reward configuration requires numeric integer config-version.")
         require(version == CURRENT_VERSION) {
-            "Reward config-version $version is unsupported; expected $CURRENT_VERSION."
+            "Reward config-version $version is unsupported\nexpected $CURRENT_VERSION."
         }
         val milestoneRewards = value["milestone-rewards"].requiredStringMap("milestone-rewards")
             .mapValues { (rewardId, rawReward) -> parseMilestoneReward(rewardId, rawReward) }

@@ -90,12 +90,12 @@ object OfflineStorageTransfer {
                 } catch (rollbackError: SQLException) {
                     error.addSuppressed(rollbackError)
                     throw StorageTransferException(
-                        "Storage import failed and rollback also failed; destination state is uncertain. " +
+                        "Storage import failed and rollback also failed\ndestination state is uncertain. " +
                             "Keep both backends offline and inspect the destination before retrying.", error,
                     )
                 }
                 throw if (error is StorageTransferException) error else StorageTransferException(
-                    "Storage import failed; the destination transaction was rolled back. " +
+                    "Storage import failed\nthe destination transaction was rolled back. " +
                         "Inspect the cause before retrying.", error,
                 )
             } finally {
@@ -103,7 +103,7 @@ object OfflineStorageTransfer {
                     connection.autoCommit = originalAutoCommit
                 } catch (restoreError: SQLException) {
                     throw StorageTransferException(
-                        "Storage import completed or rolled back, but the connection mode could not be restored; " +
+                        "Storage import completed or rolled back, but the connection mode could not be restored\n" +
                             "close the connection and inspect the destination state.", restoreError,
                     )
                 }
@@ -154,7 +154,7 @@ object OfflineStorageTransfer {
             }
         }
         check(columns == listOf(Triple("singleton", "INT", DatabaseMetaData.columnNoNulls))) {
-            "MySQL transfer guard table has an unexpected structure; preserve it and inspect the database."
+            "MySQL transfer guard table has an unexpected structure\npreserve it and inspect the database."
         }
         val primaryKey = connection.metaData.getPrimaryKeys(connection.catalog, null, MYSQL_TRANSFER_GUARD).use { rows ->
             if (rows.next()) rows.getString("COLUMN_NAME") else null
@@ -219,7 +219,7 @@ object OfflineStorageTransfer {
             val table = tables.single { it.name == name }
             val keyColumn = table.columns.indexOf("key_id")
             check(keyColumn >= 0 && table.rows.all { it.values[keyColumn] == PortableValue.Text(keyId) }) {
-                "$name contains rows from another anti-abuse key; restore the matching key or resolve those rows before transfer."
+                "$name contains rows from another anti-abuse key\nrestore the matching key or resolve those rows before transfer."
             }
         }
     }
@@ -229,7 +229,7 @@ object OfflineStorageTransfer {
             StorageDialect.SQLITE -> {
                 val version = connection.createStatement().use { statement ->
                     statement.executeQuery("SELECT version FROM invitecode_schema_version WHERE singleton = 1").use { rows ->
-                        check(rows.next()) { "SQLite schema version row is missing; initialize the schema first." }
+                        check(rows.next()) { "SQLite schema version row is missing\ninitialize the schema first." }
                         rows.getInt(1).also { check(!rows.next()) { "SQLite schema version row is not unique." } }
                     }
                 }
@@ -246,12 +246,12 @@ object OfflineStorageTransfer {
             connection.createStatement().use { statement ->
                 statement.executeQuery("PRAGMA integrity_check").use { rows ->
                     check(rows.next() && rows.getString(1) == "ok" && !rows.next()) {
-                        "Source integrity check failed; keep the source offline and restore or repair a verified backup."
+                        "Source integrity check failed\nkeep the source offline and restore or repair a verified backup."
                     }
                 }
                 statement.executeQuery("PRAGMA foreign_key_check").use { rows ->
                     check(!rows.next()) {
-                        "Source foreign-key integrity check failed; restore or repair missing related records before transfer."
+                        "Source foreign-key integrity check failed\nrestore or repair missing related records before transfer."
                     }
                 }
             }
@@ -271,7 +271,7 @@ object OfflineStorageTransfer {
                 val parent = BUSINESS_TABLES.singleOrNull { it.name == parentName }
                 check(child.columns.any { it.name == childColumn } &&
                     parent != null && parent.columns.any { it.name == parentColumn }) {
-                    "Source foreign-key layout is unsupported; inspect the schema before transfer."
+                    "Source foreign-key layout is unsupported\ninspect the schema before transfer."
                 }
                 connection.createStatement().use { statement ->
                     statement.executeQuery(
@@ -280,7 +280,7 @@ object OfflineStorageTransfer {
                             "WHERE child.$childColumn IS NOT NULL AND parent.$parentColumn IS NULL LIMIT 1",
                     ).use { rows ->
                         check(!rows.next()) {
-                            "Source foreign-key integrity check failed in ${child.name}; " +
+                            "Source foreign-key integrity check failed in ${child.name}\n" +
                                 "restore or repair missing related records before transfer."
                         }
                     }
@@ -299,7 +299,7 @@ object OfflineStorageTransfer {
     ).use { statement ->
         statement.setInt(1, 1)
         statement.executeQuery().use { rows ->
-            check(rows.next()) { "MySQL network_key_id metadata is missing; bind it before transfer." }
+            check(rows.next()) { "MySQL network_key_id metadata is missing\nbind it before transfer." }
             rows.getString(1).also { check(!rows.next()) { "MySQL metadata singleton row is not unique." } }
         }
     }
@@ -325,7 +325,7 @@ object OfflineStorageTransfer {
             val count = connection.createStatement().use { statement ->
                 statement.executeQuery("SELECT COUNT(*) FROM ${spec.name}").use { rows -> rows.next(); rows.getLong(1) }
             }
-            check(count == 0L) { "Destination table ${spec.name} is not empty; refusing to overwrite existing data." }
+            check(count == 0L) { "Destination table ${spec.name} is not empty\nrefusing to overwrite existing data." }
         }
         if (dialect == StorageDialect.MYSQL) {
             val rows = connection.createStatement().use { statement ->

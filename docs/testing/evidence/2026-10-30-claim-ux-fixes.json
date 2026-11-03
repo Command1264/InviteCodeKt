@@ -1,0 +1,209 @@
+{
+  "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+  "sha256": "B0FB78588CA317650A83F7385441576DC5034612249318E865BB89FAB083EF72",
+  "bytes": 19934670,
+  "tests": {
+    "tests": 338,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 24
+  },
+  "passed": 314,
+  "checks": [
+    "Java 11 check shadowJar",
+    "Java 8 check shadowJar",
+    "verifyPluginJar",
+    "verifyJava8Bytecode"
+  ],
+  "deployed": false,
+  "independentReview": "No concrete High/Critical; human client not exercised",
+  "currentHumanServerSource": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "date": "2026-10-30",
+  "scope": "Status primary reason, single red error guidance, native input expiration and generic code label",
+  "redEvidence": [
+    ".run/claim-ux-fixes-20261030/TEST-io.github.command1264.invitecode.plugin.PlayerMessageLayoutsTest.xml",
+    ".run/claim-ux-fixes-20261030/TEST-io.github.command1264.invitecode.plugin.PlayerWorkflowPresentationIntegrationTest.xml",
+    ".run/claim-ux-fixes-20261030/catalog-red.xml"
+  ],
+  "redResult": "5 targeted failures including boundary/early-task/late-submit; catalog 1 failure before changes",
+  "greenResult": "338 cases: 314 passed, 24 MySQL conditional skipped, 0 failures/errors",
+  "newRegressionCoverage": [
+    "Primary status reason in layout and real SQLite workflow",
+    "Generic native input label and bilingual style contracts",
+    "Exactly-at-deadline expiration and once-only handling",
+    "Early timer rescheduling",
+    "Late submit expiration response",
+    "Late cancel explicit cancellation",
+    "Atomic expired/missing/code results"
+  ],
+  "catalogChanges": {
+    "zh_TW": {
+      "runtime.usage": {
+        "before": "&c指令用法不正確。&f請使用 /{label} help 查看說明。",
+        "after": "&c指令用法不正確，請使用 /{label} help 查看說明。"
+      },
+      "runtime.help-page-error": {
+        "before": "&c找不到此頁面或主題。&f請使用 /ic help 返回常用指令。",
+        "after": "&c找不到此頁面或主題，請使用 /ic help 返回常用指令。"
+      },
+      "command.claim.chat-timeout": {
+        "before": "&e邀請碼輸入已逾時。&f請重新執行 /invitecode claim。",
+        "after": "&c邀請碼輸入已逾時，請重新執行 /invitecode claim。"
+      },
+      "command.claim.dialog-label": {
+        "before": "六位邀請碼",
+        "after": "邀請碼"
+      },
+      "command.claim.dialog-timeout": {
+        "before": "&e邀請碼輸入已逾時。&f請重新執行 /invitecode claim。",
+        "after": "&c邀請碼輸入已逾時，請重新執行 /invitecode claim。"
+      },
+      "command.claim.invalid-code": {
+        "before": "&c邀請碼格式不正確。&f請檢查後重新輸入。",
+        "after": "&c邀請碼格式不正確，請檢查後重新輸入。"
+      },
+      "command.claim.unavailable": {
+        "before": "&c這組邀請碼不存在或已失效。&f請向邀請人確認目前的邀請碼。",
+        "after": "&c這組邀請碼不存在或已失效，請向邀請人確認目前的邀請碼。"
+      },
+      "command.claim.confirmation-timeout": {
+        "before": "&e邀請確認已逾時。&f請重新執行 /invitecode claim。",
+        "after": "&c邀請確認已逾時，請重新執行 /invitecode claim。"
+      },
+      "command.claim.no-confirmation": {
+        "before": "&e目前沒有可確認的邀請，或確認已逾時。&f請重新執行 /invitecode claim。",
+        "after": "&c目前沒有可確認的邀請，或確認已逾時，請重新執行 /invitecode claim。"
+      },
+      "command.claim.matching-network-denied": {
+        "before": "&c你與邀請人近期使用相同網路，依伺服器規則無法登記。&f如需協助，請聯絡管理員。",
+        "after": "&c你與邀請人近期使用相同網路，依伺服器規則無法登記，如需協助請聯絡管理員。"
+      },
+      "command.error": {
+        "before": "&c操作失敗。&f請聯絡管理員檢查伺服器紀錄。",
+        "after": "&c操作失敗，請聯絡管理員檢查伺服器紀錄。"
+      },
+      "command.stopping": {
+        "before": "&e插件正在停止，暫時無法操作。&f請稍後再試。",
+        "after": "&c插件正在停止，暫時無法操作，請稍後再試。"
+      },
+      "admin.error": {
+        "before": "&c管理操作失敗。&f請檢查伺服器紀錄。",
+        "after": "&c管理操作失敗，請檢查伺服器紀錄。"
+      },
+      "admin.reload-failed": {
+        "before": "&c重新載入失敗，仍使用上一份有效設定。&f請檢查伺服器紀錄並修正設定。",
+        "after": "&c重新載入失敗，仍使用上一份有效設定，請檢查伺服器紀錄並修正設定。"
+      },
+      "admin.storage-config-unavailable": {
+        "before": "&c設定尚未成功載入，無法判定儲存位置。&f請檢查伺服器紀錄。",
+        "after": "&c設定尚未成功載入，無法判定儲存位置，請檢查伺服器紀錄。"
+      },
+      "admin.storage-failed": {
+        "before": "&c儲存結構更新失敗。&f請檢查伺服器紀錄。",
+        "after": "&c儲存結構更新失敗，請檢查伺服器紀錄。"
+      },
+      "admin.doctor-storage-failed": {
+        "before": "&c儲存健康檢查失敗。&f請檢查伺服器紀錄。",
+        "after": "&c儲存健康檢查失敗，請檢查伺服器紀錄。"
+      }
+    },
+    "en_US": {
+      "runtime.usage": {
+        "before": "&cInvalid command usage. &fUse /{label} help for instructions.",
+        "after": "&cInvalid command usage, so use /{label} help for instructions."
+      },
+      "runtime.help-page-error": {
+        "before": "&cThat page or topic was not found. &fUse /ic help to return to common commands.",
+        "after": "&cThat page or topic was not found, so use /ic help to return to common commands."
+      },
+      "command.claim.chat-timeout": {
+        "before": "&eCode input has expired. &fRun /invitecode claim again.",
+        "after": "&cCode input expired, so run /invitecode claim again."
+      },
+      "command.claim.dialog-label": {
+        "before": "Six-character Invite Code",
+        "after": "Invite code"
+      },
+      "command.claim.dialog-timeout": {
+        "before": "&eCode input has expired. &fRun /invitecode claim again.",
+        "after": "&cCode input expired, so run /invitecode claim again."
+      },
+      "command.claim.invalid-code": {
+        "before": "&cInvalid Invite Code format. &fCheck the code and enter it again.",
+        "after": "&cThe Invite Code format is invalid, so check it and enter the code again."
+      },
+      "command.claim.unavailable": {
+        "before": "&cThis Invite Code does not exist or is no longer active. &fAsk the inviter for their current code.",
+        "after": "&cThis Invite Code does not exist or is no longer active, so ask the inviter for their current code."
+      },
+      "command.claim.confirmation-timeout": {
+        "before": "&eInvitation confirmation has expired. &fRun /invitecode claim again.",
+        "after": "&cInvitation confirmation expired, so run /invitecode claim again."
+      },
+      "command.claim.no-confirmation": {
+        "before": "&eThere is no invitation to confirm, or it has expired. &fRun /invitecode claim again.",
+        "after": "&cThere is no invitation to confirm, or it has expired, so run /invitecode claim again."
+      },
+      "command.claim.matching-network-denied": {
+        "before": "&cServer rules prevent this claim because you and the inviter recently used the same network. &fContact an administrator if you need help.",
+        "after": "&cServer rules prevent this claim because you and the inviter recently used the same network, so contact an administrator if you need help."
+      },
+      "command.error": {
+        "before": "&cThe operation failed. &fContact an administrator to check the server log.",
+        "after": "&cThe operation failed, so contact an administrator to check the server log."
+      },
+      "command.stopping": {
+        "before": "&eThe plugin is stopping and cannot accept operations. &fTry again later.",
+        "after": "&cThe plugin is stopping and cannot accept operations, so try again later."
+      },
+      "admin.error": {
+        "before": "&cThe administrative operation failed. &fCheck the server log.",
+        "after": "&cThe administrative operation failed, so check the server log."
+      },
+      "admin.reload-failed": {
+        "before": "&cReload failed. The previous configuration remains active. &fCheck the server log and fix the configuration.",
+        "after": "&cReload failed while the previous configuration remains active, so check the server log and fix the configuration."
+      },
+      "admin.storage-config-unavailable": {
+        "before": "&cConfiguration is not loaded, so the storage location is unknown. &fCheck the server log.",
+        "after": "&cBecause configuration is not loaded, the storage location is unknown, so check the server log."
+      },
+      "admin.storage-failed": {
+        "before": "&cStorage schema update failed. &fCheck the server log.",
+        "after": "&cStorage schema update failed, so check the server log."
+      },
+      "admin.doctor-storage-failed": {
+        "before": "&cThe storage health check failed. &fCheck the server log.",
+        "after": "&cThe storage health check failed, so check the server log."
+      }
+    }
+  },
+  "otherReasonPresentationForDiscussion": {
+    "location": "/ic claim when ineligible",
+    "currentChineseExample": "目前無法使用邀請碼：你已建立自己的邀請碼、可登記期間已結束。",
+    "decision": "unchanged; discuss whether to use primary reason here too"
+  },
+  "deploymentDecision": "User selected finish existing qualification/offline rewards first; stop and back up before later Folia deployment",
+  "humanRuntime": {
+    "state": "Listening",
+    "BGeneration": 2,
+    "currentInvitations": [
+      {
+        "status": "CLAIMED",
+        "count": 1
+      }
+    ],
+    "rewards": [],
+    "agentMutations": false
+  },
+  "humanClaimEvidence": "2026-10-30-folia-claim-human-acceptance.json",
+  "runtimeMutationsThisTurn": false,
+  "humanNewCandidateAcceptance": "pending",
+  "remaining": [
+    "qualification and offline reward human acceptance on old installed candidate",
+    "backup and deploy new candidate after server stopped",
+    "new native input timeout screen acceptance requires later suitable account; do not reset current B",
+    "restart, setting restoration and other-core human acceptance"
+  ],
+  "remoteWrites": false
+}

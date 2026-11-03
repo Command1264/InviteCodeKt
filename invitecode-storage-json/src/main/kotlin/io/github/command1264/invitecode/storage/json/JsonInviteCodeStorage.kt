@@ -45,7 +45,7 @@ class JsonInviteCodeStorage private constructor(
     private var failed = false
 
     private fun <T> persist(operation: () -> T): T = synchronized(this) {
-        check(!closed && !failed) { "JSON storage is closed or a previous write failed; restart after inspecting ${file.toAbsolutePath()}." }
+        check(!closed && !failed) { "JSON storage is closed or a previous write failed\nrestart after inspecting ${file.toAbsolutePath()}." }
         guard.checkAllowed()
         val result = operation()
         try {
@@ -54,7 +54,7 @@ class JsonInviteCodeStorage private constructor(
         } catch (error: Exception) {
             failed = true
             throw JsonStorageException(
-                "JSON snapshot write failed for ${file.toAbsolutePath()}; writes are stopped. " +
+                "JSON snapshot write failed for ${file.toAbsolutePath()}\nwrites are stopped. " +
                     "Preserve the JSON file and its .previous copy, then restart after fixing the cause.", error,
             )
         }
@@ -131,10 +131,10 @@ class JsonInviteCodeStorage private constructor(
             guard.checkAllowed()
             val target = file.toAbsolutePath().normalize()
             require(Files.isDirectory(requireNotNull(target.parent))) { "JSON destination directory must exist." }
-            require(!Files.exists(target)) { "JSON destination already exists; do not overwrite it." }
+            require(!Files.exists(target)) { "JSON destination already exists\ndo not overwrite it." }
             val lockChannel = FileChannel.open(target.resolveSibling("${target.fileName}.lock"), CREATE, WRITE)
             val lock = try {
-                lockChannel.tryLock() ?: throw JsonStorageException("JSON destination is already open; stop every instance.")
+                lockChannel.tryLock() ?: throw JsonStorageException("JSON destination is already open\nstop every instance.")
             } catch (error: Exception) {
                 lockChannel.close()
                 throw error
@@ -174,7 +174,7 @@ class JsonInviteCodeStorage private constructor(
             require(Files.isRegularFile(target)) { "JSON storage must exist before migration." }
             val lockChannel = FileChannel.open(target.resolveSibling("${target.fileName}.lock"), CREATE, WRITE)
             val lock = try {
-                lockChannel.tryLock() ?: throw JsonStorageException("JSON storage is already open; stop every instance.")
+                lockChannel.tryLock() ?: throw JsonStorageException("JSON storage is already open\nstop every instance.")
             } catch (error: Exception) {
                 lockChannel.close()
                 throw error
@@ -222,7 +222,7 @@ class JsonInviteCodeStorage private constructor(
                     ?: throw JsonStorageException("JSON storage ${target} is already open by another process.")
             } catch (error: Exception) {
                 lockChannel.close()
-                throw JsonStorageException("Cannot lock JSON storage ${target}; another instance may be using it.", error)
+                throw JsonStorageException("Cannot lock JSON storage ${target}\nanother instance may be using it.", error)
             }
             val workingDirectory = try {
                 Files.createTempDirectory("invitecode-json-")
@@ -319,18 +319,18 @@ class JsonInviteCodeStorage private constructor(
                 Files.newBufferedReader(file, StandardCharsets.UTF_8).use { JsonParser.parseReader(it).asJsonObject }
             } catch (error: Exception) {
                 throw JsonStorageException(
-                    "JSON storage ${file.toAbsolutePath()} is damaged. Preserve it and inspect ${file.fileName}.previous; " +
+                    "JSON storage ${file.toAbsolutePath()} is damaged. Preserve it and inspect ${file.fileName}.previous\n" +
                         "no new database was created over it.", error,
                 )
             }
             try {
                 val format = root.get("format-version")?.asString?.takeIf { it.matches(Regex("[0-9]+")) }?.toIntOrNull()
                 require(format == FORMAT_VERSION) {
-                    "JSON format version $format is unsupported; expected $FORMAT_VERSION. Preserve the file and upgrade InviteCode."
+                    "JSON format version $format is unsupported\nexpected $FORMAT_VERSION. Preserve the file and upgrade InviteCode."
                 }
                 val schemaVersion = root.get("schema-version")?.asString?.takeIf { it.matches(Regex("[0-9]+")) }?.toIntOrNull()
                 require(schemaVersion == expectedSchemaVersion) {
-                    "JSON schema version $schemaVersion is unsupported; expected $expectedSchemaVersion. " +
+                    "JSON schema version $schemaVersion is unsupported\nexpected $expectedSchemaVersion. " +
                         "Preserve the file and run an explicit migration with a compatible InviteCode version."
                 }
                 require(root.keySet() == setOf("format-version", "schema-version", "tables")) {
@@ -386,7 +386,7 @@ class JsonInviteCodeStorage private constructor(
             } catch (error: Exception) {
                 throw JsonStorageException(
                     "Cannot load JSON storage ${file.toAbsolutePath()}: ${error.message}. " +
-                        "Preserve it and ${file.fileName}.previous; no existing JSON data was overwritten.", error,
+                        "Preserve it and ${file.fileName}.previous\nno existing JSON data was overwritten.", error,
                 )
             }
         }

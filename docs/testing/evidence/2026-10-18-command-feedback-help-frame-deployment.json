@@ -1,0 +1,102 @@
+{
+  "recordedUtc": "2026-10-18T07:57:20.168665+00:00",
+  "candidate": {
+    "sourceCommit": "fb303e23bb6acca4e6d97aa9686bc89475ff0166",
+    "sha256": "E8640904EA2963FB741C19A2037C9FD359DF85BAFF2B3F2F9A7EC1F591AE2EBA",
+    "bytes": 19914359,
+    "tests": {
+      "tests": 317,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 24
+    },
+    "passed": 293,
+    "checks": [
+      "Java 11 check shadowJar",
+      "Java 8 check shadowJar",
+      "Java 8 bytecode and plugin JAR",
+      "locale key/placeholder parity",
+      "fixed three nav slots; disabled no events; enabled yellow read-only help",
+      "empty prefix no extra separator space"
+    ],
+    "humanAcceptance": "pending",
+    "limitations": [
+      "24 MySQL integration cases skipped without service",
+      "Minecraft rendering and native terminal Tab remain human acceptance",
+      "latest Folia ALPHA not tested"
+    ]
+  },
+  "instances": [
+    {
+      "name": "invitecode-spigot-1.8.8",
+      "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-spigot-1.8.8",
+      "port": 10101,
+      "runId": "1ac82869c64f4e8c88bff92231e931c1",
+      "hostPid": 68828,
+      "childPid": 61032,
+      "javaAlias": "local-8",
+      "backup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-spigot-1.8.8\\.invitecode-backups\\help-frame-20261018-075438-411ad62a",
+      "pluginSha256": "E8640904EA2963FB741C19A2037C9FD359DF85BAFF2B3F2F9A7EC1F591AE2EBA",
+      "coreSha256": "6ED6046687CE9255228FE7BD31E097DA49BEFF2A0C577E7BE56D14F09753239C",
+      "done": true,
+      "active": true,
+      "errors": [],
+      "dbRowsUnchangedAfterBoot": true,
+      "sqliteQuickCheck": "ok",
+      "keyUnchanged": true,
+      "protectedFilesUnchangedDuringDeployment": true,
+      "worldHeadersUnchangedDuringDeployment": true,
+      "consoleHelpFrameProbesPassed": true,
+      "humanAcceptance": "pending"
+    },
+    {
+      "name": "invitecode-paper-26.3",
+      "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-paper-26.3",
+      "port": 20102,
+      "runId": "ac48e2bb512041f395f7dd5431eabbda",
+      "hostPid": 19592,
+      "childPid": 74944,
+      "javaAlias": "local-25",
+      "backup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-paper-26.3\\.invitecode-backups\\help-frame-20261018-075439-aea591bb",
+      "pluginSha256": "E8640904EA2963FB741C19A2037C9FD359DF85BAFF2B3F2F9A7EC1F591AE2EBA",
+      "coreSha256": "1B243442FC3B3CBE945628F8AF7911E4BE439CA8B22106FB1568AC81D5A5792B",
+      "done": true,
+      "active": true,
+      "errors": [],
+      "dbRowsUnchangedAfterBoot": true,
+      "sqliteQuickCheck": "ok",
+      "keyUnchanged": true,
+      "protectedFilesUnchangedDuringDeployment": true,
+      "worldHeadersUnchangedDuringDeployment": true,
+      "consoleHelpFrameProbesPassed": true,
+      "humanAcceptance": "pending"
+    },
+    {
+      "name": "invitecode-folia-26.1.2",
+      "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2",
+      "port": 30101,
+      "runId": "fe2826bf8c5e4cc58af81244b93897dd",
+      "hostPid": 63828,
+      "childPid": 76128,
+      "javaAlias": "local-25",
+      "backup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\help-frame-20261018-075439-3905d088",
+      "pluginSha256": "E8640904EA2963FB741C19A2037C9FD359DF85BAFF2B3F2F9A7EC1F591AE2EBA",
+      "coreSha256": "607AFD1C3320008E1FFD2EAEE6780ACE4419D5F8C527B75E79F259BE79EBF57B",
+      "done": true,
+      "active": true,
+      "errors": [],
+      "dbRowsUnchangedAfterBoot": true,
+      "sqliteQuickCheck": "ok",
+      "keyUnchanged": true,
+      "protectedFilesUnchangedDuringDeployment": true,
+      "worldHeadersUnchangedDuringDeployment": true,
+      "consoleHelpFrameProbesPassed": true,
+      "humanAcceptance": "pending"
+    }
+  ],
+  "noPush": true,
+  "noResetOrUnlink": true,
+  "humanAcceptance": "pending",
+  "routing": "Existing unique legacy Velocity routes preserved; client interaction pending",
+  "sharedServices": "Velocity and Lobby untouched; Paper 26.2 not updated"
+}

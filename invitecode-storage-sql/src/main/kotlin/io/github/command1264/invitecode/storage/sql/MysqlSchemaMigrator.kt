@@ -23,7 +23,7 @@ class MysqlSchemaMigrator(
                     statement.setString(1, lockName)
                     statement.executeQuery().use { result -> result.next() && result.getInt(1) == 1 }
                 }
-                if (!acquired) throw MysqlStorageException("MySQL schema lock timed out; retry when other plugin instances finish migration.")
+                if (!acquired) throw MysqlStorageException("MySQL schema lock timed out\nretry when other plugin instances finish migration.")
                 try {
                     migrateLocked(connection, schema)
                 } finally {
@@ -36,7 +36,7 @@ class MysqlSchemaMigrator(
             return CURRENT_VERSION
         } catch (error: SQLException) {
             throw MysqlStorageException(
-                "MySQL schema migration failed (SQLState ${error.sqlState ?: "unknown"}, code ${error.errorCode}); " +
+                "MySQL schema migration failed (SQLState ${error.sqlState ?: "unknown"}, code ${error.errorCode})\n" +
                     "inspect the database before retrying. No secret was logged.",
             )
         }
@@ -49,7 +49,7 @@ class MysqlSchemaMigrator(
                 buildSet { while (rows.next()) add(rows.getString("TABLE_NAME")) }
             }
             if (existingObjects.isNotEmpty() && existingObjects != setOf(TRANSFER_GUARD)) throw MysqlStorageException(
-                "MySQL database is not empty and has no migration ledger; preserve the database and inspect it manually.",
+                "MySQL database is not empty and has no migration ledger\npreserve the database and inspect it manually.",
             )
             if (existingObjects == setOf(TRANSFER_GUARD)) OfflineStorageTransfer.verifyMysqlTransferGuard(connection)
             connection.createStatement().use { statement -> statement.execute(LEDGER_DDL) }
@@ -61,7 +61,7 @@ class MysqlSchemaMigrator(
             }
         }
         if (otherVersions != 0) throw MysqlStorageException(
-            "MySQL schema contains another version; a separate explicit migration is required.",
+            "MySQL schema contains another version\na separate explicit migration is required.",
         )
         val state = connection.prepareStatement(
             "SELECT checksum, state FROM $LEDGER WHERE version = ?",
@@ -76,10 +76,10 @@ class MysqlSchemaMigrator(
                 statement.executeQuery("SELECT 1 FROM $LEDGER WHERE version = 2").use { it.next() }
             }
             if (hasLaterVersion) throw MysqlStorageException(
-                "MySQL migration ledger contains version 2 without version 1; preserve the database.",
+                "MySQL migration ledger contains version 2 without version 1\npreserve the database.",
             )
             if (TABLES.any { tableExists(connection, schema, it.name) }) {
-                throw MysqlStorageException("MySQL schema ledger has no version record, but InviteCode tables exist; inspect manually.")
+                throw MysqlStorageException("MySQL schema ledger has no version record, but InviteCode tables exist\ninspect manually.")
             }
             connection.prepareStatement(
                 "INSERT INTO $LEDGER(version, checksum, state) VALUES (?, ?, 'APPLYING')",
@@ -90,15 +90,15 @@ class MysqlSchemaMigrator(
             }
         } else {
             if (state.first != CHECKSUM) throw MysqlStorageException(
-                "MySQL schema checksum differs from the bundled migration; preserve the database and inspect manually.",
+                "MySQL schema checksum differs from the bundled migration\npreserve the database and inspect manually.",
             )
             if (state.second !in setOf("APPLYING", "APPLIED")) throw MysqlStorageException(
-                "MySQL schema ledger has unknown state ${state.second}; preserve the database.",
+                "MySQL schema ledger has unknown state ${state.second}\npreserve the database.",
             )
         }
         TABLES.forEach { table ->
             if (!tableExists(connection, schema, table.name)) {
-                if (state?.second == "APPLIED") throw MysqlStorageException("MySQL table ${table.name} is missing; preserve the database.")
+                if (state?.second == "APPLIED") throw MysqlStorageException("MySQL table ${table.name} is missing\npreserve the database.")
                 connection.createStatement().use { statement -> statement.execute(table.ddl) }
                 afterTable(table.name)
             }
@@ -115,17 +115,17 @@ class MysqlSchemaMigrator(
         }
         if (second == null) {
             if (tableExists(connection, schema, V2_TABLE.name)) throw MysqlStorageException(
-                "MySQL reserved-code table exists without a migration record; inspect the database.",
+                "MySQL reserved-code table exists without a migration record\ninspect the database.",
             )
             connection.prepareStatement("INSERT INTO $LEDGER(version, checksum, state) VALUES (2, ?, 'APPLYING')").use {
                 it.setString(1, V2_CHECKSUM)
                 it.executeUpdate()
             }
         } else if (second.first != V2_CHECKSUM || second.second !in setOf("APPLYING", "APPLIED")) {
-            throw MysqlStorageException("MySQL reserved-code migration checksum or state differs; preserve the database.")
+            throw MysqlStorageException("MySQL reserved-code migration checksum or state differs\npreserve the database.")
         }
         if (!tableExists(connection, schema, V2_TABLE.name)) {
-            if (second?.second == "APPLIED") throw MysqlStorageException("MySQL reserved-code table is missing; preserve the database.")
+            if (second?.second == "APPLIED") throw MysqlStorageException("MySQL reserved-code table is missing\npreserve the database.")
             connection.createStatement().use { it.execute(V2_TABLE.ddl) }
             afterTable(V2_TABLE.name)
         }
@@ -181,7 +181,7 @@ class MysqlSchemaMigrator(
         fun requireCurrent(connection: Connection) {
             val schema = schemaName(connection)
             if (!tableExists(connection, schema, LEDGER)) throw MysqlStorageException(
-                "MySQL schema is not initialized; run explicit storage migration or use an empty database for first startup.",
+                "MySQL schema is not initialized\nrun explicit storage migration or use an empty database for first startup.",
             )
             val otherVersions = connection.createStatement().use { statement ->
                 statement.executeQuery("SELECT COUNT(*) FROM $LEDGER WHERE version NOT IN (1, 2)").use { rows ->
@@ -190,7 +190,7 @@ class MysqlSchemaMigrator(
                 }
             }
             if (otherVersions != 0) throw MysqlStorageException(
-                "MySQL schema contains another version; use a matching InviteCode version or explicit migration.",
+                "MySQL schema contains another version\nuse a matching InviteCode version or explicit migration.",
             )
             val row = connection.prepareStatement("SELECT checksum, state FROM $LEDGER WHERE version = ?").use { statement ->
                 statement.setInt(1, 1)
@@ -199,7 +199,7 @@ class MysqlSchemaMigrator(
                 }
             }
             if (row != (CHECKSUM to "APPLIED")) throw MysqlStorageException(
-                "MySQL schema version/checksum is not current; run explicit storage migration after inspecting the database.",
+                "MySQL schema version/checksum is not current\nrun explicit storage migration after inspecting the database.",
             )
             TABLES.forEach { verifyTable(connection, schema, it) }
             val version2 = connection.prepareStatement("SELECT checksum, state FROM $LEDGER WHERE version = 2").use { statement ->
@@ -208,7 +208,7 @@ class MysqlSchemaMigrator(
                 }
             }
             if (version2 != (V2_CHECKSUM to "APPLIED")) throw MysqlStorageException(
-                "MySQL reserved-code migration is not current; run explicit migration after a backup.",
+                "MySQL reserved-code migration is not current\nrun explicit migration after a backup.",
             )
             verifyTable(connection, schema, V2_TABLE)
         }
@@ -228,7 +228,7 @@ class MysqlSchemaMigrator(
                 }
             }
             if (stored != keyId) throw MysqlStorageException(
-                "MySQL network secret differs from the key used by another plugin instance; use the shared secret.",
+                "MySQL network secret differs from the key used by another plugin instance\nuse the shared secret.",
             )
         }
 
@@ -276,7 +276,7 @@ class MysqlSchemaMigrator(
                     found == null || found.type != shape.type || found.nullable != shape.nullable ||
                         (shape.length != null && found.length != shape.length)
                 }) {
-                throw MysqlStorageException("MySQL table ${table.name} has unexpected columns; preserve the database and inspect manually.")
+                throw MysqlStorageException("MySQL table ${table.name} has unexpected columns\npreserve the database and inspect manually.")
             }
             val collations = connection.prepareStatement(
                 "SELECT COLUMN_NAME, COLLATION_NAME FROM information_schema.COLUMNS " +
@@ -289,7 +289,7 @@ class MysqlSchemaMigrator(
                 }
             }
             if (expected.any { (name, shape) -> shape.collation != null && collations[name] != shape.collation }) {
-                throw MysqlStorageException("MySQL table ${table.name} has an unsafe collation; preserve the database.")
+                throw MysqlStorageException("MySQL table ${table.name} has an unsafe collation\npreserve the database.")
             }
             val generated = Regex("(?m)^    ([a-z_]+) [^\\r\\n]*(?:\\r?\\n        [^\\r\\n]*)?GENERATED ALWAYS AS")
                 .findAll(table.ddl).map { it.groupValues[1] }.toSet()
@@ -305,7 +305,7 @@ class MysqlSchemaMigrator(
                     }
                 }
                 if (actualGenerated.keys != generated || actualGenerated.values.any(String::isNullOrBlank)) {
-                    throw MysqlStorageException("MySQL table ${table.name} has unexpected generated columns; preserve the database.")
+                    throw MysqlStorageException("MySQL table ${table.name} has unexpected generated columns\npreserve the database.")
                 }
             }
             val indexes = connection.metaData.getIndexInfo(schema, null, table.name, false, false).use { rows ->
@@ -332,7 +332,7 @@ class MysqlSchemaMigrator(
                 ?.split(',')?.map(String::trim)
             if (primary == null || indexes["PRIMARY"] != IndexShape(primary, true) ||
                 requiredIndexes.any { (name, shape) -> indexes[name] != shape }) {
-                throw MysqlStorageException("MySQL table ${table.name} has unexpected indexes; preserve the database and inspect manually.")
+                throw MysqlStorageException("MySQL table ${table.name} has unexpected indexes\npreserve the database and inspect manually.")
             }
             val expectedForeignKeys = Regex(
                 "(?m)^    CONSTRAINT ([a-z_]+) FOREIGN KEY \\(([^)]+)\\) REFERENCES ([a-z_]+)\\(([^)]+)\\)",
@@ -348,7 +348,7 @@ class MysqlSchemaMigrator(
                 }
             }
             if (expectedForeignKeys != actualForeignKeys) throw MysqlStorageException(
-                "MySQL table ${table.name} has unexpected foreign keys; preserve the database and inspect manually.",
+                "MySQL table ${table.name} has unexpected foreign keys\npreserve the database and inspect manually.",
             )
             val checkCount = connection.prepareStatement(
                 "SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS " +
@@ -360,7 +360,7 @@ class MysqlSchemaMigrator(
             }
             val expectedCheckCount = Regex("(?m)^    CONSTRAINT [a-z_]+ CHECK ").findAll(table.ddl).count()
             if (checkCount != expectedCheckCount) throw MysqlStorageException(
-                "MySQL table ${table.name} has unexpected check constraints; preserve the database.",
+                "MySQL table ${table.name} has unexpected check constraints\npreserve the database.",
             )
             val properties = connection.prepareStatement(
                 "SELECT ENGINE, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?",
@@ -372,7 +372,7 @@ class MysqlSchemaMigrator(
                 }
             }
             if (!"InnoDB".equals(properties?.first, ignoreCase = true) || properties?.second != "utf8mb4_0900_ai_ci") throw MysqlStorageException(
-                "MySQL table ${table.name} must use InnoDB and utf8mb4_0900_ai_ci; preserve the database.",
+                "MySQL table ${table.name} must use InnoDB and utf8mb4_0900_ai_ci\npreserve the database.",
             )
         }
 

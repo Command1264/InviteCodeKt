@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-29",
+  "sourceCommit": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "scope": "Folia 26.1.2 doctor display",
+  "humanReport": "目前看起来我们这次的更改，我看起来应该是没有什么太大的问题的，可以算是通过。",
+  "result": "passed for reported display scope",
+  "notIndividuallyConfirmed": [
+    "English client locale",
+    "positive reward counts",
+    "other cores",
+    "entire fourth-stage flow"
+  ],
+  "serverState": "User reports servers stopped; not restarted by Agent",
+  "remoteWrites": false
+}

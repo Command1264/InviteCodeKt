@@ -219,6 +219,9 @@ interface InviteCodeQueries {
     /** Returns every eligibility generation, newest Claim first with Invitation ID as the tie-breaker. */
     fun invitationsByInvitee(inviteeId: UUID): List<Invitation>
 
+    /** Invitation status in the invitee's current eligibility generation. */
+    fun currentInviteeInvitationStatus(inviteeId: UUID): io.github.command1264.invitecode.api.InvitationStatus?
+
     /** Returns all Invitations currently attributed to the Inviter, newest first with ID as the tie-breaker. */
     fun invitationsByInviter(inviterId: UUID): List<Invitation>
 

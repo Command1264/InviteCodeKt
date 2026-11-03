@@ -38,7 +38,7 @@ data class Invitation(
 
     fun qualify(at: Instant, policyId: String, revision: String): Invitation {
         check(status == InvitationStatus.CLAIMED) {
-            "Only a claimed invitation can become qualified; current status is $status."
+            "Only a claimed invitation can become qualified\ncurrent status is $status."
         }
         require(policyId.isNotBlank()) { "Qualification policy ID must not be blank." }
         require(revision.isNotBlank()) { "Qualification revision must not be blank." }
@@ -71,7 +71,7 @@ data class Invitation(
         context: InvitationAdministrationContext,
     ): AuditedInvitationTransition {
         check(status == InvitationStatus.CLAIMED) {
-            "Only a claimed invitation can be transferred; current status is $status."
+            "Only a claimed invitation can be transferred\ncurrent status is $status."
         }
         require(newInviterId != inviteeId) { "An invitee cannot become their own inviter." }
         require(newInviterId != inviterId) { "Transfer requires a different Inviter." }

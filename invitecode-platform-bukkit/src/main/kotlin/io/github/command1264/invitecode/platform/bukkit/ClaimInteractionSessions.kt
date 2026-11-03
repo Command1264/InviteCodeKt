@@ -10,6 +10,11 @@ sealed class ChatInputResult {
     object Cancelled : ChatInputResult()
 }
 
+sealed class DialogInputResult {
+    data class Code(val value: String) : DialogInputResult()
+    object Expired : DialogInputResult()
+}
+
 class ClaimInteractionSessions(
     private val now: () -> Instant = Instant::now,
 ) {
@@ -35,7 +40,7 @@ class ClaimInteractionSessions(
     @Synchronized
     fun hasChatInput(playerId: UUID): Boolean {
         val session = sessions[playerId] as? Session.ChatInput ?: return false
-        if (now().isAfter(session.expiresAt)) {
+        if (!now().isBefore(session.expiresAt)) {
             sessions.remove(playerId)
             return false
         }
@@ -46,25 +51,29 @@ class ClaimInteractionSessions(
     fun consumeChatInput(playerId: UUID, message: String): ChatInputResult? {
         val session = sessions[playerId] as? Session.ChatInput ?: return null
         sessions.remove(playerId)
-        if (now().isAfter(session.expiresAt)) return null
+        if (!now().isBefore(session.expiresAt)) return null
         val value = message.trim()
         return if (value.equals("cancel", ignoreCase = true)) ChatInputResult.Cancelled
         else ChatInputResult.Code(value)
     }
 
     @Synchronized
-    fun consumeDialogInput(playerId: UUID, value: String): String? {
+    fun consumeDialogInput(playerId: UUID, value: String): String? =
+        (consumeDialogInputResult(playerId, value) as? DialogInputResult.Code)?.value
+
+    @Synchronized
+    fun consumeDialogInputResult(playerId: UUID, value: String): DialogInputResult? {
         val session = sessions[playerId] as? Session.DialogInput ?: return null
         sessions.remove(playerId)
-        if (now().isAfter(session.expiresAt)) return null
-        return value.trim()
+        if (!now().isBefore(session.expiresAt)) return DialogInputResult.Expired
+        return DialogInputResult.Code(value.trim())
     }
 
     @Synchronized
     fun consumeConfirmation(playerId: UUID): ClaimConfirmation? {
         val session = sessions[playerId] as? Session.Confirmation ?: return null
         sessions.remove(playerId)
-        if (now().isAfter(session.value.expiresAt)) return null
+        if (!now().isBefore(session.value.expiresAt)) return null
         return session.value
     }
 
@@ -74,7 +83,7 @@ class ClaimInteractionSessions(
     @Synchronized
     fun expireChatInput(playerId: UUID): Boolean {
         val session = sessions[playerId] as? Session.ChatInput ?: return false
-        if (!now().isAfter(session.expiresAt)) return false
+        if (now().isBefore(session.expiresAt)) return false
         sessions.remove(playerId)
         return true
     }
@@ -82,7 +91,7 @@ class ClaimInteractionSessions(
     @Synchronized
     fun expireDialogInput(playerId: UUID): Boolean {
         val session = sessions[playerId] as? Session.DialogInput ?: return false
-        if (!now().isAfter(session.expiresAt)) return false
+        if (now().isBefore(session.expiresAt)) return false
         sessions.remove(playerId)
         return true
     }
@@ -90,7 +99,7 @@ class ClaimInteractionSessions(
     @Synchronized
     fun expireConfirmation(playerId: UUID): Boolean {
         val session = sessions[playerId] as? Session.Confirmation ?: return false
-        if (!now().isAfter(session.value.expiresAt)) return false
+        if (now().isBefore(session.value.expiresAt)) return false
         sessions.remove(playerId)
         return true
     }

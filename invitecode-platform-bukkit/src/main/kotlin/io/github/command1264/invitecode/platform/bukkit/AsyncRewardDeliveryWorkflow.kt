@@ -118,7 +118,7 @@ class AsyncRewardDeliveryWorkflow(
             RewardActionProcessingStatus.UNCERTAIN,
             store.uncertain(
                 actionId,
-                "External Reward Action execution threw ${outcome.errorType}; result is unknown.",
+                "External Reward Action execution threw ${outcome.errorType}\nresult is unknown.",
                 now(),
             ),
         )

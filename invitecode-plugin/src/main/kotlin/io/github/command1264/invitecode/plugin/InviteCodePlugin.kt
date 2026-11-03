@@ -10,10 +10,17 @@ import io.github.command1264.invitecode.api.InviteCodeApi
 import io.github.command1264.invitecode.platform.bukkit.AsyncOperationExecutor
 import io.github.command1264.invitecode.platform.bukkit.AtomicRuntimeSnapshot
 import io.github.command1264.invitecode.platform.bukkit.ClaimInteractionSessions
+import io.github.command1264.invitecode.platform.bukkit.CommandHelpNavigation
+import io.github.command1264.invitecode.platform.bukkit.HelpFrameLayout
+import io.github.command1264.invitecode.platform.bukkit.HelpRow
 import io.github.command1264.invitecode.platform.bukkit.InvalidInviteCodeCommand
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandParser
 import io.github.command1264.invitecode.platform.bukkit.InviteCodeRuntimeConfiguration
+import io.github.command1264.invitecode.platform.bukkit.LocalizedMessages
+import io.github.command1264.invitecode.platform.bukkit.MessagePresenter
+import io.github.command1264.invitecode.platform.bukkit.PrefixPlacement
+import io.github.command1264.invitecode.platform.bukkit.PresentedMessage
 import io.github.command1264.invitecode.platform.bukkit.ParsedInviteCodeCommand
 import io.github.command1264.invitecode.platform.bukkit.PluginRuntimeState
 import io.github.command1264.invitecode.platform.bukkit.RuntimePhase
@@ -36,6 +43,9 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.plugin.ServicePriority
+import net.md_5.bungee.api.chat.HoverEvent
+import net.md_5.bungee.api.chat.TextComponent
+import net.md_5.bungee.api.chat.ClickEvent
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
@@ -109,7 +119,7 @@ class InviteCodePlugin : JavaPlugin() {
             command.setExecutor(
                 RuntimeCommandExecutor(
                     runtime,
-                    configuration,
+                    messages = { configuration.currentOrNull()?.value?.messages },
                     reload = ::reload,
                     migrateStorage = ::migrateStorage,
                     playerWorkflow = playerWorkflows::handle,
@@ -117,7 +127,9 @@ class InviteCodePlugin : JavaPlugin() {
                     doctor = ::doctor,
                 ),
             )
-            command.setTabCompleter(BukkitInviteCodeTabCompleter(tasks))
+            command.setTabCompleter(BukkitInviteCodeTabCompleter(tasks) {
+                configuration.currentOrNull()?.value?.qualifications?.policies?.keys ?: emptySet()
+            })
         }
         qualificationTask = tasks.repeatGlobal(20L * 60L, 20L * 60L) {
             if (runtime.phase == RuntimePhase.ACTIVE) {
@@ -260,7 +272,7 @@ class InviteCodePlugin : JavaPlugin() {
             },
             onFailure = { error ->
                 sendLocalized(sender, "admin.reload-failed")
-                logger.log(Level.WARNING, "InviteCode reload 驗證失敗；仍使用原設定。", error)
+                logger.log(Level.WARNING, "InviteCode reload 驗證失敗\n仍使用原設定。", error)
             },
         )
         if (!accepted) sendLocalized(sender, "admin.reload-stopping")
@@ -347,67 +359,56 @@ class InviteCodePlugin : JavaPlugin() {
             },
             onFailure = { error ->
                 sendLocalized(sender, "admin.storage-failed")
-                logger.log(Level.SEVERE, "$actor 執行 $target schema migration 失敗；理由：$reason", error)
+                logger.log(Level.SEVERE, "$actor 執行 $target schema migration 失敗\n理由：$reason", error)
             },
         )
         if (!accepted) sendLocalized(sender, "admin.storage-stopping")
     }
 
     private fun doctor(sender: CommandSender) {
-        val generation = configuration.currentOrNull()?.generation?.toString() ?: "尚未載入"
+        val snapshot = configuration.currentOrNull()
+        val messages = snapshot?.value?.messages
+        if (messages == null) {
+            sendLocalized(sender, "admin.doctor-runtime")
+            return
+        }
         val executor = operations
         val store = storage.get()
-        val placeholder = server.pluginManager.getPlugin("PlaceholderAPI")?.isEnabled == true
-        val vault = OptionalVaultIntegration.find(server, logger) != null
         val capabilities = modernIntegration?.capabilities
-        sendLocalized(
-            sender,
-            "admin.doctor-runtime",
-            mapOf(
-                "phase" to runtime.phase.name,
-                "generation" to generation,
-                "executor" to if (executor?.acceptingOperations == true) "ACCEPTING" else "STOPPED",
-            ),
+        val sections = mutableListOf(
+            "admin.doctor-runtime" to mapOf("phase" to runtime.phase.name,
+                "generation" to snapshot.generation.toString(),
+                "executor" to if (executor?.acceptingOperations == true) "ACCEPTING" else "STOPPED"),
+            "admin.doctor-integrations" to mapOf(
+                "placeholder" to (server.pluginManager.getPlugin("PlaceholderAPI")?.isEnabled == true).toString(),
+                "vault" to (OptionalVaultIntegration.find(server, logger) != null).toString(),
+                "dialog" to (capabilities?.dialogProvider ?: "NONE"), "rgb" to (capabilities?.rgbText ?: false).toString()),
         )
-        sendLocalized(
-            sender,
-            "admin.doctor-integrations",
-            mapOf(
-                "placeholder" to placeholder.toString(),
-                "vault" to vault.toString(),
-                "dialog" to (capabilities?.dialogProvider ?: "NONE"),
-                "rgb" to (capabilities?.rgbText ?: false).toString(),
-            ),
-        )
-        runtime.maintenanceReason?.let {
-            sendLocalized(sender, "admin.doctor-maintenance", mapOf("reason" to it))
+        runtime.maintenanceReason?.let { sections.add("admin.doctor-maintenance" to mapOf("reason" to it)) }
+        fun deliver(key: String, values: Map<String, String> = emptyMap()) {
+            val layout = DoctorMessageLayouts(messages, (sender as? Player)?.let(BukkitLocaleCompatibility::locale),
+                BukkitMessageOutput.audience(sender))
+            BukkitMessageOutput.sendReport(sender, messages, "runtime.help-topic.doctor", sections + (key to values), layout::render)
         }
         if (store == null || executor == null) {
-            sendLocalized(sender, "admin.doctor-storage-offline")
+            deliver("admin.doctor-storage-offline")
             return
         }
         val accepted = executor.callbacksOn { callback -> dispatchSender(sender, callback) }.submit(
             operation = { store.rewardBacklogCounts() },
-            onSuccess = { backlog ->
-                sendLocalized(
-                    sender,
-                    "admin.doctor-storage",
-                    mapOf(
-                        "backend" to configuration.current().value.storage.backend.name,
-                        "schema" to when (configuration.current().value.storage.backend) {
-                            StorageBackendType.SQLITE -> SqliteSchemaMigrator.currentVersion.toString()
-                            StorageBackendType.MYSQL -> MysqlSchemaMigrator.CURRENT_VERSION.toString()
-                            StorageBackendType.JSON -> JsonInviteCodeStorage.FORMAT_VERSION.toString()
-                        },
-                        "pending" to backlog.pending.toString(),
-                        "processing" to backlog.processing.toString(),
-                        "uncertain" to backlog.uncertain.toString(),
-                    ),
-                )
-            },
-            onFailure = { sendLocalized(sender, "admin.doctor-storage-failed") },
+            onSuccess = { backlog -> deliver("admin.doctor-storage", mapOf(
+                "backend" to snapshot.value.storage.backend.name,
+                "schema" to when (snapshot.value.storage.backend) {
+                    StorageBackendType.SQLITE -> SqliteSchemaMigrator.currentVersion.toString()
+                    StorageBackendType.MYSQL -> MysqlSchemaMigrator.CURRENT_VERSION.toString()
+                    StorageBackendType.JSON -> JsonInviteCodeStorage.FORMAT_VERSION.toString()
+                },
+                "pending" to backlog.pending.toString(), "processing" to backlog.processing.toString(),
+                "uncertain" to backlog.uncertain.toString(),
+            )) },
+            onFailure = { deliver("admin.doctor-storage-failed") },
         )
-        if (!accepted) sendLocalized(sender, "admin.doctor-executor-stopping")
+        if (!accepted) deliver("admin.doctor-executor-stopping")
     }
 
     private fun sendLocalized(
@@ -417,11 +418,10 @@ class InviteCodePlugin : JavaPlugin() {
     ) {
         val messages = configuration.currentOrNull()?.value?.messages
         if (messages == null) {
-            sender.sendMessage("InviteCode configuration is not loaded.")
+            sender.sendMessage("[InviteCode] Configuration is not loaded.")
             return
         }
-        val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
-        sender.sendMessage(messages.resolve(locale, key, variables))
+        BukkitMessageOutput.send(sender, messages, key, variables)
     }
 
     private fun dispatchSender(sender: CommandSender, operation: () -> Unit) {
@@ -453,9 +453,9 @@ private data class StorageMigrationResult(
     val networkHasher: NetworkAddressHasher?,
 )
 
-private class RuntimeCommandExecutor(
+internal class RuntimeCommandExecutor(
     private val runtime: PluginRuntimeState,
-    private val configuration: AtomicRuntimeSnapshot<InviteCodeRuntimeConfiguration>,
+    private val messages: () -> LocalizedMessages?,
     private val reload: (CommandSender) -> Unit,
     private val migrateStorage: (CommandSender, ParsedInviteCodeCommand) -> Unit,
     private val playerWorkflow: (Player, ParsedInviteCodeCommand) -> Boolean,
@@ -469,7 +469,10 @@ private class RuntimeCommandExecutor(
         args: Array<out String>,
     ): Boolean = when (val parsed = InviteCodeCommandParser.parse(args.toList())) {
         is InvalidInviteCodeCommand -> {
-            send(sender, "runtime.usage", mapOf("label" to label))
+            if (args.firstOrNull().equals("help", ignoreCase = true)) {
+                send(sender, if (sender.hasPermission("invitecode.command.basic"))
+                    "runtime.help-page-error" else "runtime.no-permission")
+            } else send(sender, "runtime.usage", mapOf("label" to label))
             true
         }
         is ParsedInviteCodeCommand -> execute(sender, label, parsed)
@@ -493,7 +496,7 @@ private class RuntimeCommandExecutor(
             return true
         }
         when (request.id) {
-            InviteCodeCommandId.HELP -> help(sender, label)
+            InviteCodeCommandId.HELP -> help(sender, label, request.operands)
             InviteCodeCommandId.ADMIN_RELOAD -> reload(sender)
             InviteCodeCommandId.ADMIN_STORAGE_MIGRATE -> migrateStorage(sender, request)
             InviteCodeCommandId.ADMIN_DOCTOR -> {
@@ -511,34 +514,134 @@ private class RuntimeCommandExecutor(
     }
 
     private fun send(sender: CommandSender, key: String, variables: Map<String, String> = emptyMap()) {
-        val messages = configuration.currentOrNull()?.value?.messages
-        if (messages == null) {
-            sender.sendMessage("InviteCode configuration is not loaded.")
+        val catalog = messages()
+        if (catalog == null) {
+            sender.sendMessage("[InviteCode] Configuration is not loaded.")
+            return
+        }
+        BukkitMessageOutput.send(sender, catalog, key, variables)
+    }
+
+    private fun help(sender: CommandSender, label: String, arguments: List<String>) {
+        val catalog = messages()
+        if (catalog == null) {
+            sender.sendMessage("[InviteCode] Configuration is not loaded.")
+            return
+        }
+        val query = CommandHelpNavigation.query(arguments) ?: return
+        val page = CommandHelpNavigation.resolve(query, label, sender is Player, sender::hasPermission)
+        if (page.error) {
+            send(sender, "runtime.help-page-error")
             return
         }
         val locale = (sender as? Player)?.let(BukkitLocaleCompatibility::locale)
-        sender.sendMessage(messages.resolve(locale, key, variables))
+        val presenter = MessagePresenter(catalog)
+        val audience = BukkitMessageOutput.audience(sender)
+        val title = if (query.home) presenter.render(locale, if (sender is Player) "runtime.help-home-header" else "runtime.help-console-home-header",
+            audience = audience, prefix = PrefixPlacement.NONE)
+        else if (page.detail != null) presenter.render(locale, "runtime.help-header",
+            audience = audience, prefix = PrefixPlacement.NONE)
+        else {
+            val topic = if (sender !is Player && (query.path.isEmpty() || query.path == listOf("admin"))) "console"
+                else query.path.lastOrNull() ?: "player"
+            presenter.render(locale, "runtime.help-page-header", mapOf(
+                "topic" to presenter.render(locale, "runtime.help-topic.$topic",
+                    audience = audience, prefix = PrefixPlacement.NONE).plainText,
+                "page" to query.page.toString(), "pages" to page.pages.toString(),
+            ), audience = audience, prefix = PrefixPlacement.NONE)
+        }
+        val prefix = presenter.render(locale, "presentation.prefix", audience = audience, prefix = PrefixPlacement.NONE)
+        val header = presenter.render(locale, "runtime.help-frame-header",
+            mapOf("prefix" to prefix.plainText + if (prefix.plainText.isEmpty()) "" else " ", "title" to title.plainText), audience = audience, prefix = PrefixPlacement.NONE)
+        val heading = PresentedMessage(header.segments.flatMap { segment ->
+            when (segment.variable) {
+                "prefix" -> prefix.segments.map { it.copy(variable = null) } +
+                    if (prefix.plainText.isEmpty()) emptyList() else presenter.render(locale, "runtime.raw-output",
+                        mapOf("text" to " "), audience = audience, prefix = PrefixPlacement.NONE).segments
+                "title" -> title.segments.map { it.copy(variable = null) }
+                else -> listOf(segment)
+            }
+        })
+        val divider = presenter.render(locale, "runtime.help-frame-divider", audience = audience, prefix = PrefixPlacement.NONE)
+        val frame = HelpFrameLayout.align(heading, divider, audience)
+        BukkitMessageOutput.sendPresented(sender, frame.first)
+        val detail = page.detail
+        if (detail != null) {
+            val usage = (if (sender is Player) "/" else "") + "$label ${detail.usage}"
+            val message = presenter.render(locale, CommandHelpNavigation.detailKey(detail),
+                mapOf("usage" to usage, "example" to (if (sender is Player) CommandHelpNavigation.example(detail, label) else CommandHelpNavigation.example(detail, label).removePrefix("/"))),
+                audience = BukkitMessageOutput.audience(sender), prefix = PrefixPlacement.NONE)
+            sendHelpMessage(sender, message, mapOf("usage" to usage,
+                "example" to (if (sender is Player) CommandHelpNavigation.example(detail, label) else CommandHelpNavigation.example(detail, label).removePrefix("/"))), false)
+        }
+        page.rows.forEach { sendHelpRow(sender, catalog, locale, it) }
+        BukkitMessageOutput.sendPresented(sender, frame.second)
+        val slots = listOf("previous" to page.previous, "back" to page.back, "next" to page.next)
+        if (sender !is Player) {
+            val available = slots.filter { it.second != null }
+            if (available.isNotEmpty()) {
+                BukkitMessageOutput.send(sender, catalog, "runtime.help-console-navigation-title", prefix = PrefixPlacement.NONE)
+                available.forEach { (name, target) ->
+                    val caption = presenter.render(locale, "runtime.help-$name", audience = audience,
+                        prefix = PrefixPlacement.NONE).plainText
+                    BukkitMessageOutput.sendLiteral(sender, catalog, "$caption: ${target!!.removePrefix("/")}", PrefixPlacement.NONE)
+                }
+            }
+            return
+        }
+
+        val segments = slots.flatMapIndexed { index, (name, target) ->
+            val caption = presenter.render(locale, "runtime.help-$name",
+                audience = audience, prefix = PrefixPlacement.NONE).plainText
+            val text = caption
+            val item = presenter.render(locale,
+                if (target == null) "runtime.help-navigation-disabled" else "runtime.help-navigation-enabled",
+                mapOf("text" to text), audience = audience, prefix = PrefixPlacement.NONE)
+            val spacer = if (index == 0) emptyList() else presenter.render(locale, "runtime.raw-output",
+                mapOf("text" to "  "), audience = audience, prefix = PrefixPlacement.NONE).segments
+            spacer + item.segments.map { it.copy(variable = if (target != null) name else null) }
+        }
+        val hover = presenter.render(locale, "runtime.help-navigation-hover",
+            audience = audience, prefix = PrefixPlacement.NONE).plainText
+        sendHelpMessage(sender, PresentedMessage(segments), slots.mapNotNull { (name, target) ->
+            target?.let { name to it }
+        }.toMap(), true, hover)
     }
 
-    private fun help(sender: CommandSender, label: String) {
-        send(sender, "runtime.help-header")
-        val routes = listOf(
-            Triple("invitecode.command.code", true, "/$label code"),
-            Triple("invitecode.command.claim", true, "/$label claim [code] | confirm | cancel"),
-            Triple("invitecode.command.status", true, "/$label status"),
-            Triple("invitecode.command.stats", true, "/$label stats"),
-            Triple("invitecode.admin.inspect", false, "/$label admin inspect player|invitation|reward ..."),
-            Triple("invitecode.admin.invitation", false, "/$label admin invitation unlink|transfer ..."),
-            Triple("invitecode.admin.qualification", false, "/$label admin invitation force-qualify ..."),
-            Triple("invitecode.admin.eligibility", false, "/$label admin eligibility reset ..."),
-            Triple("invitecode.admin.reward", false, "/$label admin reward retry|mark-delivered ..."),
-            Triple("invitecode.admin.code", false, "/$label admin code rotate ..."),
-            Triple("invitecode.admin.storage", false, "/$label admin storage migrate SQLITE <reason>"),
-            Triple("invitecode.admin.reload", false, "/$label reload"),
-            Triple("invitecode.admin.doctor", false, "/$label admin doctor"),
-        )
-        routes.filter { (permission, playerOnly, _) ->
-            sender.hasPermission(permission) && (!playerOnly || sender is Player)
-        }.forEach { (_, _, usage) -> sender.sendMessage(usage) }
+    private fun sendHelpRow(sender: CommandSender, catalog: LocalizedMessages, locale: String?, entry: HelpRow) {
+        val presenter = MessagePresenter(catalog)
+        val audience = BukkitMessageOutput.audience(sender)
+        val description = presenter.render(locale, entry.descriptionKey,
+            audience = audience, prefix = PrefixPlacement.NONE)
+        val row = presenter.render(locale, "runtime.help-row",
+            mapOf("usage" to (if (sender is Player) entry.usage else entry.usage.removePrefix("/")), "description" to description.plainText),
+            audience = audience, prefix = PrefixPlacement.NONE)
+        // Description formatting stays independent from the usage and outer row template.
+        val presented = PresentedMessage(row.segments.flatMap { segment ->
+            if (segment.variable != "description") listOf(segment)
+            else description.segments.map { it.copy(variable = null) }
+        })
+        val hover = if (entry.navigation) presenter.render(locale, "runtime.help-open-detail",
+            audience = audience, prefix = PrefixPlacement.NONE).plainText else null
+        sendHelpMessage(sender, presented, mapOf("usage" to entry.target), entry.navigation, hover)
+    }
+
+    private fun sendHelpMessage(sender: CommandSender, message: PresentedMessage,
+        targets: Map<String, String>, navigation: Boolean, hover: String? = null) {
+        if (sender !is Player) {
+            BukkitMessageOutput.sendPresented(sender, message)
+            return
+        }
+        val components = BukkitMessageOutput.components(message)
+        message.segments.forEachIndexed { index, segment ->
+            targets[segment.variable]?.let { target ->
+                // RUN_COMMAND targets are constructed exclusively by the read-only help tree.
+                components[index].clickEvent = ClickEvent(
+                    if (navigation) ClickEvent.Action.RUN_COMMAND else ClickEvent.Action.SUGGEST_COMMAND, target)
+                if (hover != null) components[index].hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    arrayOf(TextComponent(hover)))
+            }
+        }
+        sender.spigot().sendMessage(*components)
     }
 }

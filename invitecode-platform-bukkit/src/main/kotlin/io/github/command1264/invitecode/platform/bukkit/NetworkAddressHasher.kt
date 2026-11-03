@@ -80,7 +80,7 @@ class NetworkAddressHasher private constructor(
 
         fun loadExisting(path: Path): NetworkAddressHasher {
             require(Files.isRegularFile(path)) {
-                "Network hash secret ${path.toAbsolutePath()} is missing; run the explicit storage migration."
+                "Network hash secret ${path.toAbsolutePath()} is missing\nrun the explicit storage migration."
             }
             val bytes = Files.readAllBytes(path)
             require(bytes.size == SECRET_SIZE) {

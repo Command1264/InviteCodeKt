@@ -8,6 +8,19 @@ import org.junit.jupiter.api.Test
 
 class InviteCodeCommandParserTest {
     @Test
+    fun `help navigation preserves topic and page without invoking a management route`() {
+        listOf(listOf("help", "admin"), listOf("help", "admin", "invitation"),
+            listOf("help", "admin", "invitation", "transfer"), listOf("help", "admin", "2"),
+            listOf("help", "confirm")).forEach { arguments ->
+            val parsed = assertInstanceOf(ParsedInviteCodeCommand::class.java, InviteCodeCommandParser.parse(arguments))
+            assertEquals(InviteCodeCommandId.HELP, parsed.id)
+            assertEquals(arguments, parsed.operands)
+            assertEquals("invitecode.command.basic", parsed.permission)
+            assertTrue(parsed.allowedDuringMaintenance)
+        }
+    }
+
+    @Test
     fun `player command routes expose permissions and operands`() {
         val claim = assertInstanceOf(
             ParsedInviteCodeCommand::class.java,

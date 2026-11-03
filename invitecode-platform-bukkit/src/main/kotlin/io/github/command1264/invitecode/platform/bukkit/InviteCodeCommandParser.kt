@@ -42,12 +42,14 @@ object InviteCodeCommandParser {
     fun parse(rawArguments: List<String>): InviteCodeCommandParseResult {
         if (rawArguments.any { it.isBlank() }) return invalid()
         val arguments = rawArguments.map { it.lowercase(Locale.ROOT) }
-        if (arguments.isEmpty() || arguments == listOf("help")) {
+        if (arguments.isEmpty() || arguments.firstOrNull() == "help") {
+            if (CommandHelpNavigation.query(rawArguments) == null) return invalid()
             return command(
                 InviteCodeCommandId.HELP,
                 "invitecode.command.basic",
                 playerOnly = false,
                 maintenance = true,
+                operands = rawArguments,
             )
         }
         return when (arguments.first()) {

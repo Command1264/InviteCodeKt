@@ -16,7 +16,31 @@
 
 ## 玩家指令
 
+### 訊息、prefix 與顯示設定
+
+啟動及 `/ic reload` 載入設定前，都會從 JAR `config/` 白名單補回缺少的內建 YAML；已有檔案（包括損壞檔）不覆寫。復位不包含資料庫、`anti-abuse.key` 或任意自訂語系。寫入失敗或檔案無效會明確報錯；正常模式 reload 失敗仍保留上一份有效快照，storage 變更仍須遵守既有切換／重啟限制。
+
+messages 查詢順序為玩家自訂語系、設定預設語系、對應內建語系、內建預設語系。只有使用內建備援時才回報缺鍵，同一快照的相同查詢語系／鍵不反覆警告；全部來源都缺鍵時仍顯示可辨識的 missing 訊息。
+
+各語系使用 `presentation.prefix`（預設 `&7[&6InviteCode&7]&r`）。只有此鍵可為空字串，且必須為不帶首尾空白的單行文字。指令、help、status／stats、管理查詢及 MESSAGE 資格獎勵都經過共用輸出處理：一份完整回覆只加一次 prefix；純值、按鈕與 hover 不另加。一般回覆在同列自動補一個空格；聊天確認的 prefix 獨立一行，不留尾端空格。空 prefix 不產生空白行，Dialog 改用有意義的標題。
+
+內建繁中／英文文案已套用。已有自訂 messages 不會自動改寫；要採用新文案，先備份自訂檔，再比對 JAR 的 `config/messages/` 調整，或在停服備份後移走指定語系檔，讓下次載入補回內建檔。不要移除資料庫或金鑰。缺鍵仍可使用內建備援。
+
+受信任的模板支援 `&0`～`&f`、`&k`～`&o`、`&r` 及 `&#RRGGBB`；動態玩家名稱、原因、錯誤明細等以純值插入，不再次解析色碼或 `{變數}`。邀請碼的可點擊區域只涵蓋 `{code}` 本身，複製／舊版聊天填入的內容保持原始邀請碼。help 的操作用法點擊只填入聊天列；分類、分頁與返回可直接執行唯讀 help；用法、說明及玩家／管理分類按權限與發送者身分篩選。`runtime.help-row` 控制用法列與分隔文字，`runtime.help-description.*` 各自控制說明的樣式；說明不繼承外層用法列的粗體等格式。管理 inspect 的診斷欄位／識別符維持原文。
+
+聊天確認依序顯示 prefix、標題、邀請人、邀請碼、問題、無冒號的期限提示、綠紅同意／不同意按鈕。聊天靠左，原生 Dialog 使用原生訊息區塊置中；不補空格、不做每秒刷新。Dialog 按鈕使用文字顏色，底色沿用客戶端原生外觀。資格已達成的通知不代表所有外部獎勵已送達，離線補發仍依原本 Reward 狀態處理。
+
+Console 以標準黑底為基準篩選至少 4.5:1 對比的基本色；近黑／暗灰轉灰色，其餘暗色在可讀色中選最近值，移除額外粗體等裝飾。使用伺服器既有色碼輸出，不自行插入 ANSI 控制。這不保證自訂終端主題的外觀。第二階段的輸出及封裝測試與真實核心／客戶端驗收分開記錄，實際排版、色彩與點擊互動仍須後續矩陣及集中真人驗收。
+
+詳細範圍見 [已核准顯示規格](../plans/command-feedback-display-spec.md) 與 [四階段計畫](../plans/command-feedback-implementation-plan.md)。
+
 Console 可使用 `/invitecode`、`/invitecode help` 與管理指令。需要玩家身分與狀態的 `code`、`claim`、`confirm`、`cancel`、`status` 與 `stats` 會明確回覆只限玩家使用。
+
+`/ic` 只顯示 `code`、`claim`、`status`、`stats`、`help`，有管理權限時增加 `/ic help admin` 入口。
+`/ic help admin [page]` 每頁最多五個分類，使用 `/ic help admin invitation` 查看操作，再以
+`/ic help admin invitation transfer` 查看完整參數與範例。不存在或未授權的頁面顯示一般錯誤。
+`confirm`／`cancel` 保留情境提示與明確查詢 help，不列在首頁或一般說明。所有 help 子路徑及有效頁碼
+提供權限篩選 Tab；資格 profile ID 在 force-qualify 的指定位置提示。UUID、Invite Code 與 reason 不猜值。
 
 Tab 建議會依發送者身分、權限與當前參數位置篩選。已完成的指令、不明路徑、Invite Code、UUID、reason 與超出語法長度的位置會回傳空集合，不會退回顯示所有線上玩家。
 
@@ -91,3 +115,54 @@ Invitation、Eligibility、Code Rotation 與 Storage Migration 會留下 actor�
 9. 以一般玩家、無權限管理員、Console 分別驗證權限與玩家專用限制；切換 `zh_TW`／`en_US`，確認語系 fallback、Dialog 文字與缺鍵紀錄；確認六碼 HEX Invite Code 在新版 client 呈現精確 RGB，在舊版呈現最接近的 legacy color。
 
 跨 Minecraft 版本的真實伺服器矩陣由 Issue #12 執行。
+
+
+### Help 框線與導航顯示
+
+help 以同列 prefix／標題的分隔線起始、內容後加結尾線，固定顯示 `[上一頁] [返回] [下一頁]`。
+黃色可用，深灰停用；停用項目沒有點擊或 hover，首頁三項皆停用。
+Console 可用項目顯示其導航指令。`runtime.help-frame-*`／`help-navigation-*` 控制格式與色彩，
+`presentation.prefix` 仍可自訂或設空。頁面導覽為唯讀，真正操作用法仍只填入聊天列。
+
+
+2026-10-18 補充：首頁 `/ic help` 與 `/ic help admin` 都是唯讀導覽，點擊直接開啟；
+`code`／`claim`／`status`／`stats` 等操作仍只填入聊天列，不自動執行。
+
+
+## 2026-10-18 Help 框線長度與返回頁規則
+
+所有新舊 help 頁共用框線版面：以可見文字的字型寬度估算補長較短框線，兼顧窄拉丁字、中文及粗體；
+不靠空格位移標題。既有 messages 框線是最小長度，最多補 256 個線字元。
+這是預設字型的近似，不保證資源包、Unicode 字型設定、GUI scale、窄聊天視窗下的像素對齊；
+長標題可延長底線，無法避免客戶端換行時仍需真人確認。
+返回目標由共同 help 樹與目前權限篩選後的分頁決定，回到包含該項目的上層頁；
+例如全權限的 storage／reload／doctor 返回管理索引 2/2，而只見 doctor 的管理員返回 1/1。
+分類頁、詳細頁與未來新增命令都套用相同規則，不為個別指令寫死頁碼；
+這是可重建的上層導覽，不記錄跨命令的瀏覽器式歷史。
+
+
+## 2026-10-18 Console 與逐欄報告規格
+
+Console 不把多行文字一次塞入 sendMessage；每個邏輯行獨立送給伺服器，時間戳與 INFO 由核心產生，
+不自行偽造。一般回覆與 doctor／inspect 每行加一次語系 prefix，維持各段顏色；
+已成區塊的 help 仍只在標題出現 prefix，內容各行獨立輸出以保留真實 log 標頭。
+玩家 doctor／inspect 使用一次標題 prefix 加逐欄內容，不在各行重複。
+Console 首頁只列 help 入口，help 與 help admin 都開共用管理索引，標題改為「後台指令說明」。
+不新增權限或第二份路由清單。玩家仍區分一般／管理說明。
+Console 導航只列實際可輸入的上一頁／返回／下一頁命令，不顯示不可點擊的按鈕或停用項目，省略前導斜線。
+玩家三項固定導航、停用無事件、返回所在父頁與框線共用規則保留。
+
+面向使用者的繁中／英文分號句改為真正換行。doctor、inspect 與離線工具多表數量、匿名化影響範圍
+改成一行一個欄位；玩家無法登記的多項原因逐項換行。離線工具不偽造伺服器 timestamp／INFO。
+動態玩家輸入、原因、UUID、SQL／migration 檔案、程式語法與註解不作盲目分號替換。
+核心與 storage 的本輪變更經去除字串後比對，僅訊息文字改變，沒有狀態、schema、備份或交易行為變更。
+原 value.reason-separator 保留相容鍵；狀態畫面的多原因目前固定逐行顯示。
+
+新增可自訂語系鍵 runtime.help-console-home-header、runtime.help-topic.console、
+runtime.help-console-navigation-title、admin.inspect-*-title 及 admin.inspect-* 報告模板。
+既有檔案通常不自動覆寫；本輪獲准更新 Folia 時先備份再部署完整雙語文案，其他核心不部署。
+
+
+## 2026-10-29 Doctor 語系值與色彩
+
+健康檢查的一般欄位與已知狀態透過 `admin.doctor-value.*` 翻譯，沿用 config 的預設／客戶端語系政策。選配整合未啟用顯示紅色說明，不等於插件健康失敗；未知代碼中性灰保留原值。0 獎勵數量灰色，正數待執行黃／執行中青／結果待確認金。Console 使用黑底可讀的 legacy 色與每行 prefix，玩家標題 prefix 一次。僅 Folia 更新，驗收及資料保留證據見 `../testing/evidence/2026-10-29-doctor-localization.json`。

@@ -1,0 +1,25 @@
+{
+  "recordedUtc": "2026-10-18T08:36:40.132938+00:00",
+  "source": "User explicitly reported acceptance in this conversation",
+  "candidateCommit": "760c51a8b3ae50e172cda8218f62aa5c8b4b9de7",
+  "artifactSha256": "D2669D283F5ACD0FB7AB1A9B45C398371E88EE9B0B1795A29DCCB429E1A3A012",
+  "server": "Folia 26.1.2",
+  "clientVersion": "not reported",
+  "status": "partial-human-accepted",
+  "accepted": [
+    "Frame alignment visually acceptable in tested client",
+    "reload help returns to management page 2",
+    "doctor help returns to management page 2",
+    "storage help returns to management page 2"
+  ],
+  "notInferred": [
+    "Homepage help direct click",
+    "Disabled button clicks",
+    "Player/console permission-aware Tab",
+    "Full bilingual message and Dialog acceptance",
+    "Other Minecraft cores",
+    "Merge or push approval"
+  ],
+  "userReport": "Folia 的框線目前看起來可以，reload、doctor 和 storage 返回第 2 頁也都正常。",
+  "next": "Folia remaining message and interaction checks; keep other cores deferred; no automatic runtime changes"
+}

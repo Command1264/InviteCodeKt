@@ -57,7 +57,7 @@ internal object SqliteInvitationRecords {
         val current = find(connection, transition.previousInvitation.id)
         if (current != transition.previousInvitation) {
             throw SqliteStorageException(
-                "Invitation ${transition.previousInvitation.id} changed before the audited transition; " +
+                "Invitation ${transition.previousInvitation.id} changed before the audited transition\n" +
                     "reload it and retry the administrative operation.",
             )
         }
@@ -120,6 +120,24 @@ internal object SqliteInvitationRecords {
             statement.executeQuery().use { result ->
                 if (!result.next()) return@use null
                 result.toInvitation()
+            }
+        }
+
+    fun currentStatusByInvitee(connection: Connection, inviteeId: UUID): InvitationStatus? =
+        connection.prepareStatement(
+            """
+            SELECT i.status
+            FROM invitecode_invitations i
+            JOIN invitecode_players p ON p.player_id = i.invitee_id
+                AND p.eligibility_generation = i.invitee_eligibility_generation
+            WHERE i.invitee_id = ?
+            ORDER BY i.claimed_at DESC, i.invitation_id DESC
+            LIMIT 1
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, inviteeId.toString())
+            statement.executeQuery().use { result ->
+                if (result.next()) InvitationStatus.valueOf(result.getString("status")) else null
             }
         }
 

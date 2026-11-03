@@ -2,6 +2,14 @@
 
 InviteCode 使用專案外的 `D:\Code\Java\Plugin\InstanceHarbor` 共用伺服器核心快取與工具，但每個 profile、Worktree 與驗收版本都建立獨立實例。World、插件設定、SQLite、log 與其他可變狀態不跨實例共用。
 
+訊息顯示矩陣的現行 C# 管理器操作、鎖定核心／JDK、Agent 隔離及檢查結果見 [2026-10-18 第三階段證據](evidence/2026-10-18-command-feedback-stage3.md)。下方 PowerShell runner 是歷史流程；本輪沒有直接沿用其啟停或舊訊息比對，也沒有把可攜式管理器的 C# 入口退回為舊產品腳本。渲染客戶端與真人外觀驗收仍分開處理。
+
+第四階段的[兩帳號真人步驟](command-feedback-human-acceptance.md)已更新為可直接開始的版本；
+2026-10-18 已依使用者授權備份、部署並啟動三台，完成 B 資格重設與 Folia 指定舊列 unlink。
+世界、歷史與稽核保留；實際核心／JDK、候選 hash、當次 run 與備份見[部署證據](evidence/2026-10-18-command-feedback-stage4-deployment.md)。
+Spigot 的資格測試不寫 LuckPerms JSON，A 須在 B 最後同意前回 Lobby。
+部署前的[唯讀 preflight](evidence/2026-10-18-command-feedback-stage4-preflight.json)保留為歷史基線，不代表目前仍未部署。
+
 ## 測試矩陣
 
 正式矩陣定義於 `test-servers/matrix.json`：

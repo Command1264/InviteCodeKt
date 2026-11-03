@@ -1,89 +1,360 @@
+# InviteCode English messages. Existing custom files are preserved; missing keys use bundled defaults.
+# The renderer adds the prefix to each complete reply, not to values or UI labels.
 messages-version: 1
+presentation:
+  prefix: "&7[&6InviteCode&7]&r"
 runtime:
-  usage: "Invalid usage. Use /{label} help to see available commands."
-  no-permission: "You do not have permission to run this command."
-  player-only: "Only a player can run this command."
-  unavailable: "InviteCode cannot run this operation right now: {detail}"
-  help-header: "Available InviteCode commands:"
+  raw-output: "{text}"
+  usage: "&cInvalid command usage, so use /{label} help for instructions."
+  no-permission: "&cYou do not have permission to use this command."
+  player-only: "&eOnly a player can run this command."
+  unavailable: "&cThis operation is currently unavailable: {detail}"
+  help-header: "&6Command help"
+  help-row: "&e{usage} &7— &f{description}"
+  help-player-section: "&6Player commands"
+  help-admin-section: "&6Administration"
+  help-description:
+    help: "View command help"
+    code: "View or create your Invite Code"
+    claim: "Use someone else's Invite Code"
+    confirm: "Accept the current invitation confirmation"
+    cancel: "Cancel code input or confirmation"
+    status: "View your invitation status"
+    stats: "View your referral statistics"
+    inspect-player: "Inspect a player record"
+    inspect-invitation: "Inspect an invitation"
+    inspect-reward: "Inspect a reward action"
+    unlink: "Unlink an invitation"
+    transfer: "Transfer an invitation"
+    force-qualify: "Force an invitation to qualify"
+    reset-eligibility: "Reset a player's claim eligibility"
+    retry-reward: "Retry a reward action"
+    mark-delivered: "Mark a reward action as delivered"
+    rotate-code: "Rotate a player's Invite Code"
+    migrate-storage: "Update the storage schema"
+    reload: "Reload configuration and messages"
+    doctor: "Check runtime and storage health"
+  help-frame-header: "&8──── {prefix}&6{title} &8────"
+  help-frame-divider: "&8────────────────────────"
+  help-navigation-enabled: "&e[{text}]"
+  help-navigation-disabled: "&8[{text}]"
+  help-navigation-hover: "Click to open the help page"
+  help-home-header: "&6Common commands"
+  help-console-home-header: "&6Common administration commands"
+  help-console-navigation-title: "Administration help topics"
+  help-page-header: "&6{topic} &7— Page {page}/{pages}"
+  help-topic:
+    console: "Console"
+    player: "Player"
+    admin: "Administration"
+    inspect: "Inspection"
+    invitation: "Invitations"
+    eligibility: "Claim eligibility"
+    reward: "Reward handling"
+    code: "Invite Codes"
+    storage: "Storage maintenance"
+    reload: "Configuration reload"
+    doctor: "Health check"
+  help-topic-description:
+    inspect: "Read-only details for players, Invitations, or Reward Actions."
+    invitation: |-
+      Unlink or transfer an Invitation
+      Changes are audited.
+    eligibility: |-
+      Manage claim eligibility
+      Reset advances its generation and keeps history.
+    reward: |-
+      Inspect or resolve UNCERTAIN Reward Actions
+      Check external delivery first.
+    code: |-
+      Rotate a player's Invite Code
+      The old code is retired and a new one is issued.
+    storage: |-
+      Maintain the current storage backend's schema
+      This does not move data.
+    reload: |-
+      Validate and apply configuration and messages
+      Storage cutover uses its own procedure.
+    doctor: "Read-only checks for runtime, integrations, and storage health."
+  help-previous: "&ePrevious"
+  help-next: "&eNext"
+  help-back: "&eBack"
+  help-open-detail: "Click to view command details"
+  help-page-error: "&cThat page or topic was not found, so use /ic help to return to common commands."
+  help-detail:
+    help: |-
+      &7Opens the player-command index
+      &7use /ic help admin [page], then a category and operation for management details.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    code: |-
+      &7Views or creates your Invite Code
+      &7takes no arguments. Creating one makes you an inviter, so you cannot claim another code.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    claim: |-
+      &7The code is optional
+      &7omitting it opens the configured input flow. A valid code starts a timed confirmation
+      &7only confirmation creates the Invitation.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    confirm: |-
+      &7Takes no arguments. Accepts only a pending, unexpired confirmation and then creates the Invitation.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    cancel: |-
+      &7Takes no arguments. Cancels active code input or confirmation
+      &7it does not create an Invitation.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    status: |-
+      &7Takes no arguments. Shows claim eligibility, the latest recorded Invitation status, and pending reward count. Historical Invitations may still appear.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    stats: |-
+      &7Takes no arguments. Shows Invitations awaiting qualification and those already qualified
+      &7historical qualified Invitations remain included.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    inspect-player: |-
+      &7Use a player UUID or unique known name
+      &7unknown or ambiguous names are rejected. This query does not change data.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    inspect-invitation: |-
+      &7Use an Invitation UUID, not a player UUID. Shows its status, qualification facts, and delivery records without changing data.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    inspect-reward: |-
+      &7Use a Reward Action UUID, not a Reward Delivery ID. A Delivery records a reward to deliver
+      &7an Action tracks execution status. This query does not execute rewards.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    unlink: |-
+      &7Requires an Invitation UUID and a non-empty reason, which may contain spaces. Marks that row UNLINKED and audits the change
+      &7history and rewards are retained.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    transfer: |-
+      &7Requires an Invitation UUID, new inviter reference, and non-empty reason, which may contain spaces. Only CLAIMED Invitations can be transferred
+      &7the change is audited.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    force-qualify: |-
+      &7Requires an Invitation UUID, configured qualification Policy ID, and non-empty reason, which may contain spaces. Only CLAIMED Invitations are accepted
+      &7conditions are bypassed and Reward Delivery/Action records are created, not delivered automatically.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    reset-eligibility: |-
+      &7Requires a player reference and non-empty reason, which may contain spaces. Resets first-seen time and advances the eligibility generation
+      &7history is kept and other eligibility rules still apply.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    retry-reward: |-
+      &7Requires a Reward Action UUID (not a Delivery ID) and non-empty reason, which may contain spaces. Only UNCERTAIN actions are accepted
+      &7check external results first because retrying may duplicate an effect.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    mark-delivered: |-
+      &7Requires a Reward Action UUID and non-empty reason, which may contain spaces. Only UNCERTAIN actions are accepted
+      &7this does not execute the reward and should follow verification that the external effect occurred.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    rotate-code: |-
+      &7Requires a player reference and non-empty reason, which may contain spaces. Retires that player's old Invite Code and creates a new one
+      &7existing Invitations remain.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    migrate-storage: |-
+      &7Requires SQLITE or MYSQL and a non-empty reason, which may contain spaces
+      &7the target must match the configured backend. This updates schema and does not move data between backends.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    reload: |-
+      &7Takes no arguments. Validates and applies configuration and messages. Changes to storage.yml backend are not applied here
+      &7admin reload is a compatibility alias.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
+    doctor: |-
+      &7Takes no arguments. Read-only checks runtime, integrations, and storage health
+      &7it does not create a database or run a migration.
+      &7Usage: &f{usage}
+      &7Example: &f{example}
 command:
   code:
-    value: "Your Invite Code is {code}"
+    value: "&fYour Invite Code: {code}"
     copy: "Click to copy to clipboard"
-    select: "Click to insert the Invite Code into chat, then copy it"
+    select: "Click to insert into chat, then copy manually"
   claim:
-    command-only: "Use /invitecode claim <code>."
-    chat-started: "Enter the Invite Code in chat within {seconds} seconds. It will not be published. Type cancel to stop."
-    chat-timeout: "Invite Code chat input expired. Run /invitecode claim again."
+    command-only: "&fUse /invitecode claim <code>."
+    chat-started: |-
+      &fEnter the Invite Code in chat within {seconds} seconds. It will not be public.
+      &7Type cancel to stop.
+    chat-timeout: "&cCode input expired, so run /invitecode claim again."
     dialog-title: "Enter Invite Code"
-    dialog-label: "Six-character Invite Code"
+    dialog-label: "Invite code"
     dialog-confirm: "Continue"
     dialog-cancel: "Cancel"
-    dialog-timeout: "Invite Code dialog input expired. Run /invitecode claim again."
-    invalid-code: "The Invite Code format is invalid. Check it and try again."
-    unavailable: "That Invite Code does not exist, was rotated, or is no longer active."
-    self: "You cannot use your own Invite Code."
-    confirmation: "Inviter: {inviter}\nInvite Code: {code}\nUse this Invite Code?\nChoose within {seconds} seconds"
+    dialog-timeout: "&cCode input expired, so run /invitecode claim again."
+    invalid-code: "&cThe Invite Code format is invalid, so check it and enter the code again."
+    unavailable: "&cThis Invite Code does not exist or is no longer active, so ask the inviter for their current code."
+    self: "&cYou cannot use your own Invite Code."
+    # The renderer adds the prefix as line 1 and the action buttons as line 7.
+    confirmation: |-
+      &fConfirm Invite Code
+      &7Inviter: &f{inviter}
+      &7Invite Code: {code}
+      &fUse this Invite Code?
+      &7Choose within {seconds} seconds
     confirmation-title: "Confirm Invite Code"
-    confirmation-inviter: "Inviter: {inviter}"
-    confirmation-code-label: "Invite Code: "
+    confirmation-inviter: "&7Inviter: &f{inviter}"
+    confirmation-code-label: "&7Invite Code: "
     confirmation-question: "Use this Invite Code?"
-    confirmation-prompt: "Choose within {seconds} seconds"
-    agree: "Agree"
-    disagree: "Disagree"
+    confirmation-prompt: "&7Choose within {seconds} seconds"
+    agree: "&aAgree"
+    disagree: "&cDisagree"
     agree-hover: "Click to agree and use this Invite Code"
     disagree-hover: "Click to disagree and cancel"
-    confirmation-timeout: "The Claim Confirmation expired. Enter the Invite Code again."
-    no-confirmation: "There is no Claim to confirm, or it has expired."
-    claimed: "The Invitation has been created."
-    matching-network-warning: "You and the inviter recently used the same network. This Claim was allowed but may be reviewed by an administrator."
-    matching-network-denied: "You and the inviter recently used the same network, so this Claim was denied."
-    ineligible: "You cannot use an Invite Code right now. Reasons: {reasons}."
+    confirmation-timeout: "&cInvitation confirmation expired, so run /invitecode claim again."
+    no-confirmation: "&cThere is no invitation to confirm, or it has expired, so run /invitecode claim again."
+    claimed: |-
+      &aYour invitation has been registered.
+      &7View your status: /ic status
+    matching-network-warning: "&eYou and the inviter recently used the same network. This claim was allowed but may be reviewed by an administrator."
+    matching-network-denied: "&cServer rules prevent this claim because you and the inviter recently used the same network, so contact an administrator if you need help."
+    ineligible: "&cYou cannot use an Invite Code: {reasons}."
     reason:
-      already_inviter: "you are already an Inviter"
-      already_invitee: "you already have an Invitation"
-      claim_window_expired: "the Claim Window has expired"
-    cancelled: "The current Invite Code input or confirmation was cancelled."
-    nothing-to-cancel: "There is no Invite Code input or confirmation to cancel."
+      already_inviter: "you have already created your own Invite Code"
+      already_invitee: "you already have an invitation"
+      claim_window_expired: "the claim period has ended"
+    cancelled: "&fInvite Code input or confirmation cancelled."
+    nothing-to-cancel: "&7There is no active Invite Code input or confirmation."
   status:
-    summary: "Invitation status: eligible={eligible}, Invitation={invitation}, pending Rewards={pending_rewards}."
+    ineligible-reason: "&7Cannot register: &f{reasons}"
+    summary: |-
+      &fMy invitation status
+      &7Can use an Invite Code: &f{eligible}
+      &7Invitation: &f{invitation}
+      &7Pending rewards: &f{pending_rewards}
   stats:
-    summary: "Your Invitation stats: awaiting qualification={claimed}, qualified={qualified}."
-  error: "The operation failed. Check the server log or contact an administrator."
-  stopping: "InviteCode is stopping and cannot accept new operations."
+    summary: |-
+      &fMy referral statistics
+      &7Awaiting qualification: &f{claimed}
+      &7Qualified: &f{qualified}
+  error: "&cThe operation failed, so contact an administrator to check the server log."
+  stopping: "&cThe plugin is stopping and cannot accept operations, so try again later."
 value:
+  reason-separator: ", "
   'yes': "yes"
   'no': "no"
   invitation:
-    none: "none"
+    none: "not registered"
     claimed: "awaiting qualification"
     qualified: "qualified"
     unlinked: "unlinked"
 admin:
-  invitation-unlinked: "Invitation {invitation} was unlinked."
-  invitation-transferred: "Invitation {invitation} was transferred to {inviter}."
-  invitation-force-qualified: "Invitation {invitation} was force-qualified and {rewards} Reward Deliveries were created."
-  eligibility-reset: "Claim Eligibility was reset for player {player}."
-  reward-resolved: "Reward Action {action} was resolved as {status}."
-  code-rotated: "Player {player}'s Invite Code was rotated from {previous} to {current}."
-  error: "The administrative operation failed. Check the server log."
-  stopping: "InviteCode is stopping and cannot accept administrative operations."
-  reload-stopping: "InviteCode is stopping and cannot reload configuration."
-  reload-success: "InviteCode validated and applied the complete configuration snapshot."
-  reload-storage-restart: "storage.yml changes were not applied. Complete an explicit cutover and restart."
-  reload-failed: "Configuration validation failed. The previous snapshot remains active; check the server log."
-  storage-unsupported: "The migration target must match the configured SQLITE or MYSQL backend."
-  storage-config-unavailable: "Configuration is not loaded, so the storage location is unavailable."
-  storage-stopping: "InviteCode is stopping and cannot run the migration."
-  storage-success: "Storage schema migration completed at version {version}."
-  storage-failed: "Storage schema migration failed. Check the server log."
-  doctor-runtime: "Runtime={phase}, configuration generation={generation}, executor={executor}."
-  doctor-integrations: "Integrations: PlaceholderAPI={placeholder}, Vault Economy={vault}, Dialog={dialog}, RGB={rgb}."
-  doctor-maintenance: "Maintenance reason: {reason}"
-  doctor-storage-offline: "Storage is offline. Doctor did not create or modify data."
-  doctor-storage: "{backend} storage version={schema}; Reward backlog: PENDING={pending}, PROCESSING={processing}, UNCERTAIN={uncertain}."
-  doctor-storage-failed: "The storage health check failed. Check the server log."
-  doctor-executor-stopping: "The executor is stopping and cannot query the Reward backlog."
+  inspect-player-title: "&6Player record"
+  inspect-invitation-title: "&6Invitation record"
+  inspect-reward-title: "&6Reward Action record"
+  inspect-player: |-
+    &fPlayer: {player}
+    &7Name: {name}
+    &7First seen: {first_seen}
+    &7Is inviter: {inviter}
+    &7Has invitation: {invitee}
+    &7Invite Code: {code}
+    &7Awaiting qualification: {claimed}
+    &7Qualified: {qualified}
+    &7Audit: {audit}
+  inspect-invitation: |-
+    &fInvitation: {invitation}
+    &7Status: {status}
+    &7Inviter: {inviter}
+    &7Invitee: {invitee}
+    &7Claimed at: {claimed_at}
+    &7Qualification facts: {facts}
+    &7Rewards: {rewards}
+    &7Audit: {audit}
+  inspect-reward: |-
+    &fReward Action: {action}
+    &7Delivery: {delivery}
+    &7Status: {status}
+    &7Recipient: {recipient}
+    &7Type: {type}
+    &7Updated at: {updated_at}
+    &7Last error: {last_error}
+    &7Transitions: {transitions}
+  invitation-unlinked: "&aInvitation {invitation} unlinked."
+  invitation-transferred: "&aInvitation {invitation} transferred to inviter {inviter}."
+  invitation-force-qualified: |-
+    &aInvitation {invitation} marked as qualified
+    {rewards} reward delivery records created.
+  eligibility-reset: "&aClaim eligibility reset for player {player}."
+  reward-resolved: "&aReward action {action} resolved as {status}."
+  code-rotated: "&aPlayer {player}'s Invite Code rotated from {previous} to {current}."
+  error: "&cThe administrative operation failed, so check the server log."
+  stopping: "&eThe plugin is stopping and cannot accept administrative operations."
+  reload-stopping: "&eThe plugin is stopping and cannot reload configuration."
+  reload-success: "&aConfiguration and messages validated and applied."
+  reload-storage-restart: "&estorage.yml changes were not applied. &fFollow the storage cutover procedure, then restart the server."
+  reload-failed: "&cReload failed while the previous configuration remains active, so check the server log and fix the configuration."
+  storage-unsupported: "&cThe migration target must match the configured SQLITE or MYSQL storage backend."
+  storage-config-unavailable: "&cBecause configuration is not loaded, the storage location is unknown, so check the server log."
+  storage-stopping: "&eThe plugin is stopping and cannot update the storage schema."
+  storage-success: "&aStorage schema updated to version {version}."
+  storage-failed: "&cStorage schema update failed, so check the server log."
+  doctor-runtime: |-
+    &fRuntime: {phase}
+    &fConfiguration generation: {generation}
+    &fBackground tasks: {executor}
+  doctor-integrations: |-
+    &fPlaceholderAPI: {placeholder}
+    &fVault economy service: {vault}
+    &fNative dialog: {dialog}
+    &fRGB colors: {rgb}
+  doctor-maintenance: "&eMaintenance reason: {reason}"
+  doctor-storage-offline: "&eStorage is offline. This check did not create or modify data."
+  doctor-storage: |-
+    &fStorage backend: {backend}
+    &fSchema: {schema}
+    &fPending rewards: {pending}
+    &fProcessing rewards: {processing}
+    &fAwaiting result confirmation: {uncertain}
+  doctor-storage-failed: "&cThe storage health check failed, so check the server log."
+  doctor-executor-stopping: "&eThe executor is stopping and cannot query pending reward actions."
+  doctor-value:
+    phase:
+      active: "&aActive"
+      starting: "&eStarting"
+      maintenance: "&6Maintenance"
+      stopping: "&eStopping"
+      stopped: "&7Stopped"
+    executor:
+      accepting: "&aAccepting new work"
+      stopped: "&7Not accepting new work"
+    enabled:
+      'true': "&aEnabled"
+      'false': "&cNot enabled"
+    available:
+      'true': "&aAvailable"
+      'false': "&cUnavailable"
+    supported:
+      'true': "&aSupported"
+      'false': "&cNot supported"
+    dialog:
+      paper: "&fPaper"
+      none: "&7No native interface"
+    backend:
+      sqlite: "&fSQLite"
+      mysql: "&fMySQL"
+      json: "&fJSON"
+    count:
+      zero: "&7{value}"
+      pending: "&e{value}"
+      processing: "&b{value}"
+      uncertain: "&6{value}"
+    unknown: "&7Unknown ({value})"
 invite:
   qualified:
-    inviter: "Your invitation has qualified."
-    invitee: "You have qualified as an invitee."
+    inviter: "&aA player you invited has qualified."
+    invitee: "&aYou have met the invitation qualification requirements."

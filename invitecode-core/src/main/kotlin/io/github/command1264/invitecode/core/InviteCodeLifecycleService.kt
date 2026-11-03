@@ -54,7 +54,7 @@ interface InviteCodeTransaction {
 class InviteCodeCollisionException(
     val attempts: Int,
 ) : IllegalStateException(
-    "Could not allocate a unique Invite Code after $attempts attempts; " +
+    "Could not allocate a unique Invite Code after $attempts attempts\n" +
         "increase the Invite Code namespace or inspect the Invite Code registry.",
 )
 

@@ -1,0 +1,138 @@
+# Wording reference applied in stage 2; runtime authority is invitecode-plugin/src/main/resources/config/messages/en_US.yml.
+# Do not overwrite existing custom catalogs with this reference.
+# The renderer adds the prefix to each complete reply, not to values or UI labels.
+messages-version: 1
+presentation:
+  prefix: "&7[&6InviteCode&7]&r"
+runtime:
+  raw-output: "{text}"
+  help-row: "&e{usage} &7— &f{description}"
+  usage: "&cInvalid command usage. &fUse /{label} help for instructions."
+  no-permission: "&cYou do not have permission to use this command."
+  player-only: "&eOnly a player can run this command."
+  unavailable: "&cThis operation is currently unavailable: {detail}"
+  help-header: "&fCommand help"
+  help-player-section: "&6Player commands"
+  help-admin-section: "&6Administration"
+  help-description:
+    help: "View command help"
+    code: "View or create your Invite Code"
+    claim: "Use someone else's Invite Code"
+    confirm: "Accept the current invitation confirmation"
+    cancel: "Cancel code input or confirmation"
+    status: "View your invitation status"
+    stats: "View your referral statistics"
+    inspect-player: "Inspect a player record"
+    inspect-invitation: "Inspect an invitation"
+    inspect-reward: "Inspect a reward action"
+    unlink: "Unlink an invitation"
+    transfer: "Transfer an invitation"
+    force-qualify: "Force an invitation to qualify"
+    reset-eligibility: "Reset a player's claim eligibility"
+    retry-reward: "Retry a reward action"
+    mark-delivered: "Mark a reward action as delivered"
+    rotate-code: "Rotate a player's Invite Code"
+    migrate-storage: "Update the storage schema"
+    reload: "Reload configuration and messages"
+    doctor: "Check runtime and storage health"
+command:
+  code:
+    value: "&fYour Invite Code: {code}"
+    copy: "Click to copy to clipboard"
+    select: "Click to insert into chat, then copy manually"
+  claim:
+    command-only: "&fUse /invitecode claim <code>."
+    chat-started: |-
+      &fEnter the Invite Code in chat within {seconds} seconds. It will not be public.
+      &7Type cancel to stop.
+    chat-timeout: "&eCode input has expired. &fRun /invitecode claim again."
+    dialog-title: "Enter Invite Code"
+    dialog-label: "Six-character Invite Code"
+    dialog-confirm: "Continue"
+    dialog-cancel: "Cancel"
+    dialog-timeout: "&eCode input has expired. &fRun /invitecode claim again."
+    invalid-code: "&cInvalid Invite Code format. &fCheck the code and enter it again."
+    unavailable: "&cThis Invite Code does not exist or is no longer active. &fAsk the inviter for their current code."
+    self: "&cYou cannot use your own Invite Code."
+    # The renderer adds the prefix as line 1 and the action buttons as line 7.
+    confirmation: |-
+      &fConfirm Invite Code
+      &7Inviter: &f{inviter}
+      &7Invite Code: {code}
+      &fUse this Invite Code?
+      &7Choose within {seconds} seconds
+    confirmation-title: "Confirm Invite Code"
+    confirmation-inviter: "&7Inviter: &f{inviter}"
+    confirmation-code-label: "&7Invite Code: "
+    confirmation-question: "Use this Invite Code?"
+    confirmation-prompt: "&7Choose within {seconds} seconds"
+    agree: "&aAgree"
+    disagree: "&cDisagree"
+    agree-hover: "Click to agree and use this Invite Code"
+    disagree-hover: "Click to disagree and cancel"
+    confirmation-timeout: "&eInvitation confirmation has expired. &fRun /invitecode claim again."
+    no-confirmation: "&eThere is no invitation to confirm, or it has expired. &fRun /invitecode claim again."
+    claimed: |-
+      &aYour invitation has been registered.
+      &7View your status: /ic status
+    matching-network-warning: "&eYou and the inviter recently used the same network. This claim was allowed but may be reviewed by an administrator."
+    matching-network-denied: "&cServer rules prevent this claim because you and the inviter recently used the same network. &fContact an administrator if you need help."
+    ineligible: "&cYou cannot use an Invite Code: {reasons}."
+    reason:
+      already_inviter: "you have already created your own Invite Code"
+      already_invitee: "you already have an invitation"
+      claim_window_expired: "the claim period has ended"
+    cancelled: "&fInvite Code input or confirmation cancelled."
+    nothing-to-cancel: "&7There is no active Invite Code input or confirmation."
+  status:
+    ineligible-reason: "&7Cannot register: &f{reasons}"
+    summary: |-
+      &fMy invitation status
+      &7Can use an Invite Code: &f{eligible}
+      &7Invitation: &f{invitation}
+      &7Pending rewards: &f{pending_rewards}
+  stats:
+    summary: |-
+      &fMy referral statistics
+      &7Awaiting qualification: &f{claimed}
+      &7Qualified: &f{qualified}
+  error: "&cThe operation failed. &fContact an administrator to check the server log."
+  stopping: "&eThe plugin is stopping and cannot accept operations. &fTry again later."
+value:
+  reason-separator: "; "
+  'yes': "yes"
+  'no': "no"
+  invitation:
+    none: "not registered"
+    claimed: "awaiting qualification"
+    qualified: "qualified"
+    unlinked: "unlinked"
+admin:
+  invitation-unlinked: "&aInvitation {invitation} unlinked."
+  invitation-transferred: "&aInvitation {invitation} transferred to inviter {inviter}."
+  invitation-force-qualified: "&aInvitation {invitation} marked as qualified; {rewards} reward delivery records created."
+  eligibility-reset: "&aClaim eligibility reset for player {player}."
+  reward-resolved: "&aReward action {action} resolved as {status}."
+  code-rotated: "&aPlayer {player}'s Invite Code rotated from {previous} to {current}."
+  error: "&cThe administrative operation failed. &fCheck the server log."
+  stopping: "&eThe plugin is stopping and cannot accept administrative operations."
+  reload-stopping: "&eThe plugin is stopping and cannot reload configuration."
+  reload-success: "&aConfiguration and messages validated and applied."
+  reload-storage-restart: "&estorage.yml changes were not applied. &fFollow the storage cutover procedure, then restart the server."
+  reload-failed: "&cReload failed. The previous configuration remains active. &fCheck the server log and fix the configuration."
+  storage-unsupported: "&cThe migration target must match the configured SQLITE or MYSQL storage backend."
+  storage-config-unavailable: "&cConfiguration is not loaded, so the storage location is unknown. &fCheck the server log."
+  storage-stopping: "&eThe plugin is stopping and cannot update the storage schema."
+  storage-success: "&aStorage schema updated to version {version}."
+  storage-failed: "&cStorage schema update failed. &fCheck the server log."
+  doctor-runtime: "&fRuntime: {phase}; configuration generation: {generation}; executor: {executor}."
+  doctor-integrations: "&fIntegrations: PlaceholderAPI={placeholder}; Vault Economy={vault}; Dialog={dialog}; RGB={rgb}."
+  doctor-maintenance: "&eMaintenance reason: {reason}"
+  doctor-storage-offline: "&eStorage is offline. This check did not create or modify data."
+  doctor-storage: "&fStorage: {backend}; schema: {schema}; reward actions: PENDING={pending}, PROCESSING={processing}, UNCERTAIN={uncertain}."
+  doctor-storage-failed: "&cThe storage health check failed. &fCheck the server log."
+  doctor-executor-stopping: "&eThe executor is stopping and cannot query pending reward actions."
+invite:
+  qualified:
+    inviter: "&aA player you invited has qualified."
+    invitee: "&aYou have met the invitation qualification requirements."

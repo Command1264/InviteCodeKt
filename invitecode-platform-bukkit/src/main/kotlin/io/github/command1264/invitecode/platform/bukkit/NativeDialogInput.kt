@@ -3,15 +3,16 @@ package io.github.command1264.invitecode.platform.bukkit
 import org.bukkit.entity.Player
 import java.util.UUID
 
-data class NativeDialogRequest(
+data class NativeDialogRequest @JvmOverloads constructor(
     val title: String,
     val label: String,
     val confirm: String,
     val cancel: String,
     val maximumLength: Int,
+    val presentation: NativeDialogPresentation? = null,
 )
 
-data class NativeDialogConfirmationRequest(
+data class NativeDialogConfirmationRequest @JvmOverloads constructor(
     val title: String,
     val inviterLine: String,
     val codeLabel: String,
@@ -23,6 +24,17 @@ data class NativeDialogConfirmationRequest(
     val disagree: String,
     val agreeHint: String,
     val disagreeHint: String,
+    val presentation: NativeDialogPresentation? = null,
+)
+
+data class NativeDialogPresentation(
+    val title: PresentedMessage,
+    val body: List<PresentedMessage>,
+    val confirm: PresentedMessage,
+    val cancel: PresentedMessage,
+    val inputLabel: PresentedMessage? = null,
+    val confirmHint: PresentedMessage? = null,
+    val cancelHint: PresentedMessage? = null,
 )
 
 interface NativeDialogInput : AutoCloseable {

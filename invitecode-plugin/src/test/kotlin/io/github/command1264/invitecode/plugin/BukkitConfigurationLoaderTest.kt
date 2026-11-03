@@ -13,6 +13,45 @@ class BukkitConfigurationLoaderTest {
     lateinit var dataDirectory: Path
 
     @Test
+    fun `load restores missing bundled configuration and message catalogs from jar resources`() {
+        val configuration = BukkitConfigurationLoader(dataDirectory) {}.load()
+
+        assertEquals(1, configuration.general.version)
+        assertEquals("是", configuration.messages.resolve("zh_TW", "value.yes"))
+        assertEquals("yes", configuration.messages.resolve("en_US", "value.yes"))
+        assertEquals(true, Files.isRegularFile(dataDirectory.resolve("config.yml")))
+        assertEquals(true, Files.isRegularFile(dataDirectory.resolve("storage.yml")))
+        assertEquals(true, Files.isRegularFile(dataDirectory.resolve("qualifications.yml")))
+        assertEquals(true, Files.isRegularFile(dataDirectory.resolve("rewards.yml")))
+        assertEquals(true, Files.isRegularFile(dataDirectory.resolve("messages/zh_TW.yml")))
+        assertEquals(true, Files.isRegularFile(dataDirectory.resolve("messages/en_US.yml")))
+    }
+
+    @Test
+    fun `load fills missing message keys from bundled catalogs without replacing existing files`() {
+        BundledConfigurationInstaller(dataDirectory) { resourcePath ->
+            javaClass.classLoader.getResourceAsStream(resourcePath)
+        }.installMissing()
+        val config = dataDirectory.resolve("config.yml")
+        val configBefore = String(Files.readAllBytes(config), StandardCharsets.UTF_8)
+        val catalog = dataDirectory.resolve("messages/zh_TW.yml")
+        Files.write(
+            catalog,
+            "messages-version: 1\nvalue:\n  'yes': '自訂'\n".toByteArray(StandardCharsets.UTF_8),
+        )
+
+        val configuration = BukkitConfigurationLoader(dataDirectory) {}.load()
+
+        assertEquals("自訂", configuration.messages.resolve("zh_TW", "value.yes"))
+        assertEquals("否", configuration.messages.resolve("zh_TW", "value.no"))
+        assertEquals(configBefore, String(Files.readAllBytes(config), StandardCharsets.UTF_8))
+        assertEquals(
+            "messages-version: 1\nvalue:\n  'yes': '自訂'\n",
+            String(Files.readAllBytes(catalog), StandardCharsets.UTF_8),
+        )
+    }
+
+    @Test
     fun `bundled message catalogs preserve yes and no keys`() {
         BundledConfigurationInstaller(dataDirectory) { resourcePath ->
             javaClass.classLoader.getResourceAsStream(resourcePath)

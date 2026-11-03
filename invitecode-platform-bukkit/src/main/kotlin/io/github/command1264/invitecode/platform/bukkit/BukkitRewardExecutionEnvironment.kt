@@ -22,6 +22,7 @@ class BukkitRewardExecutionEnvironment(
     private val economy: EconomyRewardGateway? = null,
     private val isPrimaryThread: () -> Boolean = Bukkit::isPrimaryThread,
     private val playerLookup: (UUID) -> Player? = server::getPlayer,
+    private val messageDelivery: (Player, String) -> Unit = { player, text -> player.sendMessage(text) },
 ) : RewardExecutionEnvironment {
     override fun isOnline(playerId: UUID): Boolean {
         requireMainThread()
@@ -48,7 +49,7 @@ class BukkitRewardExecutionEnvironment(
         requireMainThread()
         val player = playerLookup(playerId)
             ?: return OnlineRewardActionResult.RECIPIENT_OFFLINE
-        player.sendMessage(messages.resolve(playerId, localeKey))
+        messageDelivery(player, messages.resolve(playerId, localeKey))
         return OnlineRewardActionResult.ACCEPTED
     }
 

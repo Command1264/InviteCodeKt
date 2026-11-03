@@ -45,7 +45,7 @@ internal class MysqlRuntimeBootstrap(
                 val catalog = requireNotNull(connection.catalog) { "MySQL database is not selected." }
                 connection.metaData.getTables(catalog, null, "invitecode_transfer_guard", arrayOf("TABLE")).use { tables ->
                     if (tables.next()) throw MysqlStorageException(
-                        "MySQL backend transfer is incomplete; keep InviteCode stopped, inspect the destination " +
+                        "MySQL backend transfer is incomplete\nkeep InviteCode stopped, inspect the destination " +
                             "and restore or restart the offline transfer before enabling this database.",
                     )
                 }
@@ -78,7 +78,7 @@ internal class MysqlRuntimeBootstrap(
                 "SQLState ${error.sqlState ?: "unknown"}, code ${error.errorCode}"
             } else error.javaClass.simpleName
             throw MysqlStorageException(
-                "MySQL initialization failed at ${config.host}:${config.port}/${config.database}; " +
+                "MySQL initialization failed at ${config.host}:${config.port}/${config.database}\n" +
                     "check connectivity, schema and shared network secret ($diagnostic).",
             )
         }

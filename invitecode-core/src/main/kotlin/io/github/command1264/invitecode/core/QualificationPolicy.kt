@@ -72,7 +72,7 @@ object QualificationConfigurationParser {
                 "Qualification configuration requires numeric integer 'config-version'.",
             )
         require(version == CURRENT_VERSION) {
-            "Qualification config-version $version is unsupported; expected $CURRENT_VERSION."
+            "Qualification config-version $version is unsupported\nexpected $CURRENT_VERSION."
         }
         val rawPolicies = value["policies"]
         require(rawPolicies is Map<*, *> && rawPolicies.isNotEmpty()) {
@@ -136,7 +136,7 @@ object QualificationPolicyParser {
                     MissingQualificationProviderOutcome.valueOf(it.uppercase(Locale.ROOT))
                 } catch (error: IllegalArgumentException) {
                     throw IllegalArgumentException(
-                        "$location has unsupported on-unavailable value '$it'; use UNKNOWN or UNSATISFIED.",
+                        "$location has unsupported on-unavailable value '$it'\nuse UNKNOWN or UNSATISFIED.",
                         error,
                     )
                 }

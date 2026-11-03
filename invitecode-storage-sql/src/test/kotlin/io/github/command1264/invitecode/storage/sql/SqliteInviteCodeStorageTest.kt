@@ -201,7 +201,7 @@ class SqliteInviteCodeStorageTest {
         }
 
         assertEquals(
-            "SQL storage cannot run on the server main thread; " +
+            "SQL storage cannot run on the server main thread\n" +
                 "schedule the operation on a dedicated storage executor.",
             error.message,
         )

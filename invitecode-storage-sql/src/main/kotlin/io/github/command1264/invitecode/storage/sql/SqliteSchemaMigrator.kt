@@ -17,7 +17,7 @@ fun interface BlockingOperationGuard {
         fun rejectingServerMainThread(isServerMainThread: () -> Boolean): BlockingOperationGuard =
             BlockingOperationGuard {
                 check(!isServerMainThread()) {
-                    "SQL storage cannot run on the server main thread; " +
+                    "SQL storage cannot run on the server main thread\n" +
                         "schedule the operation on a dedicated storage executor."
                 }
             }
@@ -78,7 +78,7 @@ class SqliteSchemaMigrator(
             }
             if (current > ordered.size) {
                 throw SqliteStorageException(
-                    "SQLite schema version $current is newer than supported version ${ordered.size}; " +
+                    "SQLite schema version $current is newer than supported version ${ordered.size}\n" +
                         "upgrade InviteCode before opening ${database.toAbsolutePath()}.",
                 )
             }
@@ -106,7 +106,7 @@ class SqliteSchemaMigrator(
                 connection.rollback()
             } catch (rollbackError: SQLException) {
                 val uncertain = SqliteStorageException(
-                    "SQLite schema migration failed for ${database.toAbsolutePath()} and rollback also failed; " +
+                    "SQLite schema migration failed for ${database.toAbsolutePath()} and rollback also failed\n" +
                         "the database state is uncertain. Preserve it and inspect both causes before retrying.",
                     error,
                 )
@@ -115,7 +115,7 @@ class SqliteSchemaMigrator(
             }
             if (error is SqliteStorageException) throw error
             throw SqliteStorageException(
-                "SQLite schema migration failed for ${database.toAbsolutePath()}; " +
+                "SQLite schema migration failed for ${database.toAbsolutePath()}\n" +
                     "the transaction was rolled back. Preserve the database and inspect the cause before retrying.",
                 error,
             )

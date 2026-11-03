@@ -1,0 +1,24 @@
+{
+  "acceptedOn": "2026-10-29 Asia/Taipei",
+  "candidateCommit": "53893c475fdeaf631ca5b174493f33754660e0ad",
+  "source": "User reported Console: passed; player report: passed, with screenshot and requested localization/color follow-up",
+  "server": "Folia 26.1.2",
+  "status": "partial-human-accepted-with-follow-up",
+  "accepted": [
+    "Console layout",
+    "Player report layout"
+  ],
+  "followUp": [
+    "Translate doctor labels and status values using configured locale selection, except proper names",
+    "True green and false red requested",
+    "Other status/count colors require discussion before implementation"
+  ],
+  "notInferred": [
+    "English-locale test passed",
+    "Full claim/reward/restart acceptance",
+    "Other cores passed",
+    "Implementation or merge authorization for proposed non-boolean colors"
+  ],
+  "screenshot": "2026-10-29-folia-doctor-localization-feedback.png",
+  "clientVersion": "not reported"
+}

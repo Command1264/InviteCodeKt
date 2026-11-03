@@ -41,6 +41,9 @@ import io.github.command1264.invitecode.platform.bukkit.InviteCodeRuntimeConfigu
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogInput
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogConfirmationRequest
 import io.github.command1264.invitecode.platform.bukkit.NativeDialogRequest
+import io.github.command1264.invitecode.platform.bukkit.MessagePresenter
+import io.github.command1264.invitecode.platform.bukkit.MessageAudience
+import io.github.command1264.invitecode.platform.bukkit.PrefixPlacement
 import io.github.command1264.invitecode.platform.bukkit.PlatformCapabilities
 import io.github.command1264.invitecode.platform.bukkit.generator
 import io.github.command1264.invitecode.platform.bukkit.parser
@@ -227,12 +230,12 @@ class PlayerWorkflowController(
                 val player = tasks.onlinePlayer(playerId) ?: return@submit
                 val messages = configuration.current().value.messages
                 val locale = BukkitLocaleCompatibility.locale(player)
+                val layout = PlayerMessageLayouts(messages, locale, BukkitMessageOutput.audience(player))
                 player.spigot().sendMessage(*PlayerChatActions.codeMessage(
-                    messages.resolve(locale, "command.code.value"),
-                    display(code.code),
+                    layout.code(code.code),
                     code.code.displayValue(),
-                    messages.resolve(locale, "command.code.copy"),
-                    messages.resolve(locale, "command.code.select"),
+                    layout.fragment("command.code.copy"),
+                    layout.fragment("command.code.select"),
                 ))
             },
         )
@@ -274,17 +277,18 @@ class PlayerWorkflowController(
         val messages = runtime.messages
         val shown = nativeDialogInput.show(
             player,
-            NativeDialogRequest(
-                title = messages.resolve(locale, "command.claim.dialog-title"),
-                label = messages.resolve(locale, "command.claim.dialog-label"),
-                confirm = messages.resolve(locale, "command.claim.dialog-confirm"),
-                cancel = messages.resolve(locale, "command.claim.dialog-cancel"),
-                maximumLength = 64,
-            ),
+            PlayerMessageLayouts(messages, locale, MessageAudience.RGB_PLAYER).inputDialog(),
             onSubmit = { rawCode ->
                 tasks.player(player, operation = {
                     if (tasks.onlinePlayer(playerId) === player) {
-                        sessions.consumeDialogInput(playerId, rawCode)?.let { beginClaim(player, it) }
+                        when (val input = sessions.consumeDialogInputResult(playerId, rawCode)) {
+                            is io.github.command1264.invitecode.platform.bukkit.DialogInputResult.Code -> beginClaim(player, input.value)
+                            io.github.command1264.invitecode.platform.bukkit.DialogInputResult.Expired -> {
+                                nativeDialogInput.cancel(player)
+                                send(playerId, "command.claim.dialog-timeout")
+                            }
+                            null -> Unit
+                        }
                     }
                 })
             },
@@ -343,29 +347,13 @@ class PlayerWorkflowController(
                         val currentPlayer = tasks.onlinePlayer(playerId) ?: return@submit
                         val messages = configuration.current().value.messages
                         val locale = BukkitLocaleCompatibility.locale(currentPlayer)
+                        val layout = PlayerMessageLayouts(messages, locale, BukkitMessageOutput.audience(currentPlayer))
                         if (snapshot.value.general.claim.inputMode.resolve(capabilities) == ClaimInputChannel.DIALOG) {
                             val confirmation = prepared.confirmation
                             val shown = nativeDialogInput.showConfirmation(
                                 currentPlayer,
-                                NativeDialogConfirmationRequest(
-                                    title = messages.resolve(locale, "command.claim.confirmation-title"),
-                                    inviterLine = messages.resolve(
-                                        locale, "command.claim.confirmation-inviter",
-                                        mapOf("inviter" to confirmation.inviterName),
-                                    ),
-                                    codeLabel = messages.resolve(locale, "command.claim.confirmation-code-label"),
-                                    code = confirmation.inviteCode.displayValue(),
-                                    codeRgb = confirmation.inviteCode.color?.rgb,
-                                    question = messages.resolve(locale, "command.claim.confirmation-question"),
-                                    timeoutPrompt = messages.resolve(
-                                        locale, "command.claim.confirmation-prompt",
-                                        mapOf("seconds" to snapshot.value.general.claim.confirmationTimeout.seconds.toString()),
-                                    ),
-                                    agree = messages.resolve(locale, "command.claim.agree"),
-                                    disagree = messages.resolve(locale, "command.claim.disagree"),
-                                    agreeHint = messages.resolve(locale, "command.claim.agree-hover"),
-                                    disagreeHint = messages.resolve(locale, "command.claim.disagree-hover"),
-                                ),
+                                layout.confirmationDialog(confirmation.inviterName, confirmation.inviteCode,
+                                    snapshot.value.general.claim.confirmationTimeout.seconds),
                                 onConfirm = {
                                     tasks.player(currentPlayer, operation = {
                                         if (tasks.onlinePlayer(playerId) === currentPlayer) confirm(currentPlayer)
@@ -379,21 +367,18 @@ class PlayerWorkflowController(
                             )
                             if (shown) return@submit
                         }
-                        messages.resolve(
-                            locale,
-                            "command.claim.confirmation",
-                            mapOf(
-                                "inviter" to prepared.confirmation.inviterName,
-                                "code" to display(prepared.confirmation.inviteCode),
-                                "seconds" to snapshot.value.general.claim.confirmationTimeout.seconds.toString(),
-                            ),
-                        ).lines().forEach(currentPlayer::sendMessage)
-                        currentPlayer.spigot().sendMessage(*PlayerChatActions.confirmation(
-                            messages.resolve(locale, "command.claim.agree"),
-                            messages.resolve(locale, "command.claim.disagree"),
-                            messages.resolve(locale, "command.claim.agree-hover"),
-                            messages.resolve(locale, "command.claim.disagree-hover"),
-                        ))
+                        val confirmation = prepared.confirmation
+                        val body = PlayerChatActions.codeMessage(
+                            layout.chatConfirmation(confirmation.inviterName, confirmation.inviteCode,
+                                snapshot.value.general.claim.confirmationTimeout.seconds),
+                            confirmation.inviteCode.displayValue(), layout.fragment("command.code.copy"),
+                            layout.fragment("command.code.select"),
+                        )
+                        val actions = PlayerChatActions.confirmation(
+                            layout.fragment("command.claim.agree"), layout.fragment("command.claim.disagree"),
+                            layout.fragment("command.claim.agree-hover"), layout.fragment("command.claim.disagree-hover"),
+                        )
+                        currentPlayer.spigot().sendMessage(*(body + net.md_5.bungee.api.chat.TextComponent("\n") + actions))
                     }
                 }
             },
@@ -496,27 +481,20 @@ class PlayerWorkflowController(
                 PlayerStatus(
                     eligibility = ClaimEligibilityPolicy(snapshot.value.general.claim.window).evaluate(state, now()),
                     state = state,
-                    invitationStatus = store.invitationsByInvitee(playerId).firstOrNull()?.status,
+                    invitationStatus = store.currentInviteeInvitationStatus(playerId),
                     pendingRewards = store.pendingRewardActions(playerId).size,
                 )
             },
             onSuccess = { result ->
-                send(
-                    playerId,
-                    "command.status.summary",
-                    mapOf(
-                        "eligible" to resolve(
-                            playerId,
-                            if (result.eligibility.eligible) "value.yes" else "value.no",
-                        ),
-                        "invitation" to resolve(
-                            playerId,
-                            "value.invitation.${result.invitationStatus?.name?.lowercase() ?: "none"}",
-                        ),
-                        "pending_rewards" to result.pendingRewards.toString(),
-                    ),
-                )
-                if (!result.eligibility.eligible) sendEligibility(playerId, result.eligibility)
+                val current = tasks.onlinePlayer(playerId) ?: return@submit
+                val layout = PlayerMessageLayouts(configuration.current().value.messages,
+                    BukkitLocaleCompatibility.locale(current), BukkitMessageOutput.audience(current))
+                BukkitMessageOutput.sendPresented(current, layout.status(
+                    result.eligibility.eligible, result.invitationStatus?.name?.lowercase() ?: "none",
+                    result.pendingRewards, result.eligibility.reasons.map {
+                        layout.fragment("command.claim.reason.${it.name.lowercase()}").plainText
+                    },
+                ))
             },
         )
     }
@@ -537,7 +515,7 @@ class PlayerWorkflowController(
     }
 
     private fun sendEligibility(playerId: UUID, eligibility: ClaimEligibility) {
-        val reasons = eligibility.reasons.joinToString("、") {
+        val reasons = eligibility.reasons.joinToString(resolve(playerId, "value.reason-separator")) {
             resolve(playerId, "command.claim.reason.${it.name.lowercase()}")
         }
         send(playerId, "command.claim.ineligible", mapOf("reasons" to reasons))
@@ -726,13 +704,11 @@ class PlayerWorkflowController(
         val messages = configuration.current().value.messages
         val environment = BukkitRewardExecutionEnvironment(
             plugin.server,
-            RewardMessageResolver { playerId, localeKey ->
-                val locale = this.tasks.currentPlayer(playerId)?.let(BukkitLocaleCompatibility::locale)
-                messages.resolve(locale, localeKey)
-            },
+            RewardMessageResolver { _, localeKey -> localeKey },
             economyGateway(),
             isPrimaryThread = this.tasks::isManagedThread,
             playerLookup = this.tasks::currentPlayer,
+            messageDelivery = { player, key -> BukkitMessageOutput.send(player, messages, key) },
         )
         tasks.forEach { task ->
             val actionOperations = operations.callbacksOn { callback ->
@@ -787,15 +763,18 @@ class PlayerWorkflowController(
         val player = tasks.onlinePlayer(playerId) ?: return
         val messages = configuration.currentOrNull()?.value?.messages
         if (messages == null) {
-            player.sendMessage("InviteCode 設定尚未載入。")
+            player.sendMessage("[InviteCode] 設定尚未載入。")
             return
         }
-        player.sendMessage(messages.resolve(BukkitLocaleCompatibility.locale(player), key, variables))
+        BukkitMessageOutput.send(player, messages, key, variables)
     }
 
     private fun resolve(playerId: UUID, key: String): String {
         val player = tasks.onlinePlayer(playerId) ?: return "[offline]"
-        return configuration.current().value.messages.resolve(BukkitLocaleCompatibility.locale(player), key)
+        return MessagePresenter(configuration.current().value.messages).render(
+            BukkitLocaleCompatibility.locale(player), key, audience = BukkitMessageOutput.audience(player),
+            prefix = PrefixPlacement.NONE,
+        ).plainText
     }
 
     private fun display(code: InviteCode): String {
@@ -803,8 +782,18 @@ class PlayerWorkflowController(
     }
 
     private fun scheduleTimeout(player: Player, duration: Duration, operation: () -> Unit) {
-        val ticks = ((duration.toMillis() + 49L) / 50L).coerceAtLeast(1L)
-        tasks.delayPlayer(player, ticks, operation)
+        val deadline = now().plus(duration)
+        fun scheduleRemaining() {
+            val remaining = Duration.between(now(), deadline)
+            if (remaining.isNegative || remaining.isZero) {
+                operation()
+            } else {
+                // Server ticks need not reach the wall-clock deadline on the first callback.
+                val ticks = ((remaining.toMillis() + 49L) / 50L).coerceAtLeast(1L)
+                tasks.delayPlayer(player, ticks, ::scheduleRemaining)
+            }
+        }
+        scheduleRemaining()
     }
 
     private sealed class PreparedClaim {

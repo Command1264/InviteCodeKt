@@ -481,7 +481,7 @@ class PlayerWorkflowController(
                 PlayerStatus(
                     eligibility = ClaimEligibilityPolicy(snapshot.value.general.claim.window).evaluate(state, now()),
                     state = state,
-                    invitationStatus = store.invitationsByInvitee(playerId).firstOrNull()?.status,
+                    invitationStatus = store.currentInviteeInvitationStatus(playerId),
                     pendingRewards = store.pendingRewardActions(playerId).size,
                 )
             },

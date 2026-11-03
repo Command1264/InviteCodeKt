@@ -2,6 +2,7 @@ package io.github.command1264.invitecode.plugin
 
 import io.github.command1264.invitecode.core.ColorInviteCodeGenerator
 import io.github.command1264.invitecode.core.InviteCodeLifecycleService
+import io.github.command1264.invitecode.core.InvitationAdministrationContext
 import io.github.command1264.invitecode.core.QualificationProviderRegistry
 import io.github.command1264.invitecode.core.StoredPlayer
 import io.github.command1264.invitecode.platform.bukkit.*
@@ -154,6 +155,25 @@ class PlayerWorkflowPresentationIntegrationTest {
         assertTrue(text.contains("you have already created your own Invite Code"))
         assertFalse(text.contains("the claim period has ended"))
         assertEquals(5, text.lines().size)
+    }
+
+    @Test
+    fun `status reports only the current eligibility generation after reset`() {
+        val f = fixture()
+        fun register() {
+            f.startClaim(f.inviterCode)
+            f.controller.handle(f.invitee, command("confirm"))
+            assertTrue(f.awaitOutput().flattenText().contains("Your invitation has been registered."))
+        }
+        register()
+        val context = InvitationAdministrationContext(UUID.randomUUID(), "console", "test reset", Instant.parse("2026-01-01T00:00:00Z"))
+        f.storage.saveAuditedClaimStateTransition(f.storage.claimState(f.inviteeId).adminResetEligibility(context))
+        f.controller.handle(f.invitee, command("status"))
+        assertTrue(f.awaitOutput().flattenText().contains("not registered"))
+        assertEquals(1, f.storage.invitationsByInvitee(f.inviteeId).size)
+        register()
+        f.controller.handle(f.invitee, command("status"))
+        assertTrue(f.awaitOutput().flattenText().contains("awaiting qualification"))
     }
 
     @Test

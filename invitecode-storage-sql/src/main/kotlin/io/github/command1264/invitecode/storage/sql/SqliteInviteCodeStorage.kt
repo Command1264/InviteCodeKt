@@ -110,6 +110,10 @@ internal class JdbcInviteCodeStorage private constructor(
         SqliteInvitationRecords.findByInviter(it, inviterId)
     }
 
+    override fun currentInviteeInvitationStatus(inviteeId: UUID) = read {
+        SqliteInvitationRecords.currentStatusByInvitee(it, inviteeId)
+    }
+
     override fun inviterInvitationStats(inviterId: UUID): InviterInvitationStats = read {
         SqliteInvitationRecords.statsForInviter(it, inviterId)
     }

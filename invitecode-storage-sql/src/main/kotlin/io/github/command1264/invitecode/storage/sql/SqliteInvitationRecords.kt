@@ -123,6 +123,24 @@ internal object SqliteInvitationRecords {
             }
         }
 
+    fun currentStatusByInvitee(connection: Connection, inviteeId: UUID): InvitationStatus? =
+        connection.prepareStatement(
+            """
+            SELECT i.status
+            FROM invitecode_invitations i
+            JOIN invitecode_players p ON p.player_id = i.invitee_id
+                AND p.eligibility_generation = i.invitee_eligibility_generation
+            WHERE i.invitee_id = ?
+            ORDER BY i.claimed_at DESC, i.invitation_id DESC
+            LIMIT 1
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, inviteeId.toString())
+            statement.executeQuery().use { result ->
+                if (result.next()) InvitationStatus.valueOf(result.getString("status")) else null
+            }
+        }
+
     fun findByInvitee(connection: Connection, inviteeId: UUID): List<Invitation> =
         findByPlayerColumn(connection, "invitee_id", inviteeId)
 

@@ -314,7 +314,7 @@ admin:
   doctor-build: |-
     &7Git 提交：&f{commit}
     &7工作目錄有變更：&f{dirty}
-    &7建置時間（UTC）：&f{built_at}
+    &7打包時間（UTC）：&f{built_at}
   doctor-integrations: |-
     &fPlaceholderAPI：{placeholder}
     &fVault 經濟服務：{vault}

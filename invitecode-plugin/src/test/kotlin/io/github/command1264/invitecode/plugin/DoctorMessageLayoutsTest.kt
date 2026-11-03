@@ -27,12 +27,12 @@ class DoctorMessageLayoutsTest {
         assertEquals(commit, provenance.commit)
         val english = DoctorMessageLayouts(messages, "en_US", MessageAudience.CONSOLE)
         val report = english.render("admin.doctor-build", provenance.doctorValues()).plainText
-        assertTrue(report.contains("Git commit: 0123456789ab"))
-        assertTrue(report.contains("Build time (UTC): " + builtAt))
+        assertEquals("Git commit: 0123456", report.lineSequence().first())
+        assertTrue(report.contains("Packaging time (UTC): " + builtAt))
 
         val chinese = DoctorMessageLayouts(messages, "zh_TW", MessageAudience.RGB_PLAYER)
         val unknown = chinese.render("admin.doctor-build", BuildProvenance.fromAttributes(null).doctorValues()).plainText
-        assertEquals(listOf("Git 提交：未知", "工作目錄有變更：未知", "建置時間（UTC）：未知"), unknown.lines())
+        assertEquals(listOf("Git 提交：未知", "工作目錄有變更：未知", "打包時間（UTC）：未知"), unknown.lines())
     }
 
     @Test

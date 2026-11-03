@@ -15,7 +15,7 @@ internal data class BuildProvenance(
     val builtAt: Instant? = null,
 ) {
     fun doctorValues(): Map<String, String> = mapOf(
-        "commit" to (commit?.take(12) ?: "unknown"),
+        "commit" to (commit?.take(7) ?: "unknown"),
         "dirty" to (dirty?.toString() ?: "unknown"),
         "built_at" to (builtAt?.toString() ?: "unknown"),
     )

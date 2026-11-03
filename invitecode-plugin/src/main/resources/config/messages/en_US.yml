@@ -310,7 +310,7 @@ admin:
   doctor-build: |-
     &7Git commit: &f{commit}
     &7Working tree has changes: &f{dirty}
-    &7Build time (UTC): &f{built_at}
+    &7Packaging time (UTC): &f{built_at}
   doctor-integrations: |-
     &fPlaceholderAPI: {placeholder}
     &fVault economy service: {vault}

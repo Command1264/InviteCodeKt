@@ -169,4 +169,4 @@ runtime.help-console-navigation-title、admin.inspect-*-title 及 admin.inspect-
 
 ## 查詢 JAR 來源
 
-/ic admin doctor 顯示 Git 提交前 12 碼、封裝時工作目錄是否有變更，以及 UTC 建置時間。完整提交存於 JAR 的 META-INF/MANIFEST.MF。建置時間是封裝任務執行時寫入的時間；重用既有產物時沿用原時間。Git 不可用時顯示未知，舊 JAR 缺少欄位時也顯示未知。工作目錄變更包含 Git 看得到的未追蹤檔案。
+/ic admin doctor 顯示 Git 提交前 7 碼、封裝時工作目錄是否有變更，以及 UTC 打包時間。完整提交存於 JAR 的 META-INF/MANIFEST.MF。打包時間以 ISO 8601 UTC 格式呈現，例如 `2026-11-03T10:17:44.517Z`。這是封裝任務執行時寫入的時間。重用既有產物時沿用原時間。Git 不可用時顯示未知，舊 JAR 缺少欄位時也顯示未知。工作目錄變更包含 Git 看得到的未追蹤檔案。

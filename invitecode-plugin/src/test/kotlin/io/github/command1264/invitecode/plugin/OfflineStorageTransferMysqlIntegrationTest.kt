@@ -380,7 +380,7 @@ class OfflineStorageTransferMysqlIntegrationTest {
             ),
             transitions.map { it.occurredAt },
         )
-        assertEquals("Interrupted while processing; delivery result is unknown.", transitions.last().lastError)
+        assertEquals("Interrupted while processing\ndelivery result is unknown.", transitions.last().lastError)
         val pendingActions = storage.pendingRewardActions(expected.recipientId)
         assertEquals(false, pendingActions.any { it.id == expected.id })
         pendingExpected?.let { pending ->

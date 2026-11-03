@@ -8,6 +8,8 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.testing.Test
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
+import java.time.Instant
+import java.util.jar.Manifest
 import java.util.zip.ZipFile
 
 plugins {
@@ -29,6 +31,11 @@ abstract class VerifyPluginJar : DefaultTask() {
         val archive = archiveFile.get().asFile
 
         ZipFile(archive).use { zip ->
+            val metadata = zip.getInputStream(requireNotNull(zip.getEntry("META-INF/MANIFEST.MF")))
+                .use { Manifest(it).mainAttributes }
+            check(metadata.getValue("InviteCode-Git-Commit").matches(Regex("[0-9a-f]{40}|[0-9a-f]{64}|unknown")))
+            check(metadata.getValue("InviteCode-Git-Dirty") in setOf("true", "false", "unknown"))
+            Instant.parse(metadata.getValue("InviteCode-Built-At"))
             requiredEntries.get().forEach { entry ->
                 check(zip.getEntry(entry) != null) {
                     "${archive.name} is missing required entry $entry"
@@ -115,8 +122,35 @@ tasks.processResources {
     }
 }
 
+fun gitOutput(vararg args: String): String? = try {
+    if (!rootDir.resolve(".git").exists()) null else providers.exec {
+        workingDir(rootDir)
+        commandLine("git", *args)
+        isIgnoreExitValue = true
+    }.let { if (it.result.get().exitValue == 0) it.standardOutput.asText.get().trim() else null }
+} catch (_: org.gradle.process.internal.ExecException) {
+    // Source archives and machines without Git can still build the plugin.
+    null
+}
+
+val gitCommit = providers.provider { gitOutput("rev-parse", "--verify", "HEAD") ?: "unknown" }
+val gitDirty = providers.provider {
+    gitOutput("status", "--porcelain", "--untracked-files=normal")?.isNotEmpty()?.toString() ?: "unknown"
+}
+
 val shadowJar = tasks.named<ShadowJar>("shadowJar") {
     inputs.property("java8CompatibilityLayout", "v1")
+    inputs.property("inviteCodeGitCommit", gitCommit)
+    inputs.property("inviteCodeGitDirty", gitDirty)
+    doFirst {
+        manifest.attributes(
+            mapOf(
+                "InviteCode-Git-Commit" to inputs.properties.getValue("inviteCodeGitCommit"),
+                "InviteCode-Git-Dirty" to inputs.properties.getValue("inviteCodeGitDirty"),
+                "InviteCode-Built-At" to Instant.now().toString(),
+            ),
+        )
+    }
     archiveBaseName.set("InviteCode")
     archiveClassifier.set("")
     exclude("module-info.class", "META-INF/versions/**")

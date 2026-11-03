@@ -154,6 +154,12 @@ val shadowJar = tasks.named<ShadowJar>("shadowJar") {
     archiveBaseName.set("InviteCode")
     archiveClassifier.set("")
     exclude("module-info.class", "META-INF/versions/**")
+    from(rootProject.file("LICENSE")) {
+        into("META-INF/InviteCode")
+    }
+    from(rootProject.file("third-party")) {
+        into("META-INF/InviteCode")
+    }
     mergeServiceFiles()
     relocate("com.google.gson", "io.github.command1264.invitecode.libs.gson")
 }
@@ -175,6 +181,11 @@ val verifyPluginJar by tasks.registering(VerifyPluginJar::class) {
     requiredEntries.set(
         listOf(
             "plugin.yml",
+            "META-INF/InviteCode/LICENSE",
+            "META-INF/InviteCode/THIRD-PARTY-NOTICES.md",
+            "META-INF/InviteCode/licenses/mysql-connector-j-LICENSE.txt",
+            "META-INF/InviteCode/licenses/slf4j-LICENSE.txt",
+            "META-INF/InviteCode/licenses/protobuf-LICENSE.txt",
             "config/config.yml",
             "config/storage.yml",
             "config/qualifications.yml",

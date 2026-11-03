@@ -19,6 +19,8 @@ internal class DoctorMessageLayouts(
         val body = presenter.render(locale, key, values, audience, PrefixPlacement.NONE)
         val fragments = values.mapNotNull { (name, value) ->
             val suffix = when (name) {
+                "commit", "built_at" -> if (value == "unknown") "build-unknown" else null
+                "dirty" -> if (value == "unknown") "build-unknown" else known("enabled", value, setOf("true", "false"))
                 "phase" -> known("phase", value, setOf("ACTIVE", "STARTING", "MAINTENANCE", "STOPPING", "STOPPED"))
                 "executor" -> known("executor", value, setOf("ACCEPTING", "STOPPED"))
                 "placeholder" -> known("enabled", value, setOf("true", "false"))

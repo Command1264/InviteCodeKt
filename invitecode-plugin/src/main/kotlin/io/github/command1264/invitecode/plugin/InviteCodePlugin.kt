@@ -53,6 +53,7 @@ import java.util.UUID
 import java.util.logging.Level
 
 class InviteCodePlugin : JavaPlugin() {
+    private val buildProvenance by lazy { BuildProvenance.read(file.toPath(), logger) }
     private val runtime = PluginRuntimeState()
     private val configuration = AtomicRuntimeSnapshot<InviteCodeRuntimeConfiguration>()
     private val storage = AtomicReference<InviteCodeStorage?>()
@@ -376,6 +377,7 @@ class InviteCodePlugin : JavaPlugin() {
         val store = storage.get()
         val capabilities = modernIntegration?.capabilities
         val sections = mutableListOf(
+            "admin.doctor-build" to buildProvenance.doctorValues(),
             "admin.doctor-runtime" to mapOf("phase" to runtime.phase.name,
                 "generation" to snapshot.generation.toString(),
                 "executor" to if (executor?.acceptingOperations == true) "ACCEPTING" else "STOPPED"),

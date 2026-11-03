@@ -311,6 +311,10 @@ admin:
     &f執行階段：{phase}
     &f設定世代：{generation}
     &f背景工作：{executor}
+  doctor-build: |-
+    &7Git 提交：&f{commit}
+    &7工作目錄有變更：&f{dirty}
+    &7建置時間（UTC）：&f{built_at}
   doctor-integrations: |-
     &fPlaceholderAPI：{placeholder}
     &fVault 經濟服務：{vault}
@@ -329,6 +333,7 @@ admin:
   doctor-storage-failed: "&c儲存健康檢查失敗，請檢查伺服器紀錄。"
   doctor-executor-stopping: "&e背景工作正在停止，無法查詢待處理的獎勵動作。"
   doctor-value:
+    build-unknown: "&7未知"
     phase:
       active: "&a運作中"
       starting: "&e啟動中"

@@ -307,6 +307,10 @@ admin:
     &fRuntime: {phase}
     &fConfiguration generation: {generation}
     &fBackground tasks: {executor}
+  doctor-build: |-
+    &7Git commit: &f{commit}
+    &7Working tree has changes: &f{dirty}
+    &7Build time (UTC): &f{built_at}
   doctor-integrations: |-
     &fPlaceholderAPI: {placeholder}
     &fVault economy service: {vault}
@@ -323,6 +327,7 @@ admin:
   doctor-storage-failed: "&cThe storage health check failed, so check the server log."
   doctor-executor-stopping: "&eThe executor is stopping and cannot query pending reward actions."
   doctor-value:
+    build-unknown: "&7Unknown"
     phase:
       active: "&aActive"
       starting: "&eStarting"

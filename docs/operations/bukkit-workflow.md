@@ -166,3 +166,7 @@ runtime.help-console-navigation-title、admin.inspect-*-title 及 admin.inspect-
 ## 2026-10-29 Doctor 語系值與色彩
 
 健康檢查的一般欄位與已知狀態透過 `admin.doctor-value.*` 翻譯，沿用 config 的預設／客戶端語系政策。選配整合未啟用顯示紅色說明，不等於插件健康失敗；未知代碼中性灰保留原值。0 獎勵數量灰色，正數待執行黃／執行中青／結果待確認金。Console 使用黑底可讀的 legacy 色與每行 prefix，玩家標題 prefix 一次。僅 Folia 更新，驗收及資料保留證據見 `../testing/evidence/2026-10-29-doctor-localization.json`。
+
+## 查詢 JAR 來源
+
+/ic admin doctor 顯示 Git 提交前 12 碼、封裝時工作目錄是否有變更，以及 UTC 建置時間。完整提交存於 JAR 的 META-INF/MANIFEST.MF。建置時間是封裝任務執行時寫入的時間；重用既有產物時沿用原時間。Git 不可用時顯示未知，舊 JAR 缺少欄位時也顯示未知。工作目錄變更包含 Git 看得到的未追蹤檔案。

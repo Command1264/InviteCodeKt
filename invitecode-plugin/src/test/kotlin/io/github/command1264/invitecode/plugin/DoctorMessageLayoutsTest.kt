@@ -10,6 +10,32 @@ class DoctorMessageLayoutsTest {
     @TempDir lateinit var directory: Path
 
     @Test
+    fun `doctor shows packaged provenance and localizes missing fields`() {
+        val jar = directory.resolve("plugin.jar")
+        val manifest = java.util.jar.Manifest()
+        val commit = "0123456789abcdef0123456789abcdef01234567"
+        val builtAt = "2026-11-03T09:30:00Z"
+        manifest.mainAttributes.apply {
+            putValue("Manifest-Version", "1.0")
+            putValue("InviteCode-Git-Commit", commit)
+            putValue("InviteCode-Git-Dirty", "true")
+            putValue("InviteCode-Built-At", builtAt)
+        }
+        java.util.jar.JarOutputStream(java.nio.file.Files.newOutputStream(jar), manifest).close()
+        val messages = BukkitConfigurationLoader(directory.resolve("config")) {}.load().messages
+        val provenance = BuildProvenance.read(jar, java.util.logging.Logger.getAnonymousLogger())
+        assertEquals(commit, provenance.commit)
+        val english = DoctorMessageLayouts(messages, "en_US", MessageAudience.CONSOLE)
+        val report = english.render("admin.doctor-build", provenance.doctorValues()).plainText
+        assertTrue(report.contains("Git commit: 0123456789ab"))
+        assertTrue(report.contains("Build time (UTC): " + builtAt))
+
+        val chinese = DoctorMessageLayouts(messages, "zh_TW", MessageAudience.RGB_PLAYER)
+        val unknown = chinese.render("admin.doctor-build", BuildProvenance.fromAttributes(null).doctorValues()).plainText
+        assertEquals(listOf("Git 提交：未知", "工作目錄有變更：未知", "建置時間（UTC）：未知"), unknown.lines())
+    }
+
+    @Test
     fun `formatted doctor reaches console with one prefix per line and value colors intact`() {
         val messages = BukkitConfigurationLoader(directory) {}.load().messages
         val lines = mutableListOf<String>()

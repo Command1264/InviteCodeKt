@@ -5,7 +5,7 @@
 InviteCode 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件；`InviteCodeKt` 是 repository 名稱，`Kt` 只表示實作使用 Kotlin。單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並以隔離 adapter 實驗性支援 Folia 26.1.2。
 
 > [!IMPORTANT]
-> 本分支正在準備 [1.0.0 發行候選](./releases/1.0.0.md)。跨版本、儲存與復原自動證據已完成；使用者於 2026-10-13 確認 `1405745` 在 Spigot 1.8.8、Paper 26.2、Folia 26.1.2 的人工驗收通過，並已透過 PR #30 合併至 `develop`。完整範圍見[發行門檻結論](./testing/issue-12-release-gates.md)。Folia 維持實驗性，其第三方整合不能由 Paper 的結果推定；尚未正式發布 1.0。
+> [InviteCode 1.0.0 正式版](https://github.com/Command1264/InviteCodeKt/releases/tag/v1.0.0) 已於 2026-11-10 發布。Release 附件提供安裝用 JAR、對應原始碼與 SHA-256 清單；完整的來源、已測核心與驗收限制見 [1.0.0 發版紀錄](./releases/1.0.0.md)。Folia 維持實驗性，其第三方整合不能由 Paper 的結果推定。最終候選的 Spigot 26.3 完整真人驗收已獲准延後，不概括宣稱所有較新版本均已驗證。
 
 ## 專案目標
 

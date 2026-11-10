@@ -5,7 +5,7 @@
 InviteCode 是從零重寫的 Kotlin Minecraft 邀請與推薦獎勵插件；`InviteCodeKt` 是 repository 名稱，`Kt` 只表示實作使用 Kotlin。單一可安裝 JAR 支援 Spigot 與 Paper 1.8.8 到最新已測試版本，並以隔離 adapter 實驗性支援 Folia 26.1.2。
 
 > [!IMPORTANT]
-> 這個 repository 目前是 `0.1.0-SNAPSHOT`。跨版本、儲存與復原自動證據已完成；使用者於 2026-10-13 確認 `1405745` 在 Spigot 1.8.8、Paper 26.2、Folia 26.1.2 的人工驗收通過，並已透過 PR #30 合併至 `develop`。完整範圍見[發行門檻結論](./testing/issue-12-release-gates.md)。Folia 維持實驗性，其第三方整合不能由 Paper 的結果推定；尚未正式發布 1.0。
+> 本分支正在準備 [1.0.0 發行候選](./releases/1.0.0.md)。跨版本、儲存與復原自動證據已完成；使用者於 2026-10-13 確認 `1405745` 在 Spigot 1.8.8、Paper 26.2、Folia 26.1.2 的人工驗收通過，並已透過 PR #30 合併至 `develop`。完整範圍見[發行門檻結論](./testing/issue-12-release-gates.md)。Folia 維持實驗性，其第三方整合不能由 Paper 的結果推定；尚未正式發布 1.0。
 
 ## 專案目標
 
@@ -46,7 +46,7 @@ mise exec java@local-8 -- .\gradlew.bat clean check shadowJar
 可安裝的插件 JAR 會輸出至：
 
 ```text
-invitecode-plugin/build/libs/InviteCode-0.1.0-SNAPSHOT.jar
+invitecode-plugin/build/libs/InviteCode-1.0.0.jar
 ```
 
 所有本機 Java、Gradle 建置與測試指令都必須透過 `mise exec` 執行。Gradle Wrapper 仍由 repository 管理。建置流程會驗證目前 production class 使用 Java 8 bytecode。未來的新版 adapter 只有在 class 維持隔離，並驗證舊版 JVM 不會載入時，才可使用新版 bytecode。

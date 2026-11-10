@@ -2,7 +2,7 @@
 
 InviteCode is a Kotlin invitation and referral rewards plugin for Spigot and Paper, with experimental Folia support. `InviteCodeKt` is the repository name; the plugin and its data directory are named `InviteCode`.
 
-The project is currently `0.1.0-SNAPSHOT`. It builds one Java 8 compatible plugin JAR and keeps newer Minecraft APIs behind isolated adapters. SQLite and MySQL 8.4 are production storage backends; JSON is available for small single-instance installations. The [release gate conclusion](docs/testing/issue-12-release-gates.md) records automated evidence and player acceptance confirmed on 2026-10-13 for Spigot 1.8.8, Paper 26.2, and Folia 26.1.2. Folia remains experimental. These results cover the tested artifact and versions; a formal 1.0 release has not been published.
+This branch prepares the [1.0.0 release candidate](docs/releases/1.0.0.md). It builds one Java 8 compatible plugin JAR and keeps newer Minecraft APIs behind isolated adapters. SQLite and MySQL 8.4 are production storage backends; JSON is available for small single-instance installations. The [release gate conclusion](docs/testing/issue-12-release-gates.md) records automated evidence and player acceptance confirmed on 2026-10-13 for Spigot 1.8.8, Paper 26.2, and Folia 26.1.2. Folia remains experimental. These results cover the tested artifact and versions; a formal 1.0 release has not been published.
 
 The complete maintainer guide is in [繁體中文](docs/README.zh-TW.md) and is the primary maintained documentation. See also the [product specification](docs/spec/invitecode-1.0.md), [Bukkit operations](docs/operations/bukkit-workflow.md), [JSON setup](docs/operations/json-storage.md), [MySQL setup](docs/operations/mysql-storage.md), [offline anonymization](docs/operations/offline-anonymization.md), and [cross-backend transfer](docs/operations/cross-backend-transfer.md). These documents are maintained in Traditional Chinese.
 
@@ -23,7 +23,7 @@ To verify the Java 8 runtime, use the already registered local JDK:
 mise exec java@local-8 -- .\gradlew.bat clean check shadowJar
 ```
 
-The installable artifact is `invitecode-plugin/build/libs/InviteCode-0.1.0-SNAPSHOT.jar`. The build checks Java 8 class files and bundled driver entries. CI also runs MySQL 8.4 integration tests with an isolated service.
+The installable artifact is `invitecode-plugin/build/libs/InviteCode-1.0.0.jar`. The build checks Java 8 class files and bundled driver entries. CI also runs MySQL 8.4 integration tests with an isolated service.
 
 ## Development branches
 

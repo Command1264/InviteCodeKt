@@ -1,0 +1,828 @@
+package io.github.command1264.invitecode.plugin
+
+import io.github.command1264.invitecode.api.InvitationStatus
+import io.github.command1264.invitecode.api.QualificationEvaluationSnapshot
+import io.github.command1264.invitecode.api.QualificationConditionContext
+import io.github.command1264.invitecode.core.BuiltInQualificationProviders
+import io.github.command1264.invitecode.core.ClaimConfirmation
+import io.github.command1264.invitecode.core.ClaimEligibility
+import io.github.command1264.invitecode.core.ClaimEligibilityPolicy
+import io.github.command1264.invitecode.core.InvitationClaimResult
+import io.github.command1264.invitecode.core.InvitationClaimService
+import io.github.command1264.invitecode.core.InviteCode
+import io.github.command1264.invitecode.core.InviteCodeLifecycleService
+import io.github.command1264.invitecode.core.InviteCodeStorage
+import io.github.command1264.invitecode.core.QualificationEvaluationStatus
+import io.github.command1264.invitecode.core.QualificationEvaluator
+import io.github.command1264.invitecode.core.QualificationProviderRegistry
+import io.github.command1264.invitecode.core.QualificationRewardService
+import io.github.command1264.invitecode.core.PermissionQualificationLookup
+import io.github.command1264.invitecode.core.PlayerNetworkHash
+import io.github.command1264.invitecode.core.PlaceholderQualificationLookup
+import io.github.command1264.invitecode.core.RewardActionExecutionContext
+import io.github.command1264.invitecode.core.RewardActionType
+import io.github.command1264.invitecode.core.RewardDeliveryCoordinator
+import io.github.command1264.invitecode.core.StandardRewardActionExecutor
+import io.github.command1264.invitecode.core.PlayerClaimState
+import io.github.command1264.invitecode.core.StoredPlayer
+import io.github.command1264.invitecode.core.StoredRewardAction
+import io.github.command1264.invitecode.platform.bukkit.AsyncRewardDeliveryWorkflow
+import io.github.command1264.invitecode.platform.bukkit.BukkitRewardExecutionEnvironment
+import io.github.command1264.invitecode.platform.bukkit.CoordinatorRewardActionStateStore
+import io.github.command1264.invitecode.platform.bukkit.EconomyRewardGateway
+import io.github.command1264.invitecode.platform.bukkit.AsyncOperationExecutor
+import io.github.command1264.invitecode.platform.bukkit.AtomicRuntimeSnapshot
+import io.github.command1264.invitecode.platform.bukkit.ClaimInteractionSessions
+import io.github.command1264.invitecode.platform.bukkit.ChatInputResult
+import io.github.command1264.invitecode.platform.bukkit.ClaimInputChannel
+import io.github.command1264.invitecode.platform.bukkit.InviteCodeDisplayFormatter
+import io.github.command1264.invitecode.platform.bukkit.InviteCodeCommandId
+import io.github.command1264.invitecode.platform.bukkit.InviteCodeRuntimeConfiguration
+import io.github.command1264.invitecode.platform.bukkit.NativeDialogInput
+import io.github.command1264.invitecode.platform.bukkit.NativeDialogConfirmationRequest
+import io.github.command1264.invitecode.platform.bukkit.NativeDialogRequest
+import io.github.command1264.invitecode.platform.bukkit.MessagePresenter
+import io.github.command1264.invitecode.platform.bukkit.MessageAudience
+import io.github.command1264.invitecode.platform.bukkit.PrefixPlacement
+import io.github.command1264.invitecode.platform.bukkit.PlatformCapabilities
+import io.github.command1264.invitecode.platform.bukkit.generator
+import io.github.command1264.invitecode.platform.bukkit.parser
+import io.github.command1264.invitecode.platform.bukkit.ParsedInviteCodeCommand
+import io.github.command1264.invitecode.platform.bukkit.RewardMessageResolver
+import io.github.command1264.invitecode.platform.bukkit.NetworkAddressHasher
+import io.github.command1264.invitecode.platform.bukkit.PlatformTaskDispatcher
+import io.github.command1264.invitecode.platform.bukkit.resolve
+import org.bukkit.OfflinePlayer
+import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
+import org.bukkit.event.Listener
+import org.bukkit.event.player.AsyncPlayerChatEvent
+import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.plugin.Plugin
+import java.time.Instant
+import java.time.Duration
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionStage
+import java.util.logging.Level
+
+class PlayerWorkflowController(
+    private val plugin: Plugin,
+    private val configuration: AtomicRuntimeSnapshot<InviteCodeRuntimeConfiguration>,
+    private val storage: AtomicReference<InviteCodeStorage?>,
+    private val operations: AsyncOperationExecutor,
+    private val tasks: PlatformTaskDispatcher,
+    private val sessions: ClaimInteractionSessions,
+    private val externalQualificationProviders: QualificationProviderRegistry,
+    private val networkHasher: AtomicReference<NetworkAddressHasher?>,
+    private val capabilities: PlatformCapabilities,
+    private val nativeDialogInput: NativeDialogInput,
+    private val displayFormatter: InviteCodeDisplayFormatter,
+    private val economyGateway: () -> EconomyRewardGateway? = { null },
+    private val now: () -> Instant = Instant::now,
+) : Listener {
+    fun requestQualificationEvaluation(invitationId: UUID): CompletionStage<QualificationEvaluationSnapshot> {
+        val future = CompletableFuture<QualificationEvaluationSnapshot>()
+        val accepted = operations.submit(
+            operation = {
+                val store = requireNotNull(storage.get()) { "SQLite storage is unavailable." }
+                requireNotNull(store.invitation(invitationId)) { "Invitation $invitationId does not exist." }
+            },
+            onSuccess = { invitation ->
+                val runtime = configuration.current().value
+                val player = tasks.onlinePlayer(invitation.inviteeId)
+                if (player == null) {
+                    submitQualificationEvaluation(
+                        invitationId, null, runtime, QualificationInputs(emptyMap(), emptyMap()), future,
+                    )
+                } else {
+                    tasks.player(player, operation = {
+                        val playTime = Duration.ofMillis(BukkitStatisticCompatibility.playTimeTicks(player) * 50L)
+                        val inputs = captureQualificationInputs(player, runtime)
+                        submitQualificationEvaluation(invitationId, playTime, runtime, inputs, future)
+                    }, retired = {
+                        submitQualificationEvaluation(
+                            invitationId, null, runtime, QualificationInputs(emptyMap(), emptyMap()), future,
+                        )
+                    })
+                }
+            },
+            onFailure = future::completeExceptionally,
+        )
+        if (!accepted) future.completeExceptionally(IllegalStateException("InviteCode is stopping."))
+        return future
+    }
+
+    fun handle(player: Player, request: ParsedInviteCodeCommand): Boolean = when (request.id) {
+        InviteCodeCommandId.CODE -> showCode(player)
+        InviteCodeCommandId.CLAIM -> claim(player, request.operands.singleOrNull())
+        InviteCodeCommandId.CONFIRM -> confirm(player)
+        InviteCodeCommandId.CANCEL -> cancel(player)
+        InviteCodeCommandId.STATUS -> status(player)
+        InviteCodeCommandId.STATS -> stats(player)
+        else -> false
+    }.let { true }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onJoin(event: PlayerJoinEvent) {
+        tasks.track(event.player)
+        registerPlayer(event.player)
+    }
+
+    fun registerPlayer(player: Player) {
+        if (storage.get() == null || configuration.currentOrNull() == null) return
+        val playerId = player.uniqueId
+        val playerName = player.name
+        val observedAt = now()
+        val snapshot = configuration.current()
+        val hasPlayedBefore = player.hasPlayedBefore()
+        val playTime = Duration.ofMillis(BukkitStatisticCompatibility.playTimeTicks(player) * 50L)
+        val externalInputs = captureQualificationInputs(player, snapshot.value)
+        val networkAddress = player.address?.address?.address?.copyOf()
+        submit(
+            player,
+            globalCompletion = true,
+            operation = { store ->
+                val existing = store.player(playerId)
+                val firstSeenAt = if (
+                    existing == null && hasPlayedBefore &&
+                    snapshot.value.general.claim.existingPlayerPolicy ==
+                    io.github.command1264.invitecode.platform.bukkit.ExistingPlayerPolicy.EXPIRED
+                ) {
+                    observedAt.minus(snapshot.value.general.claim.window).minusNanos(1)
+                } else {
+                    observedAt
+                }
+                store.savePlayer(existing?.copy(lastKnownName = playerName) ?: StoredPlayer(playerId, firstSeenAt, playerName))
+                store.recordLoginDay(
+                    playerId,
+                    observedAt.atZone(snapshot.value.general.timeZone).toLocalDate(),
+                )
+                store.purgeExpiredNetworkHashes(observedAt)
+                networkAddress?.let { address ->
+                    try {
+                        val hasher = requireNotNull(networkHasher.get()) {
+                            "Network hash secret is unavailable."
+                        }
+                        val hash = hasher.hash(address)
+                        store.recordNetworkHash(
+                            PlayerNetworkHash(
+                                playerId,
+                                hasher.keyId,
+                                hash,
+                                observedAt,
+                                observedAt.plus(snapshot.value.general.antiAbuse.ipHashRetention),
+                            ),
+                        )
+                    } finally {
+                        address.fill(0)
+                    }
+                }
+                evaluateQualificationsAndPendingRewards(
+                    store,
+                    playerId,
+                    playerName,
+                    playTime,
+                    observedAt,
+                    snapshot.value,
+                    externalInputs,
+                )
+            },
+            onSuccess = ::deliverRewards,
+        )
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    fun onChat(event: AsyncPlayerChatEvent) {
+        val playerId = event.player.uniqueId
+        val input = sessions.consumeChatInput(playerId, event.message) ?: return
+        event.isCancelled = true
+        tasks.player(event.player, operation = {
+            if (tasks.onlinePlayer(playerId) === event.player) {
+                when (input) {
+                    is ChatInputResult.Code -> beginClaim(event.player, input.value)
+                    ChatInputResult.Cancelled -> send(playerId, "command.claim.cancelled")
+                }
+            }
+        })
+    }
+
+    @EventHandler
+    fun onQuit(event: PlayerQuitEvent) {
+        tasks.untrack(event.player)
+        sessions.disconnect(event.player.uniqueId)
+        nativeDialogInput.disconnect(event.player.uniqueId)
+    }
+
+    private fun showCode(player: Player) {
+        val playerId = player.uniqueId
+        val snapshot = configuration.current()
+        val generator = snapshot.value.general.inviteCode.format.generator()
+        submit(
+            player,
+            operation = { store ->
+                InviteCodeLifecycleService(store, generator, 64).assign(playerId, now())
+            },
+            onSuccess = { code ->
+                val player = tasks.onlinePlayer(playerId) ?: return@submit
+                val messages = configuration.current().value.messages
+                val locale = BukkitLocaleCompatibility.locale(player)
+                val layout = PlayerMessageLayouts(messages, locale, BukkitMessageOutput.audience(player))
+                player.spigot().sendMessage(*PlayerChatActions.codeMessage(
+                    layout.code(code.code),
+                    code.code.displayValue(),
+                    layout.fragment("command.code.copy"),
+                    layout.fragment("command.code.select"),
+                ))
+            },
+        )
+    }
+
+    private fun claim(player: Player, code: String?) {
+        val playerId = player.uniqueId
+        val snapshot = configuration.current()
+        submit(
+            player,
+            operation = { store ->
+                ClaimEligibilityPolicy(snapshot.value.general.claim.window).evaluate(store.claimState(playerId), now())
+            },
+            onSuccess = { eligibility ->
+                if (!eligibility.eligible) {
+                    sendEligibility(playerId, eligibility)
+                } else if (code != null) {
+                    beginClaim(player, code)
+                } else {
+                    val runtime = configuration.current().value
+                    val claim = runtime.general.claim
+                    when (claim.inputMode.resolve(capabilities)) {
+                        ClaimInputChannel.COMMAND_ONLY -> send(playerId, "command.claim.command-only")
+                        ClaimInputChannel.DIALOG -> {
+                            if (!startDialogInput(player, runtime)) startChatInput(player, claim.chatInputTimeout)
+                        }
+                        ClaimInputChannel.CHAT -> startChatInput(player, claim.chatInputTimeout)
+                    }
+                }
+            }
+        )
+    }
+
+    private fun startDialogInput(player: Player, runtime: InviteCodeRuntimeConfiguration): Boolean {
+        val playerId = player.uniqueId
+        val timeout = runtime.general.claim.chatInputTimeout
+        sessions.startDialogInput(playerId, timeout)
+        val locale = BukkitLocaleCompatibility.locale(player)
+        val messages = runtime.messages
+        val shown = nativeDialogInput.show(
+            player,
+            PlayerMessageLayouts(messages, locale, MessageAudience.RGB_PLAYER).inputDialog(),
+            onSubmit = { rawCode ->
+                tasks.player(player, operation = {
+                    if (tasks.onlinePlayer(playerId) === player) {
+                        when (val input = sessions.consumeDialogInputResult(playerId, rawCode)) {
+                            is io.github.command1264.invitecode.platform.bukkit.DialogInputResult.Code -> beginClaim(player, input.value)
+                            io.github.command1264.invitecode.platform.bukkit.DialogInputResult.Expired -> {
+                                nativeDialogInput.cancel(player)
+                                send(playerId, "command.claim.dialog-timeout")
+                            }
+                            null -> Unit
+                        }
+                    }
+                })
+            },
+            onCancel = {
+                tasks.player(player, operation = {
+                    if (sessions.cancel(playerId)) send(playerId, "command.claim.cancelled")
+                })
+            },
+        )
+        if (!shown) {
+            sessions.cancel(playerId)
+            return false
+        }
+        scheduleTimeout(player, timeout) {
+            if (sessions.expireDialogInput(playerId)) {
+                tasks.onlinePlayer(playerId)?.let(nativeDialogInput::cancel)
+                send(playerId, "command.claim.dialog-timeout")
+            }
+        }
+        return true
+    }
+
+    private fun startChatInput(player: Player, timeout: Duration) {
+        val playerId = player.uniqueId
+        sessions.startChatInput(playerId, timeout)
+        scheduleTimeout(player, timeout) {
+            if (sessions.expireChatInput(playerId)) send(playerId, "command.claim.chat-timeout")
+        }
+        send(
+            playerId,
+            "command.claim.chat-started",
+            mapOf("seconds" to timeout.seconds.toString()),
+        )
+    }
+
+    private fun beginClaim(player: Player, rawCode: String) {
+        val playerId = player.uniqueId
+        val snapshot = configuration.current()
+        submit(
+            player,
+            operation = { store -> prepareClaim(playerId, rawCode, snapshot.value, store) },
+            onSuccess = { prepared ->
+                when (prepared) {
+                    is PreparedClaim.Ineligible -> sendEligibility(playerId, prepared.eligibility)
+                    PreparedClaim.Invalid -> send(playerId, "command.claim.invalid-code")
+                    PreparedClaim.Unavailable -> send(playerId, "command.claim.unavailable")
+                    PreparedClaim.Self -> send(playerId, "command.claim.self")
+                    is PreparedClaim.Ready -> {
+                        sessions.startConfirmation(prepared.confirmation)
+                        scheduleTimeout(player, snapshot.value.general.claim.confirmationTimeout) {
+                            if (sessions.expireConfirmation(playerId)) {
+                                tasks.onlinePlayer(playerId)?.let(nativeDialogInput::cancel)
+                                send(playerId, "command.claim.confirmation-timeout")
+                            }
+                        }
+                        val currentPlayer = tasks.onlinePlayer(playerId) ?: return@submit
+                        val messages = configuration.current().value.messages
+                        val locale = BukkitLocaleCompatibility.locale(currentPlayer)
+                        val layout = PlayerMessageLayouts(messages, locale, BukkitMessageOutput.audience(currentPlayer))
+                        if (snapshot.value.general.claim.inputMode.resolve(capabilities) == ClaimInputChannel.DIALOG) {
+                            val confirmation = prepared.confirmation
+                            val shown = nativeDialogInput.showConfirmation(
+                                currentPlayer,
+                                layout.confirmationDialog(confirmation.inviterName, confirmation.inviteCode,
+                                    snapshot.value.general.claim.confirmationTimeout.seconds),
+                                onConfirm = {
+                                    tasks.player(currentPlayer, operation = {
+                                        if (tasks.onlinePlayer(playerId) === currentPlayer) confirm(currentPlayer)
+                                    })
+                                },
+                                onDecline = {
+                                    tasks.player(currentPlayer, operation = {
+                                        if (tasks.onlinePlayer(playerId) === currentPlayer) cancel(currentPlayer)
+                                    })
+                                },
+                            )
+                            if (shown) return@submit
+                        }
+                        val confirmation = prepared.confirmation
+                        val body = PlayerChatActions.codeMessage(
+                            layout.chatConfirmation(confirmation.inviterName, confirmation.inviteCode,
+                                snapshot.value.general.claim.confirmationTimeout.seconds),
+                            confirmation.inviteCode.displayValue(), layout.fragment("command.code.copy"),
+                            layout.fragment("command.code.select"),
+                        )
+                        val actions = PlayerChatActions.confirmation(
+                            layout.fragment("command.claim.agree"), layout.fragment("command.claim.disagree"),
+                            layout.fragment("command.claim.agree-hover"), layout.fragment("command.claim.disagree-hover"),
+                        )
+                        currentPlayer.spigot().sendMessage(*(body + net.md_5.bungee.api.chat.TextComponent("\n") + actions))
+                    }
+                }
+            },
+        )
+    }
+
+    private fun prepareClaim(
+        inviteeId: UUID,
+        rawCode: String,
+        runtime: InviteCodeRuntimeConfiguration,
+        store: InviteCodeStorage,
+    ): PreparedClaim {
+        val eligibility = ClaimEligibilityPolicy(runtime.general.claim.window).evaluate(store.claimState(inviteeId), now())
+        if (!eligibility.eligible) return PreparedClaim.Ineligible(eligibility)
+        val format = runtime.general.inviteCode.format.parser()
+        val code = try {
+            InviteCode.parse(rawCode, format)
+        } catch (_: IllegalArgumentException) {
+            return PreparedClaim.Invalid
+        }
+        val active = store.activeInviteCode(code) ?: return PreparedClaim.Unavailable
+        if (active.inviterId == inviteeId) return PreparedClaim.Self
+        val inviterName = store.player(active.inviterId)?.lastKnownName ?: active.inviterId.toString()
+        return PreparedClaim.Ready(
+            ClaimConfirmation.present(
+                inviteeId,
+                active.inviterId,
+                inviterName,
+                active.code,
+                now(),
+                runtime.general.claim.confirmationTimeout,
+            ),
+        )
+    }
+
+    private fun confirm(player: Player) {
+        val playerId = player.uniqueId
+        val confirmation = sessions.consumeConfirmation(playerId)
+        if (confirmation == null) {
+            send(playerId, "command.claim.no-confirmation")
+            return
+        }
+        nativeDialogInput.cancel(player)
+        val snapshot = configuration.current()
+        submit(
+            player,
+            operation = { store ->
+                val confirmed = confirmation.confirm(playerId, now())
+                InvitationClaimService(
+                    store,
+                    ClaimEligibilityPolicy(snapshot.value.general.claim.window),
+                    UUID::randomUUID,
+                    snapshot.value.general.antiAbuse.matchingIpAction,
+                ).claim(confirmed)
+            },
+            onSuccess = { result ->
+                when (result) {
+                    is InvitationClaimResult.Claimed -> {
+                        send(playerId, "command.claim.claimed")
+                        if (result.matchingNetworkHash) {
+                            send(playerId, "command.claim.matching-network-warning")
+                            plugin.logger.warning(
+                                "允許網路雜湊相符的 Claim：inviter=${result.invitation.inviterId}，" +
+                                    "invitee=${result.invitation.inviteeId}。",
+                            )
+                        }
+                        tasks.onlinePlayer(playerId)?.let(::registerPlayer)
+                    }
+                    is InvitationClaimResult.MatchingNetworkDenied -> {
+                        send(playerId, "command.claim.matching-network-denied")
+                        plugin.logger.warning(
+                            "拒絕網路雜湊相符的 Claim：inviter=${result.inviterId}，invitee=${result.inviteeId}。",
+                        )
+                    }
+                    is InvitationClaimResult.InviteCodeUnavailable -> send(
+                        playerId,
+                        "command.claim.unavailable",
+                    )
+                    is InvitationClaimResult.Rejected -> sendEligibility(playerId, result.eligibility)
+                }
+            },
+        )
+    }
+
+    private fun cancel(player: Player) {
+        nativeDialogInput.cancel(player)
+        send(
+            player.uniqueId,
+            if (sessions.cancel(player.uniqueId)) "command.claim.cancelled" else "command.claim.nothing-to-cancel",
+        )
+    }
+
+    private fun status(player: Player) {
+        val playerId = player.uniqueId
+        val snapshot = configuration.current()
+        submit(
+            player,
+            operation = { store ->
+                val state = store.claimState(playerId)
+                PlayerStatus(
+                    eligibility = ClaimEligibilityPolicy(snapshot.value.general.claim.window).evaluate(state, now()),
+                    state = state,
+                    invitationStatus = store.currentInviteeInvitationStatus(playerId),
+                    pendingRewards = store.pendingRewardActions(playerId).size,
+                )
+            },
+            onSuccess = { result ->
+                val current = tasks.onlinePlayer(playerId) ?: return@submit
+                val layout = PlayerMessageLayouts(configuration.current().value.messages,
+                    BukkitLocaleCompatibility.locale(current), BukkitMessageOutput.audience(current))
+                BukkitMessageOutput.sendPresented(current, layout.status(
+                    result.eligibility.eligible, result.invitationStatus?.name?.lowercase() ?: "none",
+                    result.pendingRewards, result.eligibility.reasons.map {
+                        layout.fragment("command.claim.reason.${it.name.lowercase()}").plainText
+                    },
+                ))
+            },
+        )
+    }
+
+    private fun stats(player: Player) {
+        val playerId = player.uniqueId
+        submit(
+            player,
+            operation = { store -> store.inviterInvitationStats(playerId) },
+            onSuccess = { result ->
+                send(
+                    playerId,
+                    "command.stats.summary",
+                    mapOf("claimed" to result.claimed.toString(), "qualified" to result.qualified.toString()),
+                )
+            },
+        )
+    }
+
+    private fun sendEligibility(playerId: UUID, eligibility: ClaimEligibility) {
+        val reasons = eligibility.reasons.joinToString(resolve(playerId, "value.reason-separator")) {
+            resolve(playerId, "command.claim.reason.${it.name.lowercase()}")
+        }
+        send(playerId, "command.claim.ineligible", mapOf("reasons" to reasons))
+    }
+
+    private fun evaluateQualificationsAndPendingRewards(
+        store: InviteCodeStorage,
+        playerId: UUID,
+        playerName: String,
+        playTime: Duration,
+        evaluatedAt: Instant,
+        runtime: InviteCodeRuntimeConfiguration,
+        externalInputs: QualificationInputs,
+    ): List<PendingRewardTask> {
+        val evaluator = QualificationEvaluator(
+            QualificationProviderRegistry(
+                BuiltInQualificationProviders.create(
+                    PermissionQualificationLookup { requestedPlayer, permission ->
+                        externalInputs.permissions[permission].takeIf { requestedPlayer == playerId }
+                    },
+                    PlaceholderQualificationLookup { requestedPlayer, placeholder ->
+                        externalInputs.placeholders[placeholder].takeIf { requestedPlayer == playerId }
+                    },
+                ),
+                fallback = externalQualificationProviders,
+            ),
+        )
+        val service = QualificationRewardService(store, evaluator)
+        store.invitationsByInvitee(playerId)
+            .filter { it.status == InvitationStatus.CLAIMED }
+            .forEach { invitation ->
+                for (policy in runtime.qualifications.policies.toSortedMap().values) {
+                    val result = service.reevaluate(
+                        invitation.id,
+                        policy,
+                        QualificationConditionContext(
+                            invitationId = invitation.id,
+                            inviterId = invitation.inviterId,
+                            inviteeId = invitation.inviteeId,
+                            claimedAt = invitation.claimedAt,
+                            evaluatedAt = evaluatedAt,
+                            playTime = playTime,
+                            loginDays = store.loginDays(playerId),
+                        ),
+                        runtime.rewards,
+                    )
+                    if (result.qualification.status == QualificationEvaluationStatus.QUALIFIED) break
+                }
+            }
+        return store.pendingRewardActions(playerId).map { action ->
+            val invitation = action.invitationId?.let(store::invitation)
+            val inviterId = invitation?.inviterId ?: action.recipientId.takeIf { action.invitationId == null }
+            PendingRewardTask(
+                action,
+                RewardActionExecutionContext(
+                    recipientId = action.recipientId,
+                    recipientName = playerName,
+                    inviterId = inviterId,
+                    inviterName = inviterId?.let { store.player(it)?.lastKnownName },
+                    inviteeId = invitation?.inviteeId,
+                    inviteeName = invitation?.inviteeId?.let { store.player(it)?.lastKnownName },
+                ),
+            )
+        }
+    }
+
+    private fun submitQualificationEvaluation(
+        invitationId: UUID,
+        playTime: Duration?,
+        runtime: InviteCodeRuntimeConfiguration,
+        externalInputs: QualificationInputs,
+        future: CompletableFuture<QualificationEvaluationSnapshot>,
+    ) {
+        val evaluatedAt = now()
+        val accepted = operations.submit(
+            operation = {
+                val store = requireNotNull(storage.get()) { "SQLite storage is unavailable." }
+                val invitation = requireNotNull(store.invitation(invitationId)) {
+                    "Invitation $invitationId does not exist."
+                }
+                val evaluator = QualificationEvaluator(
+                    QualificationProviderRegistry(
+                        BuiltInQualificationProviders.create(
+                            PermissionQualificationLookup { playerId, permission ->
+                                externalInputs.permissions[permission]
+                                    .takeIf { playerId == invitation.inviteeId }
+                            },
+                            PlaceholderQualificationLookup { playerId, placeholder ->
+                                externalInputs.placeholders[placeholder]
+                                    .takeIf { playerId == invitation.inviteeId }
+                            },
+                        ),
+                        fallback = externalQualificationProviders,
+                    ),
+                )
+                var current = invitation
+                if (current.status == InvitationStatus.CLAIMED) {
+                    val service = QualificationRewardService(store, evaluator)
+                    for (policy in runtime.qualifications.policies.toSortedMap().values) {
+                        val result = service.reevaluate(
+                            current.id,
+                            policy,
+                            QualificationConditionContext(
+                                current.id,
+                                current.inviterId,
+                                current.inviteeId,
+                                current.claimedAt,
+                                evaluatedAt,
+                                playTime,
+                                store.loginDays(current.inviteeId),
+                            ),
+                            runtime.rewards,
+                        )
+                        current = result.qualification.invitation
+                        if (current.status == InvitationStatus.QUALIFIED) break
+                    }
+                }
+                val rewards = store.pendingRewardActions(current.inviteeId).map { action ->
+                    PendingRewardTask(
+                        action,
+                        RewardActionExecutionContext(
+                            action.recipientId,
+                            store.player(action.recipientId)?.lastKnownName,
+                            current.inviterId,
+                            store.player(current.inviterId)?.lastKnownName,
+                            current.inviteeId,
+                            store.player(current.inviteeId)?.lastKnownName,
+                        ),
+                    )
+                }
+                QualificationApiResult(
+                    QualificationEvaluationSnapshot(
+                        current.id,
+                        current.status,
+                        current.qualificationPolicyId,
+                        current.qualificationRevision,
+                        evaluatedAt,
+                    ),
+                    rewards,
+                )
+            },
+            onSuccess = { result ->
+                deliverRewards(result.pendingRewards)
+                future.complete(result.snapshot)
+            },
+            onFailure = future::completeExceptionally,
+        )
+        if (!accepted) future.completeExceptionally(IllegalStateException("InviteCode is stopping."))
+    }
+
+    private fun captureQualificationInputs(
+        player: Player,
+        runtime: InviteCodeRuntimeConfiguration,
+    ): QualificationInputs {
+        val conditions = runtime.qualifications.policies.values.flatMap { policy ->
+            policy.anyOf.flatMap { group -> group.allOf }
+        }
+        val permissions = conditions
+            .filter { it.type.equals("PERMISSION", ignoreCase = true) }
+            .mapNotNull { it.parameters["permission"] }
+            .distinct()
+            .associateWith(player::hasPermission)
+        val placeholders = conditions
+            .filter { it.type.equals("PLACEHOLDER", ignoreCase = true) }
+            .mapNotNull { it.parameters["placeholder"] }
+            .distinct()
+            .associateWith { placeholder -> resolvePlaceholder(player, placeholder) }
+        return QualificationInputs(permissions, placeholders)
+    }
+
+    private fun resolvePlaceholder(player: Player, placeholder: String): String? {
+        if (plugin.server.pluginManager.getPlugin("PlaceholderAPI")?.isEnabled != true) return null
+        return try {
+            val type = Class.forName("me.clip.placeholderapi.PlaceholderAPI")
+            val method = type.getMethod("setPlaceholders", OfflinePlayer::class.java, String::class.java)
+            method.invoke(null, player, placeholder) as? String
+        } catch (error: ReflectiveOperationException) {
+            plugin.logger.log(Level.WARNING, "PlaceholderAPI 呼叫失敗，Qualification 將回報 UNKNOWN。", error)
+            null
+        }
+    }
+
+    private fun deliverRewards(tasks: List<PendingRewardTask>) {
+        if (tasks.isEmpty()) return
+        val store = storage.get() ?: return
+        val messages = configuration.current().value.messages
+        val environment = BukkitRewardExecutionEnvironment(
+            plugin.server,
+            RewardMessageResolver { _, localeKey -> localeKey },
+            economyGateway(),
+            isPrimaryThread = this.tasks::isManagedThread,
+            playerLookup = this.tasks::currentPlayer,
+            messageDelivery = { player, key -> BukkitMessageOutput.send(player, messages, key) },
+        )
+        tasks.forEach { task ->
+            val actionOperations = operations.callbacksOn { callback ->
+                when (task.action.type) {
+                    RewardActionType.MESSAGE.name, RewardActionType.PLAYER_COMMAND.name -> {
+                        val player = this.tasks.onlinePlayer(task.action.recipientId)
+                        if (player == null) this.tasks.global(callback)
+                        else this.tasks.player(player, operation = callback, retired = { this.tasks.global(callback) })
+                    }
+                    else -> this.tasks.global(callback)
+                }
+            }
+            val workflow = AsyncRewardDeliveryWorkflow(
+                actionOperations,
+                CoordinatorRewardActionStateStore(RewardDeliveryCoordinator(store)),
+                StandardRewardActionExecutor(environment),
+            )
+            val accepted = workflow.process(
+                task.action,
+                task.context,
+                onComplete = {},
+                onFailure = { error ->
+                    plugin.logger.log(Level.WARNING, "InviteCode Reward Action ${task.action.id} 處理失敗。", error)
+                },
+            )
+            if (!accepted) return
+        }
+    }
+
+    private fun <T> submit(
+        player: Player,
+        globalCompletion: Boolean = false,
+        operation: (InviteCodeStorage) -> T,
+        onSuccess: (T) -> Unit,
+    ) {
+        val playerId = player.uniqueId
+        val callbackExecutor = if (globalCompletion) operations else operations.callbacksOn { callback ->
+            tasks.player(player, operation = callback)
+        }
+        val accepted = callbackExecutor.submit(
+            operation = { operation(requireNotNull(storage.get()) { "SQLite storage is unavailable." }) },
+            onSuccess = onSuccess,
+            onFailure = { error ->
+                tasks.player(player, operation = { send(playerId, "command.error") })
+                plugin.logger.log(Level.WARNING, "InviteCode 玩家操作失敗。", error)
+            },
+        )
+        if (!accepted) send(playerId, "command.stopping")
+    }
+
+    private fun send(playerId: UUID, key: String, variables: Map<String, String> = emptyMap()) {
+        val player = tasks.onlinePlayer(playerId) ?: return
+        val messages = configuration.currentOrNull()?.value?.messages
+        if (messages == null) {
+            player.sendMessage("[InviteCode] 設定尚未載入。")
+            return
+        }
+        BukkitMessageOutput.send(player, messages, key, variables)
+    }
+
+    private fun resolve(playerId: UUID, key: String): String {
+        val player = tasks.onlinePlayer(playerId) ?: return "[offline]"
+        return MessagePresenter(configuration.current().value.messages).render(
+            BukkitLocaleCompatibility.locale(player), key, audience = BukkitMessageOutput.audience(player),
+            prefix = PrefixPlacement.NONE,
+        ).plainText
+    }
+
+    private fun display(code: InviteCode): String {
+        return displayFormatter.display(code)
+    }
+
+    private fun scheduleTimeout(player: Player, duration: Duration, operation: () -> Unit) {
+        val deadline = now().plus(duration)
+        fun scheduleRemaining() {
+            val remaining = Duration.between(now(), deadline)
+            if (remaining.isNegative || remaining.isZero) {
+                operation()
+            } else {
+                // Server ticks need not reach the wall-clock deadline on the first callback.
+                val ticks = ((remaining.toMillis() + 49L) / 50L).coerceAtLeast(1L)
+                tasks.delayPlayer(player, ticks, ::scheduleRemaining)
+            }
+        }
+        scheduleRemaining()
+    }
+
+    private sealed class PreparedClaim {
+        data class Ineligible(val eligibility: ClaimEligibility) : PreparedClaim()
+        object Invalid : PreparedClaim()
+        object Unavailable : PreparedClaim()
+        object Self : PreparedClaim()
+        data class Ready(val confirmation: ClaimConfirmation) : PreparedClaim()
+    }
+
+    private data class PlayerStatus(
+        val eligibility: ClaimEligibility,
+        val state: PlayerClaimState,
+        val invitationStatus: InvitationStatus?,
+        val pendingRewards: Int,
+    )
+
+    private data class PendingRewardTask(
+        val action: StoredRewardAction,
+        val context: RewardActionExecutionContext,
+    )
+
+    private data class QualificationInputs(
+        val permissions: Map<String, Boolean>,
+        val placeholders: Map<String, String?>,
+    )
+
+    private data class QualificationApiResult(
+        val snapshot: QualificationEvaluationSnapshot,
+        val pendingRewards: List<PendingRewardTask>,
+    )
+}

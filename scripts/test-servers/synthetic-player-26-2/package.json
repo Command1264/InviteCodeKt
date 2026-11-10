@@ -1,0 +1,9 @@
+{
+  "name": "invitecode-synthetic-player-26-2",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Test-only independent Minecraft 26.2 client for the InviteCode release gate",
+  "devDependencies": {
+    "mineflayer": "https://github.com/Complexity-ML/mineflayer-26.2/releases/download/complexity-26.2.3/mineflayer-complexity-26.2.3.tgz"
+  }
+}

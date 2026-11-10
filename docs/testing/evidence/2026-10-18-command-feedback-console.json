@@ -1,0 +1,107 @@
+{
+  "recordedUtc": "2026-10-18T10:54:07.829304+00:00",
+  "candidate": {
+    "sourceCommit": "53893c475fdeaf631ca5b174493f33754660e0ad",
+    "sha256": "6E7EB72D59896AF141FE17029FDAD5A0322EADA7F019929F5E78D11C20C8664E",
+    "bytes": 19922750,
+    "tests": {
+      "tests": 326,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 24
+    },
+    "passed": 302,
+    "checks": [
+      "Java 8/11 check shadowJar",
+      "console one send per line and prefix/color retention",
+      "report player single prefix, console each-line prefix",
+      "locale unique keys/parity/fields/no semicolons",
+      "core/storage string-only and SQL resources unchanged"
+    ],
+    "humanAcceptance": "pending"
+  },
+  "instance": "invitecode-folia-26.1.2",
+  "runId": "f0d0a1687ee5457b94ae9e272e70837e",
+  "port": 30101,
+  "backup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\console-layout-20261018-104918-079ad994",
+  "done": true,
+  "active": true,
+  "consoleProbes": [
+    {
+      "route": "ic",
+      "lines": 3,
+      "eachLineHasRealLogHeader": true
+    },
+    {
+      "route": "ic help",
+      "lines": 14,
+      "eachLineHasRealLogHeader": true
+    },
+    {
+      "route": "ic help admin 2",
+      "lines": 10,
+      "eachLineHasRealLogHeader": true
+    },
+    {
+      "route": "ic help admin reload",
+      "lines": 9,
+      "eachLineHasRealLogHeader": true
+    },
+    {
+      "route": "ic admin doctor",
+      "lines": 13,
+      "eachLineHasRealLogHeader": true
+    },
+    {
+      "route": "ic admin inspect player",
+      "lines": 10,
+      "eachLineHasRealLogHeader": true
+    },
+    {
+      "route": "ic admin inspect invitation",
+      "lines": 9,
+      "eachLineHasRealLogHeader": true
+    }
+  ],
+  "rewardRecordLiveProbe": "No reward action row available; template/output checks passed; live record probe not run",
+  "keyUnchanged": true,
+  "dataUnchangedExceptRuntimeObservationTimes": true,
+  "postBootChanges": [
+    {
+      "table": "invitecode_player_network_hashes",
+      "fields": [
+        "expires_at",
+        "observed_at"
+      ],
+      "interpretation": "Runtime network observation timestamp refresh; no identity or historical relationship change"
+    }
+  ],
+  "protectedFilesAndWorldHeadersUnchangedDuringDeployment": true,
+  "otherInstances": {
+    "invitecode-spigot-1.8.8": "Stopped",
+    "invitecode-paper-26.3": "Stopped"
+  },
+  "humanAcceptance": "pending",
+  "noPush": true,
+  "textOnlyAudit": {
+    "coreStorageTextOnly": [
+      "invitecode-core/src/main/kotlin/io/github/command1264/invitecode/core/Invitation.kt",
+      "invitecode-core/src/main/kotlin/io/github/command1264/invitecode/core/InviteCodeLifecycleService.kt",
+      "invitecode-core/src/main/kotlin/io/github/command1264/invitecode/core/QualificationEvaluator.kt",
+      "invitecode-core/src/main/kotlin/io/github/command1264/invitecode/core/QualificationPolicy.kt",
+      "invitecode-core/src/main/kotlin/io/github/command1264/invitecode/core/RewardDefinition.kt",
+      "invitecode-core/src/main/kotlin/io/github/command1264/invitecode/core/RewardDeliveryProcessor.kt",
+      "invitecode-core/src/main/kotlin/io/github/command1264/invitecode/core/StorageConfiguration.kt",
+      "invitecode-storage-json/src/main/kotlin/io/github/command1264/invitecode/storage/json/JsonInviteCodeStorage.kt",
+      "invitecode-storage-sql/src/main/kotlin/io/github/command1264/invitecode/storage/sql/MysqlInviteCodeStorage.kt",
+      "invitecode-storage-sql/src/main/kotlin/io/github/command1264/invitecode/storage/sql/MysqlSchemaMigrator.kt",
+      "invitecode-storage-sql/src/main/kotlin/io/github/command1264/invitecode/storage/sql/OfflinePlayerAnonymizer.kt",
+      "invitecode-storage-sql/src/main/kotlin/io/github/command1264/invitecode/storage/sql/OfflineStorageTransfer.kt",
+      "invitecode-storage-sql/src/main/kotlin/io/github/command1264/invitecode/storage/sql/SqliteIdentityRecords.kt",
+      "invitecode-storage-sql/src/main/kotlin/io/github/command1264/invitecode/storage/sql/SqliteInvitationRecords.kt",
+      "invitecode-storage-sql/src/main/kotlin/io/github/command1264/invitecode/storage/sql/SqliteInviteCodeStorage.kt",
+      "invitecode-storage-sql/src/main/kotlin/io/github/command1264/invitecode/storage/sql/SqliteSchemaMigrator.kt"
+    ],
+    "sqlResourcesUnchanged": true
+  }
+}

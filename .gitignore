@@ -1,0 +1,15 @@
+.gradle/
+.kotlin/
+**/build/
+.idea/
+*.iml
+out/
+.run/
+.test-server/
+*.log
+*.db
+*.db-shm
+*.db-wal
+.env
+scripts/test-servers/synthetic-player/node_modules/
+scripts/test-servers/synthetic-player-26-2/node_modules/

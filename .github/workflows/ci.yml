@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        java:
+          - temurin-8.0.504+1
+          - temurin-11.0.32+101
+    runs-on: ${{ matrix.os }}
+    env:
+      MISE_JAVA_VERSION: ${{ matrix.java }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v4
+      - uses: gradle/actions/setup-gradle@v4
+      - name: 驗證 mise Java
+        run: mise exec -- java -version
+      - name: 在 Linux 驗證與封裝
+        if: runner.os != 'Windows'
+        run: mise exec -- ./gradlew --no-daemon check shadowJar
+      - name: 在 Windows 驗證與封裝
+        if: runner.os == 'Windows'
+        run: mise exec -- .\gradlew.bat --no-daemon check shadowJar
+
+  mysql-integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ github.run_id }}
+          MYSQL_ROOT_HOST: "%"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      MISE_JAVA_VERSION: temurin-8.0.504+1
+      INVITECODE_TEST_MYSQL_HOST: 127.0.0.1
+      INVITECODE_TEST_MYSQL_PORT: "3306"
+      INVITECODE_TEST_MYSQL_USER: root
+      INVITECODE_TEST_MYSQL_PASSWORD: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v4
+      - uses: gradle/actions/setup-gradle@v4
+      - name: 驗證 Java 8 與 MySQL 儲存契約
+        run: mise exec -- ./gradlew --no-daemon :invitecode-storage-sql:test :invitecode-plugin:test

@@ -1,0 +1,139 @@
+# 文案設計參考，第二階段已套用；執行期權威為 invitecode-plugin/src/main/resources/config/messages/zh_TW.yml。
+# 不要直接覆蓋伺服器 messages；已有自訂檔案保留。
+# prefix 自動套用；值、欄位、hover 與按鈕不各自加 prefix。
+messages-version: 1
+presentation:
+  prefix: "&7[&6InviteCode&7]&r"
+runtime:
+  raw-output: "{text}"
+  help-row: "&e{usage} &7— &f{description}"
+  usage: "&c指令用法不正確。&f請使用 /{label} help 查看說明。"
+  no-permission: "&c你沒有使用此指令的權限。"
+  player-only: "&e此指令只能由玩家執行。"
+  unavailable: "&c目前無法執行此操作：{detail}"
+  help-header: "&f指令說明"
+  help-player-section: "&6玩家操作"
+  help-admin-section: "&6管理操作"
+  help-description:
+    help: "查看指令說明"
+    code: "查看或建立自己的邀請碼"
+    claim: "使用別人的邀請碼"
+    confirm: "同意目前的邀請確認"
+    cancel: "取消輸入或確認"
+    status: "查看自己的邀請狀態"
+    stats: "查看自己的邀請統計"
+    inspect-player: "查詢玩家紀錄"
+    inspect-invitation: "查詢邀請關係"
+    inspect-reward: "查詢獎勵動作"
+    unlink: "解除邀請關係"
+    transfer: "轉移邀請關係"
+    force-qualify: "強制達成邀請資格"
+    reset-eligibility: "重設玩家登記資格"
+    retry-reward: "重試獎勵動作"
+    mark-delivered: "標記獎勵動作已交付"
+    rotate-code: "輪替玩家邀請碼"
+    migrate-storage: "更新儲存結構版本"
+    reload: "重新載入設定與訊息"
+    doctor: "檢查執行狀態與儲存健康"
+command:
+  code:
+    value: "&f你的邀請碼：{code}"
+    copy: "點擊複製到剪貼簿"
+    select: "點擊填入聊天列，再手動複製"
+  claim:
+    command-only: "&f請使用 /invitecode claim <邀請碼>。"
+    chat-started: |-
+      &f請在 {seconds} 秒內於聊天輸入邀請碼，內容不會公開。
+      &7輸入 cancel 可取消。
+    chat-timeout: "&e邀請碼輸入已逾時。&f請重新執行 /invitecode claim。"
+    dialog-title: "輸入邀請碼"
+    dialog-label: "六位邀請碼"
+    dialog-confirm: "繼續"
+    dialog-cancel: "取消"
+    dialog-timeout: "&e邀請碼輸入已逾時。&f請重新執行 /invitecode claim。"
+    invalid-code: "&c邀請碼格式不正確。&f請檢查後重新輸入。"
+    unavailable: "&c這組邀請碼不存在或已失效。&f請向邀請人確認目前的邀請碼。"
+    self: "&c你不能使用自己的邀請碼。"
+    # 聊天 renderer 先單獨輸出 prefix，下列為第 2–6 行；互動按鈕為第 7 行。
+    # Dialog 以 prefix 為標題，其他欄位使用等價內容。
+    confirmation: |-
+      &f確認邀請碼
+      &7邀請人：&f{inviter}
+      &7邀請碼：{code}
+      &f是否使用這組邀請碼？
+      &7請在 {seconds} 秒內選擇
+    confirmation-title: "確認邀請碼"
+    confirmation-inviter: "&7邀請人：&f{inviter}"
+    confirmation-code-label: "&7邀請碼："
+    confirmation-question: "是否使用這組邀請碼？"
+    confirmation-prompt: "&7請在 {seconds} 秒內選擇"
+    agree: "&a同意"
+    disagree: "&c不同意"
+    agree-hover: "點擊同意並使用邀請碼"
+    disagree-hover: "點擊不同意並取消"
+    confirmation-timeout: "&e邀請確認已逾時。&f請重新執行 /invitecode claim。"
+    no-confirmation: "&e目前沒有可確認的邀請，或確認已逾時。&f請重新執行 /invitecode claim。"
+    claimed: |-
+      &a邀請關係已建立。
+      &7查看目前狀態：/ic status
+    matching-network-warning: "&e你與邀請人近期使用相同網路。本次登記已允許，但可能由管理員檢查。"
+    matching-network-denied: "&c你與邀請人近期使用相同網路，依伺服器規則無法登記。&f如需協助，請聯絡管理員。"
+    ineligible: "&c目前無法使用邀請碼：{reasons}。"
+    reason:
+      already_inviter: "你已建立自己的邀請碼"
+      already_invitee: "你已有邀請關係"
+      claim_window_expired: "可登記期間已結束"
+    cancelled: "&f已取消邀請碼輸入或確認。"
+    nothing-to-cancel: "&7目前沒有進行中的邀請碼輸入或確認。"
+  status:
+    ineligible-reason: "&7無法登記原因：&f{reasons}"
+    summary: |-
+      &f我的邀請狀態
+      &7可使用邀請碼：&f{eligible}
+      &7邀請關係：&f{invitation}
+      &7待補發獎勵：&f{pending_rewards} 筆
+  stats:
+    summary: |-
+      &f我的邀請統計
+      &7等待達成資格：&f{claimed} 人
+      &7已達成資格：&f{qualified} 人
+  error: "&c操作失敗。&f請聯絡管理員檢查伺服器紀錄。"
+  stopping: "&e插件正在停止，暫時無法操作。&f請稍後再試。"
+value:
+  reason-separator: "、"
+  'yes': "是"
+  'no': "否"
+  invitation:
+    none: "尚未登記"
+    claimed: "等待達成資格"
+    qualified: "已達成資格"
+    unlinked: "已解除連結"
+admin:
+  invitation-unlinked: "&a已解除邀請關係 {invitation}。"
+  invitation-transferred: "&a已將邀請關係 {invitation} 轉移至邀請人 {inviter}。"
+  invitation-force-qualified: "&a已將邀請關係 {invitation} 設為達成資格，並建立 {rewards} 筆獎勵交付紀錄。"
+  eligibility-reset: "&a已重設玩家 {player} 的邀請碼登記資格。"
+  reward-resolved: "&a已將獎勵動作 {action} 處理為 {status}。"
+  code-rotated: "&a玩家 {player} 的邀請碼已由 {previous} 輪替為 {current}。"
+  error: "&c管理操作失敗。&f請檢查伺服器紀錄。"
+  stopping: "&e插件正在停止，無法執行管理操作。"
+  reload-stopping: "&e插件正在停止，無法重新載入設定。"
+  reload-success: "&a設定與訊息已通過驗證並套用。"
+  reload-storage-restart: "&estorage.yml 的變更尚未套用。&f請依儲存切換流程操作，再重新啟動伺服器。"
+  reload-failed: "&c重新載入失敗，仍使用上一份有效設定。&f請檢查伺服器紀錄並修正設定。"
+  storage-unsupported: "&c遷移目標必須與目前設定的 SQLITE 或 MYSQL 儲存類型相同。"
+  storage-config-unavailable: "&c設定尚未成功載入，無法判定儲存位置。&f請檢查伺服器紀錄。"
+  storage-stopping: "&e插件正在停止，無法更新儲存結構。"
+  storage-success: "&a儲存結構更新完成，目前版本為 {version}。"
+  storage-failed: "&c儲存結構更新失敗。&f請檢查伺服器紀錄。"
+  doctor-runtime: "&f執行階段：{phase}；設定世代：{generation}；executor：{executor}。"
+  doctor-integrations: "&f整合狀態：PlaceholderAPI={placeholder}；Vault Economy={vault}；Dialog={dialog}；RGB={rgb}。"
+  doctor-maintenance: "&e維護原因：{reason}"
+  doctor-storage-offline: "&e儲存尚未連線；本次檢查未建立或修改資料。"
+  doctor-storage: "&f儲存類型：{backend}；結構版本：{schema}；獎勵動作：PENDING={pending}、PROCESSING={processing}、UNCERTAIN={uncertain}。"
+  doctor-storage-failed: "&c儲存健康檢查失敗。&f請檢查伺服器紀錄。"
+  doctor-executor-stopping: "&eExecutor 正在停止，無法查詢待處理的獎勵動作。"
+invite:
+  qualified:
+    inviter: "&a你邀請的玩家已達成資格。"
+    invitee: "&a你已達成邀請資格。"

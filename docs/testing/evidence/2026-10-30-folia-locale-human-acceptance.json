@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "platform": "Folia 26.1.2",
+  "humanReport": "以上四項都有通過，並且 console 跟著預設的這個繁體中文跑，也沒有問題。然後第三步的這個部分，我只有更改這個 config 裡面的這個 use-client-locale，剩下的是沒有動過的，後面也有將其復原了。",
+  "accepted": [
+    "Reported bilingual display",
+    "Console follows configured Traditional Chinese default",
+    "use-client-locale setting switch and restoration as reported"
+  ],
+  "scopeClarification": "Actual setting edits were limited to use-client-locale; prefix templates and invalid types were not edited. Do not equate locale selection with failed-reload snapshot retention.",
+  "stillUnverified": [
+    "presentation.prefix edit followed by successful reload",
+    "Invalid prefix type rejected with previous valid snapshot retained",
+    "Prefix-template restoration after that failure scenario"
+  ],
+  "agentActions": "Documentation only; no settings, data, lifecycle or remote writes"
+}

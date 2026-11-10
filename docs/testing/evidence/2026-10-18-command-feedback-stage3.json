@@ -1,0 +1,263 @@
+{
+  "date": "2026-10-18",
+  "runtimeCommit": "dfbc39c4a80cea91b22b88c5f89d16107e7d50a2",
+  "pluginSha256": "E350DCA507D1FB953A2B785474708226BFBD682CBFE5D44E7E9BF0D0630C6C8B",
+  "scope": "stage3 automated runtime checks, not visual or human acceptance",
+  "profiles": [
+    {
+      "profile": "spigot-1.8.8",
+      "implementation": "SPIGOT",
+      "minecraftVersion": "1.8.8",
+      "build": "local-buildtools",
+      "coreSha256": "6ED6046687CE9255228FE7BD31E097DA49BEFF2A0C577E7BE56D14F09753239C",
+      "javaAlias": "local-8",
+      "port": 51888,
+      "dialog": "NONE",
+      "smoke": "passed",
+      "snapshotAudit": "passed",
+      "processesExited": true,
+      "portReleased": true,
+      "checks": [
+        "cycle1 doctor/help/prefix/no-format-leak",
+        "reload restores missing bundled locale",
+        "cycle2 doctor/help/prefix/no-format-leak",
+        "failed reload rejects invalid file; active snapshot verified by separate audit",
+        "restart preserves SQLite/key/custom locale and restores missing rewards"
+      ]
+    },
+    {
+      "profile": "spigot-1.12.2",
+      "implementation": "SPIGOT",
+      "minecraftVersion": "1.12.2",
+      "build": "local-buildtools",
+      "coreSha256": "CA59A730F5B1C2E85A2ABE907D9689CC2636BE0200F333C1E1B87E2D620D8513",
+      "javaAlias": "local-8",
+      "port": 51222,
+      "dialog": "NONE",
+      "smoke": "passed",
+      "snapshotAudit": "passed",
+      "processesExited": true,
+      "portReleased": true,
+      "checks": [
+        "cycle1 doctor/help/prefix/no-format-leak",
+        "reload restores missing bundled locale",
+        "cycle2 doctor/help/prefix/no-format-leak",
+        "failed reload rejects invalid file; active snapshot verified by separate audit",
+        "restart preserves SQLite/key/custom locale and restores missing rewards"
+      ]
+    },
+    {
+      "profile": "spigot-1.16.5",
+      "implementation": "SPIGOT",
+      "minecraftVersion": "1.16.5",
+      "build": "local-buildtools",
+      "coreSha256": "C738DCB9AC8114228107BB4CDA97BFEC62A243C99FE0E7C6CAF9D424BD1EF93C",
+      "javaAlias": "local-8",
+      "port": 51650,
+      "dialog": "NONE",
+      "smoke": "passed",
+      "snapshotAudit": "passed",
+      "processesExited": true,
+      "portReleased": true,
+      "checks": [
+        "cycle1 doctor/help/prefix/no-format-leak",
+        "reload restores missing bundled locale",
+        "cycle2 doctor/help/prefix/no-format-leak",
+        "failed reload rejects invalid file; active snapshot verified by separate audit",
+        "restart preserves SQLite/key/custom locale and restores missing rewards"
+      ]
+    },
+    {
+      "profile": "spigot-latest",
+      "implementation": "SPIGOT",
+      "minecraftVersion": "26.3",
+      "build": "local-buildtools",
+      "coreSha256": "E0B82659EAB415F49A40DE3444B1F0E12FA919BDEBB3171D985D4DB101DDB089",
+      "javaAlias": "local-25",
+      "port": 52620,
+      "dialog": "SPIGOT",
+      "smoke": "passed",
+      "snapshotAudit": "passed",
+      "processesExited": true,
+      "portReleased": true,
+      "checks": [
+        "cycle1 doctor/help/prefix/no-format-leak",
+        "reload restores missing bundled locale",
+        "cycle2 doctor/help/prefix/no-format-leak",
+        "failed reload rejects invalid file; active snapshot verified by separate audit",
+        "restart preserves SQLite/key/custom locale and restores missing rewards"
+      ]
+    },
+    {
+      "profile": "paper-1.20.6",
+      "implementation": "PAPER",
+      "minecraftVersion": "1.20.6",
+      "build": "151",
+      "coreSha256": "4B011F5ADB5F6C72007686A223174FCE82F31AEB4B34FAF4652ABC840B47E640",
+      "javaAlias": "local-21",
+      "port": 62060,
+      "dialog": "NONE",
+      "smoke": "passed",
+      "snapshotAudit": "passed",
+      "processesExited": true,
+      "portReleased": true,
+      "checks": [
+        "cycle1 doctor/help/prefix/no-format-leak",
+        "reload restores missing bundled locale",
+        "cycle2 doctor/help/prefix/no-format-leak",
+        "failed reload rejects invalid file; active snapshot verified by separate audit",
+        "restart preserves SQLite/key/custom locale and restores missing rewards"
+      ]
+    },
+    {
+      "profile": "paper-1.21.8",
+      "implementation": "PAPER",
+      "minecraftVersion": "1.21.8",
+      "build": "60",
+      "coreSha256": "8DE7C52C3B02403503D16FAC58003F1EFEF7DD7A0256786843927FA92EE57F1E",
+      "javaAlias": "local-21",
+      "port": 62180,
+      "dialog": "PAPER",
+      "smoke": "passed",
+      "snapshotAudit": "passed",
+      "processesExited": true,
+      "portReleased": true,
+      "checks": [
+        "cycle1 doctor/help/prefix/no-format-leak",
+        "reload restores missing bundled locale",
+        "cycle2 doctor/help/prefix/no-format-leak",
+        "failed reload rejects invalid file; active snapshot verified by separate audit",
+        "restart preserves SQLite/key/custom locale and restores missing rewards"
+      ]
+    },
+    {
+      "profile": "paper-latest",
+      "implementation": "PAPER",
+      "minecraftVersion": "26.3",
+      "build": "203",
+      "coreSha256": "0FCB63F341ABE5D8370D354BB2E39D47C917D8010C817F4567F89E97B5C3ECF9",
+      "javaAlias": "local-25",
+      "port": 62620,
+      "dialog": "PAPER",
+      "smoke": "passed",
+      "snapshotAudit": "passed",
+      "processesExited": true,
+      "portReleased": true,
+      "checks": [
+        "cycle1 doctor/help/prefix/no-format-leak",
+        "reload restores missing bundled locale",
+        "cycle2 doctor/help/prefix/no-format-leak",
+        "failed reload rejects invalid file; active snapshot verified by separate audit",
+        "restart preserves SQLite/key/custom locale and restores missing rewards"
+      ]
+    },
+    {
+      "profile": "folia-latest",
+      "implementation": "FOLIA",
+      "minecraftVersion": "26.1.2",
+      "build": "8",
+      "coreSha256": "607AFD1C3320008E1FFD2EAEE6780ACE4419D5F8C527B75E79F259BE79EBF57B",
+      "javaAlias": "local-25",
+      "port": 63620,
+      "dialog": "PAPER",
+      "smoke": "passed",
+      "snapshotAudit": "passed",
+      "processesExited": true,
+      "portReleased": true,
+      "checks": [
+        "cycle1 doctor/help/prefix/no-format-leak",
+        "reload restores missing bundled locale",
+        "cycle2 doctor/help/prefix/no-format-leak",
+        "failed reload rejects invalid file; active snapshot verified by separate audit",
+        "restart preserves SQLite/key/custom locale and restores missing rewards"
+      ]
+    }
+  ],
+  "protocolTests": [
+    {
+      "profile": "paper-1.21.8",
+      "phase": "claim",
+      "result": "passed",
+      "checks": [
+        "native input submit/cancel callbacks",
+        "native confirmation labels and payload",
+        "native decline/timeout/confirm callbacks",
+        "code raw payload and hover",
+        "help suggests without running",
+        "qualification MESSAGE once",
+        "already claimed preflight before UI"
+      ],
+      "client": "mineflayer 4.39.0 / minecraft-protocol 1.68.0",
+      "visualAcceptance": false
+    },
+    {
+      "profile": "paper-1.21.8",
+      "phase": "reward",
+      "result": "passed",
+      "checks": [
+        "offline MESSAGE delivered once after restart",
+        "stats qualified one"
+      ],
+      "client": "mineflayer 4.39.0 / minecraft-protocol 1.68.0",
+      "visualAcceptance": false
+    },
+    {
+      "profile": "spigot-1.8.8",
+      "phase": "claim",
+      "result": "passed",
+      "checks": [
+        "private chat cancel",
+        "seven logical confirmation sections",
+        "chat decline/timeout/confirm",
+        "code raw payload and hover",
+        "help suggests without running",
+        "qualification MESSAGE once",
+        "already claimed preflight before UI"
+      ],
+      "client": "mineflayer 4.39.0 / minecraft-protocol 1.68.0",
+      "visualAcceptance": false
+    },
+    {
+      "profile": "spigot-1.8.8",
+      "phase": "reward",
+      "result": "passed",
+      "checks": [
+        "offline MESSAGE delivered once after restart",
+        "stats qualified one"
+      ],
+      "client": "mineflayer 4.39.0 / minecraft-protocol 1.68.0",
+      "visualAcceptance": false
+    }
+  ],
+  "limitations": [
+    "Folia 26.3 ALPHA unverified; user approved 26.1.2 STABLE fallback (upstream unsupported)",
+    "No rendered client/hover/clipboard/alignment acceptance",
+    "Paper/Spigot 26.3 native Dialog client flow unverified"
+  ],
+  "humanTouched": false,
+  "velocityTouched": false,
+  "productCodeChanged": false,
+  "remoteWrites": false,
+  "cleanup": {
+    "taskOwnedPath": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\feat-command-feedback-messages\\.run\\command-feedback-stage3\\data",
+    "createdNew": true,
+    "activeRuntimeProcesses": 0,
+    "exitReceipts": 34,
+    "acceptedLaunchTickets": 34,
+    "portsReleased": [
+      51888,
+      51222,
+      51650,
+      52620,
+      62060,
+      62180,
+      62620,
+      63620
+    ],
+    "logicalBytesRetained": 1822741677.0,
+    "state": "retained-cleanup-blocked",
+    "reason": "Automatic approval review rejected recursive removal: blocked by policy; no detailed reason supplied",
+    "deletionPerformed": false,
+    "preservedRoot": "D:\\Code\\Java\\Plugin\\InviteCodeKt\\worktrees\\feat-command-feedback-messages\\.run\\command-feedback-stage3"
+  }
+}

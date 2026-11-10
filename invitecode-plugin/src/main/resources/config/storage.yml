@@ -1,0 +1,18 @@
+config-version: 1
+backend: SQLITE
+
+sqlite:
+  file: invitecode.db
+
+json:
+  file: invitecode.json
+
+mysql:
+  host: localhost
+  port: 3306
+  database: invitecode
+  username: invitecode
+  password: "${INVITECODE_DB_PASSWORD}"
+  network-secret: "${INVITECODE_NETWORK_SECRET}"
+  connection-timeout: 5s
+  tls-mode: VERIFY_IDENTITY

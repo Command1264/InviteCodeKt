@@ -1,0 +1,26 @@
+{
+  "recordedUtc": "2026-10-18T08:11:48.355755+00:00",
+  "candidate": {
+    "sourceCommit": "656f416df8a7042e42286acef2d5e4f0b100be66",
+    "sha256": "4D6E9B8BB5E36D7CD2FE6337899008232F7E2E1E871275A867FDE2D52772D1EA",
+    "bytes": 19914459,
+    "checks": "Java 8/11 check shadowJar passed; 293 passed/24 MySQL skipped; runtime click and permission tests passed",
+    "humanAcceptance": "pending"
+  },
+  "name": "invitecode-folia-26.1.2",
+  "runId": "24d10a1a33fa4f3e9d241c57541678fb",
+  "port": 30101,
+  "backup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\help-click-20261018-081003-d6a0244b",
+  "done": true,
+  "active": true,
+  "dbRowsAndKeyUnchanged": true,
+  "worldHeadersUnchangedDuringDeployment": true,
+  "otherInstances": {
+    "invitecode-spigot-1.8.8": "Stopped",
+    "invitecode-paper-26.3": "Stopped"
+  },
+  "humanAcceptance": "pending limited Folia homepage click test",
+  "noPush": true,
+  "futureSpec": "D:/Code/Java/Plugin/InviteCodeKt/notes/admin-player-command-discovery-draft.md",
+  "futureFeatureImplemented": false
+}

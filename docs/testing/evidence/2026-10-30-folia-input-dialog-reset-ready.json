@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+  "jarSha256": "B0FB78588CA317650A83F7385441576DC5034612249318E865BB89FAB083EF72",
+  "instance": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2",
+  "authorization": "User approved a new B-only 2->3 reset after reviewing its scope; no new accepted invitation or rewards",
+  "backup": {
+    "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\input-reset-20261029-192359-a1621a97",
+    "files": 20,
+    "hashVerified": true,
+    "dbQuickCheck": "ok",
+    "worldsRetainedInPlace": true,
+    "worldHeadersVerifiedBeforeStart": true,
+    "previousExitCode": 0,
+    "previousOutputDrained": true
+  },
+  "operation": {
+    "state": "verified",
+    "runId": "7a949699bc6b4678b4094f7338e00e1c",
+    "player": "Taiwan_PingLord",
+    "generationBefore": 2,
+    "command": "ic admin eligibility reset Taiwan_PingLord claim-input-ui-20261030",
+    "authorized": true,
+    "requestedUtc": "2026-10-29T19:25:02.479966+00:00",
+    "firstSeenUtc": "2026-10-29T19:25:02.616506700Z",
+    "generationAfter": 3,
+    "deadlineTaipei": "2026-10-31T03:25:02.616506+08:00",
+    "auditRecordsAdded": 1,
+    "changedTables": [
+      "invitecode_players",
+      "invitecode_audit_records"
+    ],
+    "otherPlayerCodeInvitationRewardDataPreserved": true,
+    "configurationKeyPermissionsPreserved": true
+  },
+  "runtime": {
+    "ready": true,
+    "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+    "runId": "7a949699bc6b4678b4094f7338e00e1c",
+    "childPid": 49684,
+    "hostPid": 24516,
+    "port": 30101,
+    "dbQuickCheck": "ok",
+    "BGeneration": 3,
+    "currentInvitations": 0,
+    "oldInvitations": [
+      {
+        "status": "UNLINKED",
+        "generation": 0
+      },
+      {
+        "status": "QUALIFIED",
+        "generation": 2
+      }
+    ],
+    "rewardActions": [
+      {
+        "status": "DELIVERED",
+        "count": 2
+      }
+    ],
+    "qualificationPermission": false,
+    "startupErrors": false,
+    "otherServers": [
+      {
+        "name": "invitecode-paper-26.3",
+        "state": "Stopped"
+      },
+      {
+        "name": "invitecode-spigot-1.8.8",
+        "state": "Stopped"
+      }
+    ],
+    "routeVerified": true,
+    "velocityListening": true,
+    "humanInputAcceptance": "pending"
+  },
+  "noJarOrConfigurationChanges": true,
+  "noUnlinkOrNewClaim": true,
+  "humanAcceptance": "pending input dialog only",
+  "remoteWrites": false
+}

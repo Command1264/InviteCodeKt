@@ -1,0 +1,371 @@
+# InviteCode 繁體中文訊息；既有自訂檔不會自動覆寫，缺鍵使用內建備援。
+# prefix 自動套用；值、欄位、hover 與按鈕不各自加 prefix。
+messages-version: 1
+presentation:
+  prefix: "&7[&6InviteCode&7]&r"
+runtime:
+  raw-output: "{text}"
+  usage: "&c指令用法不正確，請使用 /{label} help 查看說明。"
+  no-permission: "&c你沒有使用此指令的權限。"
+  player-only: "&e此指令只能由玩家執行。"
+  unavailable: "&c目前無法執行此操作：{detail}"
+  help-header: "&6指令說明"
+  help-row: "&e{usage} &7— &f{description}"
+  help-player-section: "&6玩家操作"
+  help-admin-section: "&6管理操作"
+  help-description:
+    help: "查看指令說明"
+    code: "查看或建立自己的邀請碼"
+    claim: "使用別人的邀請碼"
+    confirm: "同意目前的邀請確認"
+    cancel: "取消輸入或確認"
+    status: "查看自己的邀請狀態"
+    stats: "查看自己的邀請統計"
+    inspect-player: "查詢玩家紀錄"
+    inspect-invitation: "查詢邀請關係"
+    inspect-reward: "查詢獎勵動作"
+    unlink: "解除邀請關係"
+    transfer: "轉移邀請關係"
+    force-qualify: "強制達成邀請資格"
+    reset-eligibility: "重設玩家登記資格"
+    retry-reward: "重試獎勵動作"
+    mark-delivered: "標記獎勵動作已交付"
+    rotate-code: "輪替玩家邀請碼"
+    migrate-storage: "更新儲存結構版本"
+    reload: "重新載入設定與訊息"
+    doctor: "檢查執行狀態與儲存健康"
+  help-frame-header: "&8──── {prefix}&6{title} &8────"
+  help-frame-divider: "&8────────────────────────"
+  help-navigation-enabled: "&e[{text}]"
+  help-navigation-disabled: "&8[{text}]"
+  help-navigation-hover: "點擊切換說明頁"
+  help-home-header: "&6常用指令"
+  help-console-home-header: "&6管理員常用指令"
+  help-console-navigation-title: "管理員說明分類"
+  help-page-header: "&6{topic} &7— 第 {page}/{pages} 頁"
+  help-topic:
+    console: "主控台"
+    player: "玩家"
+    admin: "管理員"
+    inspect: "資料查詢"
+    invitation: "邀請關係"
+    eligibility: "登記資格"
+    reward: "獎勵處理"
+    code: "邀請碼"
+    storage: "儲存維護"
+    reload: "設定重新載入"
+    doctor: "健康檢查"
+  help-topic-description:
+    inspect: "唯讀查詢玩家、Invitation 或 Reward Action 的資料。"
+    invitation: |-
+      解除或轉移邀請關係
+      變更會留下稽核紀錄。
+    eligibility: |-
+      管理登記資格
+      重設會推進世代，不刪除歷史資料。
+    reward: |-
+      檢查或處理 UNCERTAIN Reward Action
+      先核對外部交付結果。
+    code: |-
+      輪替玩家邀請碼
+      舊碼停用並建立新碼。
+    storage: |-
+      維護目前儲存 backend 的結構
+      不搬移 backend。
+    reload: |-
+      驗證並套用設定與訊息
+      儲存切換仍須依維護流程處理。
+    doctor: "唯讀檢查執行階段、整合與儲存健康。"
+  help-previous: "&e上一頁"
+  help-next: "&e下一頁"
+  help-back: "&e返回"
+  help-open-detail: "點擊查看指令詳細說明"
+  help-page-error: "&c找不到此頁面或主題，請使用 /ic help 返回常用指令。"
+  help-detail:
+    help: |-
+      &7查看玩家指令索引
+      &7管理說明使用 /ic help admin [頁碼]，再接分類與操作名稱。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    code: |-
+      &7查看或首次建立自己的邀請碼
+      &7不需參數。建立後即成為邀請人，不能再使用他人邀請碼。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    claim: |-
+      &7邀請碼為選填
+      &7省略時依輸入模式開啟輸入。驗證後會進入限時確認，只有確認才建立邀請關係。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    confirm: |-
+      &7不需參數
+      &7只會接受尚未逾時的待確認邀請，並建立邀請關係。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    cancel: |-
+      &7不需參數
+      &7取消目前的邀請碼輸入或待確認流程，不會建立邀請關係。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    status: |-
+      &7不需參數
+      &7查看登記資格、最近的邀請狀態與待補發獎勵數量。歷史 Invitation 仍可能顯示。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    stats: |-
+      &7不需參數
+      &7查看等待達成資格與已達成資格的邀請統計。歷史上已達成資格的 Invitation 仍會計入。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    inspect-player: |-
+      &7玩家參照須為 UUID 或唯一的已知名稱
+      &7未知或重複名稱會拒絕。此查詢不修改資料。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    inspect-invitation: |-
+      &7參數是 Invitation UUID，不是玩家 UUID
+      &7查詢邀請狀態、資格事實與交付紀錄，不修改資料。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    inspect-reward: |-
+      &7使用 Reward Action UUID，不是 Reward Delivery ID
+      &7Delivery 記錄應交付項目，Action 記錄執行狀態。此查詢不執行獎勵。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    unlink: |-
+      &7需要 Invitation UUID 與非空原因（可含空格）
+      &7將該列標記為 UNLINKED 並留下稽核，不刪除歷史或獎勵紀錄。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    transfer: |-
+      &7需要 Invitation UUID、新邀請人參照及非空原因（可含空格）
+      &7只可轉移 CLAIMED 邀請，並留下稽核紀錄。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    force-qualify: |-
+      &7需要 Invitation UUID、已設定的資格 Policy ID 與非空原因（可含空格）
+      &7只接受 CLAIMED 邀請，略過條件檢查並建立 Reward Delivery／Action，不代表已送達。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    reset-eligibility: |-
+      &7需要玩家參照與非空原因（可含空格）
+      &7更新首次記錄時間並推進資格世代，不刪除 Invitation、Reward 或已交付紀錄，也不保證符合其他登記條件。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    retry-reward: |-
+      &7需要 Reward Action UUID（不是 Delivery ID）與非空原因（可含空格）
+      &7只接受 UNCERTAIN 動作。先查明外部結果，重試可能造成重複效果。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    mark-delivered: |-
+      &7需要 Reward Action UUID 與非空原因（可含空格）
+      &7只接受 UNCERTAIN 動作。此操作不執行獎勵，僅在確認外部效果已發生後標記已交付。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    rotate-code: |-
+      &7需要玩家參照與非空原因（可含空格）
+      &7停用該玩家舊邀請碼並建立新碼，不會刪除既有邀請關係。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    migrate-storage: |-
+      &7需要 SQLITE 或 MYSQL 及非空原因（可含空格）
+      &7目標須與目前 backend 相同。此操作更新結構，不搬移資料到另一個 backend。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    reload: |-
+      &7不需參數
+      &7驗證並套用設定與訊息。storage.yml 的 backend 變更不會在此套用
+      &7admin reload 為相容別名。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+    doctor: |-
+      &7不需參數
+      &7唯讀檢查執行狀態、整合與儲存健康，不建立資料庫或執行 migration。
+      &7用法：&f{usage}
+      &7範例：&f{example}
+command:
+  code:
+    value: "&f你的邀請碼：{code}"
+    copy: "點擊複製到剪貼簿"
+    select: "點擊填入聊天列，再手動複製"
+  claim:
+    command-only: "&f請使用 /invitecode claim <邀請碼>。"
+    chat-started: |-
+      &f請在 {seconds} 秒內於聊天輸入邀請碼，內容不會公開。
+      &7輸入 cancel 可取消。
+    chat-timeout: "&c邀請碼輸入已逾時，請重新執行 /invitecode claim。"
+    dialog-title: "輸入邀請碼"
+    dialog-label: "邀請碼"
+    dialog-confirm: "繼續"
+    dialog-cancel: "取消"
+    dialog-timeout: "&c邀請碼輸入已逾時，請重新執行 /invitecode claim。"
+    invalid-code: "&c邀請碼格式不正確，請檢查後重新輸入。"
+    unavailable: "&c這組邀請碼不存在或已失效，請向邀請人確認目前的邀請碼。"
+    self: "&c你不能使用自己的邀請碼。"
+    # 聊天 renderer 先單獨輸出 prefix，下列為第 2–6 行；互動按鈕為第 7 行。
+    # Dialog 以 prefix 為標題，其他欄位使用等價內容。
+    confirmation: |-
+      &f確認邀請碼
+      &7邀請人：&f{inviter}
+      &7邀請碼：{code}
+      &f是否使用這組邀請碼？
+      &7請在 {seconds} 秒內選擇
+    confirmation-title: "確認邀請碼"
+    confirmation-inviter: "&7邀請人：&f{inviter}"
+    confirmation-code-label: "&7邀請碼："
+    confirmation-question: "是否使用這組邀請碼？"
+    confirmation-prompt: "&7請在 {seconds} 秒內選擇"
+    agree: "&a同意"
+    disagree: "&c不同意"
+    agree-hover: "點擊同意並使用邀請碼"
+    disagree-hover: "點擊不同意並取消"
+    confirmation-timeout: "&c邀請確認已逾時，請重新執行 /invitecode claim。"
+    no-confirmation: "&c目前沒有可確認的邀請，或確認已逾時，請重新執行 /invitecode claim。"
+    claimed: |-
+      &a邀請關係已建立。
+      &7查看目前狀態：/ic status
+    matching-network-warning: "&e你與邀請人近期使用相同網路。本次登記已允許，但可能由管理員檢查。"
+    matching-network-denied: "&c你與邀請人近期使用相同網路，依伺服器規則無法登記，如需協助請聯絡管理員。"
+    ineligible: "&c目前無法使用邀請碼：{reasons}。"
+    reason:
+      already_inviter: "你已建立自己的邀請碼"
+      already_invitee: "你已有邀請關係"
+      claim_window_expired: "可登記期間已結束"
+    cancelled: "&f已取消邀請碼輸入或確認。"
+    nothing-to-cancel: "&7目前沒有進行中的邀請碼輸入或確認。"
+  status:
+    ineligible-reason: "&7無法登記原因：&f{reasons}"
+    summary: |-
+      &f我的邀請狀態
+      &7可使用邀請碼：&f{eligible}
+      &7邀請關係：&f{invitation}
+      &7待補發獎勵：&f{pending_rewards} 筆
+  stats:
+    summary: |-
+      &f我的邀請統計
+      &7等待達成資格：&f{claimed} 人
+      &7已達成資格：&f{qualified} 人
+  error: "&c操作失敗，請聯絡管理員檢查伺服器紀錄。"
+  stopping: "&c插件正在停止，暫時無法操作，請稍後再試。"
+value:
+  reason-separator: "、"
+  'yes': "是"
+  'no': "否"
+  invitation:
+    none: "尚未登記"
+    claimed: "等待達成資格"
+    qualified: "已達成資格"
+    unlinked: "已解除連結"
+admin:
+  inspect-player-title: "&6玩家紀錄"
+  inspect-invitation-title: "&6邀請紀錄"
+  inspect-reward-title: "&6獎勵動作紀錄"
+  inspect-player: |-
+    &f玩家：{player}
+    &7名稱：{name}
+    &7首次記錄：{first_seen}
+    &7是否為邀請人：{inviter}
+    &7是否已有邀請登記：{invitee}
+    &7邀請碼：{code}
+    &7等待資格：{claimed}
+    &7已達成資格：{qualified}
+    &7稽核紀錄：{audit}
+  inspect-invitation: |-
+    &f邀請關係：{invitation}
+    &7狀態：{status}
+    &7邀請人：{inviter}
+    &7邀請對象：{invitee}
+    &7建立時間：{claimed_at}
+    &7資格事實：{facts}
+    &7獎勵：{rewards}
+    &7稽核紀錄：{audit}
+  inspect-reward: |-
+    &f獎勵動作：{action}
+    &7交付紀錄：{delivery}
+    &7狀態：{status}
+    &7接收者：{recipient}
+    &7類型：{type}
+    &7更新時間：{updated_at}
+    &7最近錯誤：{last_error}
+    &7狀態轉換：{transitions}
+  invitation-unlinked: "&a已解除邀請關係 {invitation}。"
+  invitation-transferred: "&a已將邀請關係 {invitation} 轉移至邀請人 {inviter}。"
+  invitation-force-qualified: |-
+    &a已將邀請關係 {invitation} 設為達成資格
+    並建立 {rewards} 筆獎勵交付紀錄。
+  eligibility-reset: "&a已重設玩家 {player} 的邀請碼登記資格。"
+  reward-resolved: "&a已將獎勵動作 {action} 處理為 {status}。"
+  code-rotated: "&a玩家 {player} 的邀請碼已由 {previous} 輪替為 {current}。"
+  error: "&c管理操作失敗，請檢查伺服器紀錄。"
+  stopping: "&e插件正在停止，無法執行管理操作。"
+  reload-stopping: "&e插件正在停止，無法重新載入設定。"
+  reload-success: "&a設定與訊息已通過驗證並套用。"
+  reload-storage-restart: "&estorage.yml 的變更尚未套用。&f請依儲存切換流程操作，再重新啟動伺服器。"
+  reload-failed: "&c重新載入失敗，仍使用上一份有效設定，請檢查伺服器紀錄並修正設定。"
+  storage-unsupported: "&c遷移目標必須與目前設定的 SQLITE 或 MYSQL 儲存類型相同。"
+  storage-config-unavailable: "&c設定尚未成功載入，無法判定儲存位置，請檢查伺服器紀錄。"
+  storage-stopping: "&e插件正在停止，無法更新儲存結構。"
+  storage-success: "&a儲存結構更新完成，目前版本為 {version}。"
+  storage-failed: "&c儲存結構更新失敗，請檢查伺服器紀錄。"
+  doctor-runtime: |-
+    &f執行階段：{phase}
+    &f設定世代：{generation}
+    &f背景工作：{executor}
+  doctor-build: |-
+    &7Git 提交：&f{commit}
+    &7工作目錄有變更：&f{dirty}
+    &7打包時間（UTC）：&f{built_at}
+  doctor-integrations: |-
+    &fPlaceholderAPI：{placeholder}
+    &fVault 經濟服務：{vault}
+    &f原生對話框：{dialog}
+    &fRGB 色彩：{rgb}
+  doctor-maintenance: "&e維護原因：{reason}"
+  doctor-storage-offline: |-
+    &e儲存尚未連線
+    &f本次檢查未建立或修改資料。
+  doctor-storage: |-
+    &f儲存類型：{backend}
+    &f結構版本：{schema}
+    &f待執行獎勵：{pending}
+    &f執行中獎勵：{processing}
+    &f結果待確認：{uncertain}
+  doctor-storage-failed: "&c儲存健康檢查失敗，請檢查伺服器紀錄。"
+  doctor-executor-stopping: "&e背景工作正在停止，無法查詢待處理的獎勵動作。"
+  doctor-value:
+    build-unknown: "&7未知"
+    phase:
+      active: "&a運作中"
+      starting: "&e啟動中"
+      maintenance: "&6維護中"
+      stopping: "&e停止中"
+      stopped: "&7已停止"
+    executor:
+      accepting: "&a接受新工作"
+      stopped: "&7不接受新工作"
+    enabled:
+      'true': "&a已啟用"
+      'false': "&c未啟用"
+    available:
+      'true': "&a可用"
+      'false': "&c不可用"
+    supported:
+      'true': "&a支援"
+      'false': "&c不支援"
+    dialog:
+      paper: "&fPaper"
+      none: "&7無原生介面"
+    backend:
+      sqlite: "&fSQLite"
+      mysql: "&fMySQL"
+      json: "&fJSON"
+    count:
+      zero: "&7{value}"
+      pending: "&e{value}"
+      processing: "&b{value}"
+      uncertain: "&6{value}"
+    unknown: "&7未知（{value}）"
+invite:
+  qualified:
+    inviter: "&a你邀請的玩家已達成資格。"
+    invitee: "&a你已達成邀請資格。"

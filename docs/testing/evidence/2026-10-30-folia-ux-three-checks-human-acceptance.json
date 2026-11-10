@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+  "platform": "Folia 26.1.2",
+  "humanReport": "以上三點都通過，都沒有什麼問題。",
+  "accepted": [
+    "status displays primary reason only",
+    "error and retry guidance share one red sentence",
+    "invitation/stats retained across restart without repeat rewards"
+  ],
+  "liveReadOnlyCheck": {
+    "sourceCommit": "5702e91a261cf6587056eac8752c21f49a26ff33",
+    "serverState": "Listening",
+    "players": [
+      {
+        "name": "Command1",
+        "generation": 0,
+        "activeCodes": 1,
+        "currentInvitations": []
+      },
+      {
+        "name": "Taiwan_PingLord",
+        "generation": 2,
+        "activeCodes": 0,
+        "currentInvitations": [
+          {
+            "status": "QUALIFIED",
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "rewardActions": [
+      {
+        "status": "DELIVERED",
+        "count": 2
+      }
+    ],
+    "agentMutations": false
+  },
+  "newInputDialogHumanAcceptance": "pending; A has own code, B has qualified current-generation invitation",
+  "proposedPreparation": {
+    "state": "awaiting explicit authorization; not performed",
+    "player": "Taiwan_PingLord",
+    "command": "ic admin eligibility reset Taiwan_PingLord claim-input-ui-20261030",
+    "generation": "2 -> 3",
+    "firstSeen": "set to execution time; opens configured 24h claim window",
+    "auditRecordsAdded": 1,
+    "preserve": [
+      "generation-2 QUALIFIED invitation",
+      "generation-0 UNLINKED invitation",
+      "2 DELIVERED reward actions",
+      "A and code",
+      "worlds/key/config/permissions"
+    ],
+    "testScope": "input label, 60s automatic close and timeout feedback, invalid-code red sentence, valid input followed by decline/cancel; no new accepted invitation or rewards"
+  },
+  "agentDataMutations": false,
+  "remoteWrites": false
+}

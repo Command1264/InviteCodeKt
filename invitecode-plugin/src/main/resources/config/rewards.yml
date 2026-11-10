@@ -1,0 +1,19 @@
+config-version: 1
+
+qualification-rewards:
+  default:
+    inviter:
+      - type: MESSAGE
+        message: invite.qualified.inviter
+    invitee:
+      - type: MESSAGE
+        message: invite.qualified.invitee
+
+milestone-rewards: {}
+# 範例：將上一行的 {} 改成下列內容，會在 Inviter 累積 5 筆 Qualified Invitation 時發送一次。
+# milestone-rewards:
+#   five-qualified:
+#     at: 5
+#     inviter:
+#       - type: MESSAGE
+#         message: invite.milestone.five

@@ -1,0 +1,89 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "1a83b7328353f132dfb5da29b6cde15e3ade50d0",
+  "pluginSha256": "5D7E7782E8BAEA222785DA8FA8B15416E777649517C5F63AD53101D48BE6733D",
+  "coreSha256": "607AFD1C3320008E1FFD2EAEE6780ACE4419D5F8C527B75E79F259BE79EBF57B",
+  "platform": "Folia 26.1.2 stable build 8",
+  "instance": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2",
+  "backup": {
+    "path": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\b-reset-20261029-174549-58816683",
+    "files": 20,
+    "bytes": 242869,
+    "hashVerified": true,
+    "worldsRetainedInPlace": true,
+    "worldHeadersVerifiedBeforeStart": true,
+    "dbQuickCheck": "ok",
+    "previousExitCode": 0,
+    "previousOutputDrained": true
+  },
+  "reset": {
+    "state": "verified",
+    "runId": "9d3165afa9e54149b9e41183cd88aa9c",
+    "player": "Taiwan_PingLord",
+    "generationBefore": 1,
+    "command": "ic admin eligibility reset Taiwan_PingLord command-feedback-human-20261030",
+    "authorized": true,
+    "requestedUtc": "2026-10-29T17:47:06.113205+00:00",
+    "firstSeenUtc": "2026-10-29T17:47:06.302606400Z",
+    "generationAfter": 2,
+    "deadlineTaipei": "2026-10-31T01:47:06.302606+08:00",
+    "auditRecordsAdded": 1,
+    "changedTables": [
+      "invitecode_players",
+      "invitecode_audit_records"
+    ],
+    "otherPlayerCodeInvitationRewardDataPreserved": true,
+    "configurationKeyPermissionsPreserved": true
+  },
+  "runtime": {
+    "ready": true,
+    "runId": "9d3165afa9e54149b9e41183cd88aa9c",
+    "hostPid": 57096,
+    "childPid": 59612,
+    "javaAlias": "local-25",
+    "port": 30101,
+    "doctorActive": true,
+    "qualificationPermissionFalse": true,
+    "startupErrors": false,
+    "otherServers": [
+      {
+        "name": "invitecode-paper-26.3",
+        "state": "Stopped"
+      },
+      {
+        "name": "invitecode-spigot-1.8.8",
+        "state": "Stopped"
+      }
+    ],
+    "entryPorts": [
+      {
+        "name": "Velocity",
+        "port": 25565,
+        "listening": true
+      },
+      {
+        "name": "lobby",
+        "port": 10001,
+        "listening": false
+      },
+      {
+        "name": "Play",
+        "port": 20401,
+        "listening": true
+      }
+    ],
+    "routeConfigured": true,
+    "humanAcceptance": "not started"
+  },
+  "jdk": "local-25 / C:/Program Files/Java/jdk-25.0.4.1/bin/java.exe",
+  "sameNetworkAction": "ALLOW unchanged",
+  "qualificationPermission": "false unchanged",
+  "dataChanges": "Only B first_seen_at and eligibility_generation, plus one ELIGIBILITY_RESET audit row. All other player/code/invitation/reward data preserved; no unlink. Configuration/key/permission bytes preserved.",
+  "phase": "2/3 complete; 3/3 human acceptance pending",
+  "notes": [
+    "Start was necessary to execute the authorized admin command via the plugin; no raw SQL mutation.",
+    "Only Folia started; other InviteCode cores remain stopped.",
+    "No synthetic player or human claim was performed by Agent.",
+    "No push/PR/merge."
+  ]
+}

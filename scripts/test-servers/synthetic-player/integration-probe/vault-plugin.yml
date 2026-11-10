@@ -1,0 +1,8 @@
+name: InviteCodeVaultProbe
+version: 1.0.0
+api-version: '1.13'
+main: io.github.command1264.invitecode.test.VaultProbePlugin
+softdepend: [Vault, Essentials]
+commands:
+  icbalance:
+    description: Test-only read-only Vault Economy balance query.

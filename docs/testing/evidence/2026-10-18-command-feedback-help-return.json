@@ -1,0 +1,40 @@
+{
+  "recordedUtc": "2026-10-18T08:33:39.362958+00:00",
+  "candidate": {
+    "sourceCommit": "760c51a8b3ae50e172cda8218f62aa5c8b4b9de7",
+    "sha256": "D2669D283F5ACD0FB7AB1A9B45C398371E88EE9B0B1795A29DCCB429E1A3A012",
+    "bytes": 19918290,
+    "tests": {
+      "tests": 322,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 24
+    },
+    "passed": 298,
+    "checks": [
+      "Java 8/11 check shadowJar",
+      "permission-filtered page return, future category invariant and runtime reload back button",
+      "approximate player font and terminal cell frame alignment, bounded padding"
+    ],
+    "humanAcceptance": "pending"
+  },
+  "name": "invitecode-folia-26.1.2",
+  "runId": "01820f515a9e4ce09d733a12215c03e3",
+  "port": 30101,
+  "backup": "D:\\Code\\Java\\Plugin\\InstanceHarbor\\instances\\Human\\InviteCode\\invitecode-folia-26.1.2\\.invitecode-backups\\help-return-20261018-083101-9be8492c",
+  "done": true,
+  "active": true,
+  "dbRowsAndKeyUnchanged": true,
+  "worldAndProtectedFilesUnchangedDuringDeployment": true,
+  "otherInstances": {
+    "invitecode-spigot-1.8.8": "Stopped",
+    "invitecode-paper-26.3": "Stopped"
+  },
+  "liveConsoleBackTargets": {
+    "reload": "/ic help admin 2",
+    "doctor": "/ic help admin 2",
+    "storage": "/ic help admin 2"
+  },
+  "humanAcceptance": "pending limited Folia alignment and page return",
+  "noPush": true
+}

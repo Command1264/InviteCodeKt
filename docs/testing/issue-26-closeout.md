@@ -1,8 +1,8 @@
 # Issue #26 結案證據與交付狀態
 
-核對日期：2026-10-14。文件基線：`develop` 的 `7b8c76611a1e86f9a96389877b63fdca81fdf155`。
+歷史證據核對日期為 2026-10-14。原文件基線為 `develop` 的 `7b8c76611a1e86f9a96389877b63fdca81fdf155`。
 
-跨 backend（資料儲存方式）搬移實作已合併，既有隔離自動證據支持 Issue #26 的約定範圍結案。Issue 目前仍開啟；本文件與下方留言是本機收尾候選，尚未發布至 GitHub。三核心真人驗收已完成，不再以等待 Issue #12 為由暫緩本項。
+跨 backend（資料儲存方式）搬移實作及結案文件均已合併。Issue #26 於 2026-10-14 依隔離自動證據完成約定範圍的驗收，並在 GitHub 留下證據後結案。[正式結案留言](https://github.com/Command1264/InviteCodeKt/issues/26#issuecomment-6171960262)
 
 ## 合併與 CI
 
@@ -12,7 +12,9 @@
 | 受測來源 | `418c8298e8deb6c7fdef66d6e0ff67f78d807a89` |
 | 合併 commit | `fb215c09ee4bbce96050ef4aebf97a1905ed984a`，已包含在本文件基線 |
 | CI | [run 37014114197](https://github.com/Command1264/InviteCodeKt/actions/runs/37014114197)：Linux Java 8／11、Windows Java 8／11、MySQL integration 全部 SUCCESS |
-| 相關 Issue | #12、#25 已 CLOSED；#26 OPEN；正式 1.0 尚未發布 |
+| 結案文件 PR | [PR #33](https://github.com/Command1264/InviteCodeKt/pull/33) 的 `2d79a93` 已合併至 `develop`（`5041c70`） |
+| 結案文件 CI | [run 38588054604](https://github.com/Command1264/InviteCodeKt/actions/runs/38588054604)，五項均通過 |
+| 相關 Issue | #12、#25、#26 皆已結案 |
 
 ## 五項結案條件
 
@@ -45,9 +47,9 @@ JAR SHA-256：`D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C`
 
 上述真人驗收不證明跨儲存方式的實際停機、切換、dump 還原或程序崩潰。本項自動測試證明 transaction／staging 失敗及重開恢復，未測 kill CLI、作業系統斷電、mysqld 崩潰；MySQL dump fixture 僅驗證非空 gate，實際可還原性仍由管理員確認。這些限制須保留在結案證據，不以「完整崩潰測試通過」概括。
 
-## 待發布 Issue 留言草稿
+## 結案前的證據摘要
 
-以下須在本收尾文件合併、取得 Issue 留言與關閉授權後發布，發布時補上文件 PR／合併 commit 並重新核對狀態。
+下方引文保留準備結案時的證據摘要。後續整合與結案結果見 [Issue #26 正式留言](https://github.com/Command1264/InviteCodeKt/issues/26#issuecomment-6171960262)。
 
 > 跨 SQLite／JSON／MySQL 搬移實作 `418c8298e8deb6c7fdef66d6e0ff67f78d807a89` 已由 PR #29 合併至 `develop`（`fb215c09ee4bbce96050ef4aebf97a1905ed984a`）。CI run 37014114197 的 Linux／Windows Java 8、11 與 MySQL integration 五項全部通過。
 >
@@ -55,8 +57,6 @@ JAR SHA-256：`D6AF246F62256E2BEF1FB441DC282B4ADE6001269776D8966C7652F5E264ED6C`
 >
 > 六種方向、完整資料比對、PENDING／UNCERTAIN、重開、可見併發拒絕及故障復原均有隔離自動證據。#12 的三核心真人驗收已完成；不把它視為跨 backend 人工切換證據。未測強制終止、斷電或實際 dump 還原，維運仍須停掉全部寫入者並確認備份可還原。依約定範圍完成結案，不代表已正式發布 1.0。
 
-## 後續順序
+## 正式發行紀錄
 
-先審閱本文件候選，授權後 push 並建立目標 `develop` 的文件 PR；CI 與指定版本驗收通過後，另依授權合併、在 #26 留下上述證據再關閉。這輪只完成本機文件準備。
-
-#26 結案後，下一個規劃入口是 [Roadmap #1「發行門檻」](https://github.com/Command1264/InviteCodeKt/issues/1)：功能及驗收已有來源，先整理 1.0 發行候選、版號、JAR 雜湊、`main` 穩定基線及已知限制。版本調整產生新產物時補相稱驗證；整合 `main`、tag、Release 與產物發布仍需各自明確授權。
+InviteCode 1.0.0 已於 2026-11-10 發布，Roadmap #1 也已結案。正式產物的雜湊、支援範圍與延後驗收項目見[發版收尾紀錄](../releases/1.0.0-closeout.md)。

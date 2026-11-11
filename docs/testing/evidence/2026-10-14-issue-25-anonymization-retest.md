@@ -1,7 +1,9 @@
 # Issue #25 匿名化補充驗證
 
 日期：2026-10-14。基線：`develop` 的 `befef792b20fd572b98e00569ca28a442b3e7320`。
-分支：`codex/test/issue-25-anonymization-evidence`。本次只修改測試與驗證文件；插件 production 程式碼、資料版本與匿名化設計均未變更。
+複驗分支為 `codex/test/issue-25-anonymization-evidence`。複驗只修改測試與驗證文件，插件 production 程式碼、資料版本與匿名化設計均未變更。
+
+複驗來源 `3e346ca` 已經 [PR #32](https://github.com/Command1264/InviteCodeKt/pull/32) 合併至 `develop`（`7b8c766`）。[CI 38435388800](https://github.com/Command1264/InviteCodeKt/actions/runs/38435388800) 五項均通過。Issue #25 已在 GitHub 留下驗收證據並結案。[正式結案留言](https://github.com/Command1264/InviteCodeKt/issues/25#issuecomment-6151216884)
 
 ## 補齊的驗收證據
 
@@ -48,6 +50,5 @@ MySQL 使用既有唯讀 8.4.11 binary，所有可寫資料放在本任務新建
 - 所有寫入者仍須事先停止；`--stopped` 是操作者確認。並行維護測試不代表可以在遊戲伺服器持續寫入時安全匿名化。
 - 本次故障是在 SQL transaction／JSON 備份發布邊界注入，沒有測 OS 斷電、kill CLI 或 mysqld 崩潰。CLI 測試呼叫 execute，不驗證 JVM 子程序 exit code。
 - 新登入語義以 storage 的重新建立玩家及舊關係隔離驗證；不新增真人登入證據。既有 Issue #12 三核心人工確認保留。
-- 本次沒有 remote write。Issue #25 結案仍須指定版本交付／合併後，在 Issue 留下本證據與 CI 結果並取得結案授權；Issue #26 不在本次修改範圍。
 
-下一步依 [Issue #25 驗收條件](https://github.com/Command1264/InviteCodeKt/issues/25)交付本機候選、授權後建立目標 `develop` 的 PR。之後再依 [Issue #26](https://github.com/Command1264/InviteCodeKt/issues/26)整理已具備的搬移證據與文件現況，銜接 [Roadmap #1「發行門檻」](https://github.com/Command1264/InviteCodeKt/issues/1)。不因本次自動測試通過而直接關閉 Issue 或正式發布。
+1.0.0 正式發布與 Roadmap #1 結案見[發版收尾紀錄](../../releases/1.0.0-closeout.md)。跨 backend 搬移的獨立證據見 [Issue #26 結案紀錄](../issue-26-closeout.md)。

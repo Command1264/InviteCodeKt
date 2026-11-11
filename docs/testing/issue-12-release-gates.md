@@ -2,7 +2,7 @@
 
 ## 結論與範圍
 
-截至 2026-10-13，固定 D6AF 產物的跨版本自動證據與三核心人工驗收已完成。依下列證據，Issue #12 的技術驗證門檻可判定通過，支援範圍保留本文件列出的限制。本次是文件收尾候選；GitHub Issue #12 仍為 OPEN，尚須將收尾文件合併、在 Issue 留下驗收證據後結案。Roadmap #1 與正式 1.0 發行未完成。
+固定 D6AF 產物的跨版本自動證據與三核心人工驗收已於 2026-10-13 核對。Issue #12 依下列證據通過技術驗證門檻，並於同日留下證據後結案。驗收範圍以本文件的受測產物、版本及限制為準。[正式結案留言](https://github.com/Command1264/InviteCodeKt/issues/12#issuecomment-6149671122)
 
 - 產品來源：`418c8298e8deb6c7fdef66d6e0ff67f78d807a89`，已整合至 `fb215c09ee4bbce96050ef4aebf97a1905ed984a`。
 - 受驗收的 runner／文件來源：`1405745c6fc049c7df2217304e8df801c728fb68`；產品 runtime 沿用上述來源，不因文件 commit 改稱另一個 JAR。
@@ -22,7 +22,7 @@
 | Vault／PlaceholderAPI 存在與不存在 | 通過於已測環境 | 基本矩陣檢查兩者不存在；Paper 1.21.8 的 Vault 1.7.3 + EssentialsX 2.21.2 實際入帳與重啟，Paper 1.20.6 的 PlaceholderAPI 2.12.3 資格轉換及重啟。不能推定其他 provider 或 Folia 第三方已通過。 |
 | Folia smoke 與實驗性標示 | 通過於實驗性範圍 | Folia 26.1.2 同產物啟動、玩家流程、Dialog 合成封包、重啟與使用者驗收。保留實驗性標示，不提升為全面正式支援。 |
 | Reward／migration 重啟及注入失敗復原 | 通過於已測故障 | SQLite DDL 交易回滾、schema 9 明確遷移與資料／密鑰保留；MySQL APPLYING 恢復；外部效果後 JVM halt、UNCERTAIN 不自動重播，人工 mark-delivered／retry 持久化。未測 OS 斷電與資料庫服務中斷不包含在內。 |
-| 相容性、安裝、設定與限制文件符合證據 | 本收尾候選已核對 | README、真人紀錄、證據索引與操作文件已同步；歷史待驗收段落標為歷史，不覆蓋舊證據。文件交付仍須 review／合併。 |
+| 相容性、安裝、設定與限制文件符合證據 | 通過 | README、真人紀錄、證據索引與操作文件已核對，文件由 PR #31 合併。 |
 
 自動測試來源：[固定產物驗證紀錄](./evidence/2026-10-02-issue-12-current-artifact-retest.md)與[逐項 manifest](./evidence/2026-10-02-issue-12-current-artifact-manifest.json)。搬移證據另見 [Issue #26 複驗](./evidence/2026-10-02-issue-26-transfer-retest.md)。
 
@@ -30,7 +30,7 @@
 
 使用者於 2026-10-13 明確確認 `1405745` 在 Folia 26.1.2、Paper 26.2、Spigot 1.8.8 完成人工驗收並授權合併。完整確認原文與保留的複驗流程見[短版真人紀錄](./current-artifact-human-acceptance.md)；先前確認畫面、同意／不同意、逾時及重啟通過的紀錄見[歷史真人紀錄](./final-human-acceptance.md)。
 
-PR #30 的 CI 五項均成功：Linux／Windows 各自使用 Java 8 與 Java 11 建置檢查，以及隔離 MySQL integration。結果見 [CI run 38403715266](https://github.com/Command1264/InviteCodeKt/actions/runs/38403715266)。此為該 PR 的證據，本文件候選尚未執行遠端 CI，不把它說成新候選已通過 CI。
+PR #30 的 [CI 38403715266](https://github.com/Command1264/InviteCodeKt/actions/runs/38403715266) 五項均成功。結案文件來源 `61944af` 經 [PR #31](https://github.com/Command1264/InviteCodeKt/pull/31) 合併至 `develop`（`befef792`），該 PR 的 [CI 38407688543](https://github.com/Command1264/InviteCodeKt/actions/runs/38407688543) 五項也均成功。兩次 CI 均涵蓋 Linux／Windows 的 Java 8、Java 11 建置及隔離 MySQL 整合。
 
 原始證據封存於 `D:\Code\Java\Plugin\InviteCodeKt\artifacts\merged-issue12-1405745\`；`archive-manifest.json` 記錄原來源、逐檔雜湊、三核心驗收及 PR。舊 Worktree 已安全移除，索引改指向封存檔案，原始 log／manifest bytes 保留。該封存排除可重建的 node_modules、依賴副本及隔離 MySQL 資料目錄；固定 JAR 與原 Human 備份另外保留。
 
@@ -42,11 +42,10 @@ PR #30 的 CI 五項均成功：Linux／Windows 各自使用 Java 8 與 Java 11 
 - 外部效果無法判定時仍為 UNCERTAIN，只能經具稽核的管理處理決定重試或視為已交付，不承諾外部服務 exactly-once。
 - 後續排版與美術改善已記錄為另行討論，非本次功能驗收失敗，也未在本輪新增設計需求。
 
-## 接下來的交付順序
+## 相關結案與正式發行
 
-1. 本文件已透過 PR #31（`61944af`）合併；#12 已留下證據並結案。不需重做已確認的三台人工測試。
-2. #25 已透過 PR #32（`3e346ca`）完成複驗整合並結案。#26 實作已由 PR #29 合併，仍開啟；依 [Issue #26 收尾文件](./issue-26-closeout.md)交付文件並取得相應遠端操作授權。
-3. 依 [Roadmap #1「發行門檻」](https://github.com/Command1264/InviteCodeKt/issues/1)規劃 1.0 發行：確認版號、正式候選來源、JAR 雜湊、穩定目標 `main`、支援／已知限制與發行說明。版本調整若產生新 JAR，要補相稱的產物驗證。
-4. `main` 整合、tag、GitHub Release 與 artifact 發布各依明確授權執行；本輪完成不代表已發布。
+匿名化及跨 backend 搬移分別在 #25、#26 留下獨立的證據。1.0.0 正式發布及 Roadmap #1 結案見發版紀錄。各項紀錄依受測版本、JAR 與環境判讀。
 
-GitHub 狀態更新至 2026-10-14 核對時點，後續操作以實際 Issue／PR 狀態為準。本輪不啟動或修改測服，不操作 InstanceHarbor。
+- [#25 匿名化複驗](./evidence/2026-10-14-issue-25-anonymization-retest.md)
+- [#26 搬移結案證據](./issue-26-closeout.md)
+- [1.0.0 發版與 Roadmap 結案依據](../releases/1.0.0-closeout.md)

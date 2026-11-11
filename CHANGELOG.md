@@ -2,7 +2,9 @@
 
 本檔案記錄此專案所有值得注意的變更。
 
-## 1.0.0（本機候選）
+## 1.0.0（2026-11-10）
+
+正式發布的附件、產物來源與驗收範圍見 [v1.0.0 Release](https://github.com/Command1264/InviteCodeKt/releases/tag/v1.0.0) 與 [1.0.0 發版紀錄](docs/releases/1.0.0.md)。
 
 - 玩家 status 顯示目前登記批次的邀請關係。
 - 健康檢查顯示 Git 提交前七碼與 UTC 打包時間。

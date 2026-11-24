@@ -142,7 +142,7 @@ milestone-rewards:
 
 - 沒有 `repeat-every` 時，行為與 1.0 完全相同。`repeat-every` 必須是 1 以上的整數。
 - 觸發條件與 1.0 相同：Invitation 成為 Qualified Invitation（包含 Force Qualification）後，Inviter 的數量剛好等於某個門檻時觸發。
-- 沿用 1.0 的冪等鍵 `milestone:<Inviter>:<門檻>:<獎勵 ID>`，格式不變。因此 Unlink 讓數量下降、之後再次達到同一門檻時，不會重複發放。
+- 沿用 1.0 的冪等鍵 `milestone:<Inviter>:<門檻>:<獎勵 ID>`，格式不變。**前置修正：**1.0.0 在 Unlink 讓數量下降、之後再次達到同一門檻時，會因重建同一筆 Reward Delivery 而讓整筆 Qualification transaction 失敗（2026-11-24 程式碼審查確認）。必須先修正為「已存在的門檻交付直接略過」，本項才能依賴冪等鍵保證不重複發放。
 - 修改 `at` 或 `repeat-every` 不會補發已經錯過的門檻，也不會重發已交付的門檻。
 
 **驗收**：測試涵蓋多次觸發、Unlink 後再次達到同一門檻、Force Qualification、設定驗證錯誤時 reload 保留前一份有效設定。

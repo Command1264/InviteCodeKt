@@ -20,6 +20,7 @@
 - [ADR 0002](../adr/0002-durable-reward-delivery.md) 的先保存再執行、`UNCERTAIN` 不自動重試，以及 [ADR 0003](../adr/0003-explicit-storage-migration.md) 的明確 schema migration 照常適用。
 - 新查詢不在主執行緒存取 storage。Storage 錯誤時照 1.0 規則安全失敗，不退回 memory 或其他 backend。
 - 新輸出不包含 IP hash、原始輸入、憑證或 Anonymized Player 被移除的資料。
+- 1.1 唯一的 schema 變更是[第 4 節](#leaderboard-opt-out)保存的 Leaderboard Opt-out 狀態；其他項目預計不改 schema。
 - 1.0 的非目標（舊資料 importer、Reward exchange GUI、原生 permission grant、metrics、自動更新）在 1.1 仍不做。
 
 ## 1. Lifecycle Event
@@ -85,9 +86,27 @@
 - 設定 `leaderboard.enabled`（預設 `true`）、`leaderboard.page-size`、`leaderboard.refresh-interval`。關閉時 `/ic top` 回覆功能未啟用，排名 placeholder 為空字串。
 - SQLite、MySQL 與 JSON 都要新增跨玩家的聚合查詢，並加入 repository contract test。只有證明現有索引不足時，才依 ADR 0003 提出 migration。
 
-**Leaderboard Opt-out**：擁有 `invitecode.leaderboard.hidden`（預設 `false`）的玩家不出現在排行榜。Bukkit 無法查詢離線玩家的權限，保存方式見[待確認事項](#待確認事項)第 1 項。
+### Leaderboard Opt-out
 
-**驗收**：三種 backend 的排序、同分、分頁、Opt-out 與匿名化測試結果一致；排行榜快照計算不阻塞主執行緒；真人確認聊天與 Console 的顯示。
+擁有 `invitecode.leaderboard.hidden`（預設 `false`）的玩家不出現在排行榜。Bukkit 無法查詢離線玩家的權限，因此 InviteCode 保存最後一次觀察到的 Opt-out 狀態（使用者 2026-11-24 決定）。
+
+| 來源 | 何時更新保存的狀態 | 說明 |
+| --- | --- | --- |
+| 玩家登入 | 每次登入時以 `hasPermission` 檢查 | 一定提供。離線期間的權限變更，要等下次登入或 LuckPerms 查詢才會生效 |
+| LuckPerms（可選） | 背景計算排行榜快照時，查詢即將上榜的玩家；LuckPerms 回報使用者資料重新計算時，也更新該玩家 | 只在偵測到 LuckPerms 時啟用，可用 `leaderboard.luckperms-lookup` 關閉 |
+
+- 保存的欄位包含 Opt-out 狀態、觀察時間與來源（登入或 LuckPerms）。這是 schema 變更，需要依 ADR 0003 為 SQLite、MySQL 與 JSON 提供明確 migration，並同步更新跨 backend 搬移。Anonymized Player 一律不上榜，匿名化時一併移除這個欄位。
+- 從來沒有觀察紀錄的玩家視為沒有 Opt-out。
+
+**LuckPerms 查詢規則**
+
+- 以 `UserManager#loadUser(UUID)` 載入使用者，再用 `getCachedData().getPermissionData().checkPermission(...)` 判斷。離線玩家沒有即時 context，因此使用 LuckPerms 的靜態 query options（例如 `server` context）；只在特定世界授予的權限不會被視為 Opt-out。結果為未定義（undefined）時視為沒有 Opt-out，與權限預設值 `false` 一致。
+- `loadUser` 會查詢 LuckPerms 的資料庫。查詢不在主執行緒、也不在 InviteCode 單一的 storage executor 上等待結果；同時進行的查詢數量有上限，每筆設有逾時。只查詢會出現在排行榜前段的候選玩家（預設最多 100 名，加上同分時需要比對的人），不掃描全部玩家。
+- 查詢失敗、逾時或 LuckPerms 未啟用時，沿用保存的狀態，並在 `doctor` 顯示最後一次 LuckPerms 查詢的結果。不讓排行榜更新失敗。
+- 不使用 Vault Permission 查詢離線玩家：LuckPerms 透過 Vault 處理離線查詢的行為沒有官方文件可以確認。
+- 以 `compileOnly` 依賴 `net.luckperms:api`，`plugin.yml` 的 `softdepend` 加入 `LuckPerms`。LuckPerms 相關類別隔離在獨立 adapter，只在偵測到 LuckPerms 時才載入，沒有安裝時不會出現 `NoClassDefFoundError`。本機 LuckPerms-Bukkit 5.4.145、5.5.85 與 Bukkit-Legacy 5.5.85 內附的 API 類別都是 Java 8 位元碼（class major version 52）。
+
+**驗收**：三種 backend 的排序、同分、分頁、Opt-out 與匿名化測試結果一致；舊 schema 經 migration 後沒有 Opt-out 紀錄的玩家正常上榜；排行榜快照計算不阻塞主執行緒；LuckPerms adapter 的查詢成功、失敗、逾時與未安裝都有測試。真人確認聊天與 Console 的顯示，並在 Spigot 1.8.8 搭配 LuckPerms Bukkit-Legacy 5.5.85、Paper 1.21.8 搭配 LuckPerms 5.5.85，確認離線玩家被授予權限後，在下一次排行榜更新時消失。
 
 ## 5. 管理員以玩家名稱查詢紀錄
 
@@ -146,13 +165,12 @@ milestone-rewards:
 
 1. Lifecycle Event 與唯讀 API（其他項目依賴它）
 2. PlaceholderAPI 輸出
-3. Inviter Leaderboard
+3. Inviter Leaderboard（含 Opt-out 的 schema migration 與 LuckPerms adapter）
 4. 管理員以玩家名稱查詢紀錄
 5. Repeating Milestone Reward（不依賴其他項目，可以和 2–4 平行）
 
 ## 待確認事項
 
-1. **Leaderboard Opt-out 的保存方式。** Bukkit 只能檢查線上玩家的權限。
-   - A（建議）：玩家登入時記錄是否擁有 `invitecode.leaderboard.hidden` 並保存。這需要依 ADR 0003 為 SQLite、MySQL 與 JSON 做明確 schema migration，並同步更新跨 backend 搬移與匿名化。
-   - B：改用設定檔 `leaderboard.hidden-players` 列出玩家 UUID，由管理員維護。不改 schema，但玩家不能自行設定，也和「用權限控制」的決定不同。
-2. 第 1 節的五個事件名稱與範圍是否足夠。
+1. 第 1 節的五個事件名稱與範圍是否足夠。
+
+已決定：Leaderboard Opt-out 採「登入時記錄權限，並可選擇與 LuckPerms 聯動」（2026-11-24），詳見[第 4 節](#leaderboard-opt-out)。沒有採用設定檔名單：玩家不能自行設定，也不符合「用權限控制」的決定。

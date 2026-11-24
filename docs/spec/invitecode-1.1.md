@@ -1,6 +1,6 @@
 # InviteCode 1.1 設計規格
 
-狀態：草案（2026-11-24）。使用者已在 2026-11-24 核准 1.1 的範圍與主要設計決定。本文經使用者審核後，才會建立 GitHub Roadmap Issue 與子 Issue，並開始實作。
+狀態：定稿（2026-11-24）。使用者已核准 1.1 的範圍、主要設計決定與本文內容。追蹤：[Roadmap #41](https://github.com/Command1264/InviteCodeKt/issues/41)。
 
 ## 版本目標
 
@@ -12,7 +12,7 @@
 4. [管理員以玩家名稱查詢紀錄](#5-管理員以玩家名稱查詢紀錄)
 5. [Repeating Milestone Reward](#6-repeating-milestone-reward)
 
-第 2 節的唯讀 API 是第 1、3、4 項的共用基礎，不另算一項。
+第 2 節的唯讀 API 是 Lifecycle Event、PlaceholderAPI 輸出與 Inviter Leaderboard 的共用基礎，併入第 1 項的實作，不另算一項。
 
 ## 不變的邊界
 
@@ -104,7 +104,7 @@
 - `loadUser` 會查詢 LuckPerms 的資料庫。查詢不在主執行緒、也不在 InviteCode 單一的 storage executor 上等待結果；同時進行的查詢數量有上限，每筆設有逾時。只查詢會出現在排行榜前段的候選玩家（預設最多 100 名，加上同分時需要比對的人），不掃描全部玩家。
 - 查詢失敗、逾時或 LuckPerms 未啟用時，沿用保存的狀態，並在 `doctor` 顯示最後一次 LuckPerms 查詢的結果。不讓排行榜更新失敗。
 - 不使用 Vault Permission 查詢離線玩家：LuckPerms 透過 Vault 處理離線查詢的行為沒有官方文件可以確認。
-- 以 `compileOnly` 依賴 `net.luckperms:api`，`plugin.yml` 的 `softdepend` 加入 `LuckPerms`。LuckPerms 相關類別隔離在獨立 adapter，只在偵測到 LuckPerms 時才載入，沒有安裝時不會出現 `NoClassDefFoundError`。本機 LuckPerms-Bukkit 5.4.145、5.5.85 與 Bukkit-Legacy 5.5.85 內附的 API 類別都是 Java 8 位元碼（class major version 52）。
+- 以 `compileOnly` 依賴 `net.luckperms:api`，`plugin.yml` 只在 `softdepend` 加入 `LuckPerms`，**不得**列入 `depend`：沒有安裝 LuckPerms 的伺服器必須照常啟用 InviteCode，只是 Opt-out 改為只依登入時的觀察（使用者 2026-11-24 的要求）。LuckPerms 相關類別隔離在獨立 adapter，只在偵測到 LuckPerms 時才載入，沒有安裝時不會出現 `NoClassDefFoundError`。本機 LuckPerms-Bukkit 5.4.145、5.5.85 與 Bukkit-Legacy 5.5.85 內附的 API 類別都是 Java 8 位元碼（class major version 52）。
 
 **驗收**：三種 backend 的排序、同分、分頁、Opt-out 與匿名化測試結果一致；舊 schema 經 migration 後沒有 Opt-out 紀錄的玩家正常上榜；排行榜快照計算不阻塞主執行緒；LuckPerms adapter 的查詢成功、失敗、逾時與未安裝都有測試。真人確認聊天與 Console 的顯示，並在 Spigot 1.8.8 搭配 LuckPerms Bukkit-Legacy 5.5.85、Paper 1.21.8 搭配 LuckPerms 5.5.85，確認離線玩家被授予權限後，在下一次排行榜更新時消失。
 
@@ -161,16 +161,17 @@ milestone-rewards:
 
 ## 建議實作順序
 
-每項各開一個子 Issue 與 task branch：
+每項各有一個子 Issue，實作時各開一個 task branch：
 
-1. Lifecycle Event 與唯讀 API（其他項目依賴它）
-2. PlaceholderAPI 輸出
-3. Inviter Leaderboard（含 Opt-out 的 schema migration 與 LuckPerms adapter）
-4. 管理員以玩家名稱查詢紀錄
-5. Repeating Milestone Reward（不依賴其他項目，可以和 2–4 平行）
+1. [#42](https://github.com/Command1264/InviteCodeKt/issues/42) Lifecycle Event 與唯讀 API（Leaderboard 與 PlaceholderAPI 依賴它）
+2. [#43](https://github.com/Command1264/InviteCodeKt/issues/43) Inviter Leaderboard（含 Opt-out 的 schema migration 與 LuckPerms adapter），受阻於 1
+3. [#44](https://github.com/Command1264/InviteCodeKt/issues/44) PlaceholderAPI 輸出，受阻於 1 與 2：快照更新依賴 Lifecycle Event，排名類 placeholder 讀取排行榜快照
+4. [#45](https://github.com/Command1264/InviteCodeKt/issues/45) 管理員以玩家名稱查詢紀錄（不依賴其他項目）
+5. [#46](https://github.com/Command1264/InviteCodeKt/issues/46) Repeating Milestone Reward（不依賴其他項目）
 
-## 待確認事項
+第 4、5 項可以和 1–3 平行進行。
 
-1. 第 1 節的五個事件名稱與範圍是否足夠。
+## 已決定事項
 
-已決定：Leaderboard Opt-out 採「登入時記錄權限，並可選擇與 LuckPerms 聯動」（2026-11-24），詳見[第 4 節](#leaderboard-opt-out)。沒有採用設定檔名單：玩家不能自行設定，也不符合「用權限控制」的決定。
+- 第 1 節的五個事件名稱與範圍隨本文定稿（2026-11-24）。
+- Leaderboard Opt-out 採「登入時記錄權限，並可選擇與 LuckPerms 聯動」（2026-11-24），詳見[第 4 節](#leaderboard-opt-out)。沒有採用設定檔名單：玩家不能自行設定，也不符合「用權限控制」的決定。

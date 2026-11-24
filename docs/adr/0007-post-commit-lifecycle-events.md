@@ -1,6 +1,6 @@
 # 狀態保存成功後才在全域排程送出 Lifecycle Event
 
-狀態：提議中（2026-11-24，待使用者審核）
+狀態：已採納（2026-11-24，隨 1.1 規格定稿）
 
 InviteCode 1.1 以 Bukkit Event 對其他插件公開 Lifecycle Event。事件只在對應狀態變更的 storage transaction 成功 commit 後建立，不可取消，也不能修改 InviteCode 的狀態。事件由同一份 JAR 的全域排程送出：Spigot／Paper 使用主執行緒，Folia 使用 global region scheduler，以同步事件（`isAsynchronous() == false`）呼叫 listener。同一個 InviteCode 實例依 commit 順序送出事件。
 

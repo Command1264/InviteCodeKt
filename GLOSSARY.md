@@ -119,3 +119,19 @@ _避免使用_：Manual success、approve reward
 **Anonymized Player**:
 已移除名稱、IP hash 與其他可選顯示資料，但保留歷史關係與防重複約束所需匿名識別的玩家主體。
 _避免使用_：Deleted player、unknown player
+
+**Repeating Milestone Reward**:
+Inviter 的 qualified invitation 數量首次達到起始門檻後，每再增加固定數量就再觸發一次的 Milestone Reward。
+_避免使用_：Loop reward、every-N reward、recurring milestone
+
+**Inviter Leaderboard**:
+依 Inviter 目前 Qualified Invitation 數量排序的公開名次清單。
+_避免使用_：Top list、referral ranking、invite top
+
+**Leaderboard Opt-out**:
+玩家不出現在 Inviter Leaderboard 的狀態；它只影響名次顯示，不影響 Invitation、Qualification 或 Reward。
+_避免使用_：Hidden player、leaderboard ban
+
+**Lifecycle Event**:
+Invitation 或 Reward Delivery 的狀態變更保存成功後，對其他插件發出、不可取消的通知。
+_避免使用_：Hook、callback、cancellable event

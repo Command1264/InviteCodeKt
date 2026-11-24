@@ -1,0 +1,177 @@
+# InviteCode 1.1 設計規格
+
+狀態：定稿（2026-11-24）。使用者已核准 1.1 的範圍、主要設計決定與本文內容。追蹤：[Roadmap #41](https://github.com/Command1264/InviteCodeKt/issues/41)。
+
+## 版本目標
+
+1.1 讓其他插件、記分板與玩家能看見並取用邀請資料，不改變 Claim、Qualification 與 Reward 的語意。範圍共五項：
+
+1. [Lifecycle Event](#1-lifecycle-event)
+2. [PlaceholderAPI 輸出](#3-placeholderapi-輸出)
+3. [Inviter Leaderboard](#4-inviter-leaderboard)
+4. [管理員以玩家名稱查詢紀錄](#5-管理員以玩家名稱查詢紀錄)
+5. [Repeating Milestone Reward](#6-repeating-milestone-reward)
+
+第 2 節的唯讀 API 是 Lifecycle Event、PlaceholderAPI 輸出與 Inviter Leaderboard 的共用基礎，併入第 1 項的實作，不另算一項。
+
+## 不變的邊界
+
+- 維持單一 Java 8 bytecode JAR，支援 Spigot／Paper 1.8.8 起的已測試版本，不使用 NMS。Folia 仍屬實驗性。
+- [ADR 0002](../adr/0002-durable-reward-delivery.md) 的先保存再執行、`UNCERTAIN` 不自動重試，以及 [ADR 0003](../adr/0003-explicit-storage-migration.md) 的明確 schema migration 照常適用。
+- 新查詢不在主執行緒存取 storage。Storage 錯誤時照 1.0 規則安全失敗，不退回 memory 或其他 backend。
+- 新輸出不包含 IP hash、原始輸入、憑證或 Anonymized Player 被移除的資料。
+- 1.1 唯一的 schema 變更是[第 4 節](#leaderboard-opt-out)保存的 Leaderboard Opt-out 狀態；其他項目預計不改 schema。
+- 1.0 的非目標（舊資料 importer、Reward exchange GUI、原生 permission grant、metrics、自動更新）在 1.1 仍不做。
+
+## 1. Lifecycle Event
+
+依 [ADR 0007](../adr/0007-post-commit-lifecycle-events.md)，在 storage transaction commit 成功後，由全域排程以同步 Bukkit Event 送出，不可取消。這補上 [1.0 規格](./invitecode-1.0.md#qualification)已寫明、但 1.0.0 程式碼沒有實作的事件承諾。
+
+| 事件 | 送出時機 | 主要內容 |
+| --- | --- | --- |
+| `InvitationClaimedEvent` | Claim Confirmation 建立 Invitation 後 | Invitation 快照 |
+| `InvitationQualifiedEvent` | Invitation 成為 Qualified Invitation 後，包含 Force Qualification | Invitation 快照、policy ID、Qualification Revision、是否為 Force Qualification |
+| `InvitationUnlinkedEvent` | Unlink 保存後 | Invitation 快照、Audit Record ID |
+| `InvitationTransferredEvent` | Transfer 保存後 | Invitation 快照、原 Inviter、新 Inviter、Audit Record ID |
+| `RewardDeliveryStatusChangedEvent` | Reward Delivery 進入 `DELIVERED`、`FAILED` 或 `UNCERTAIN` 後 | Reward Delivery 快照、新狀態、收件玩家 |
+
+- 事件類別放在新模組 `invitecode-api-bukkit`，以 `compileOnly` 依賴 Spigot API 1.8.8，並封裝進同一份 JAR。平台中立的 `invitecode-api` 不依賴 Bukkit。
+- 事件只攜帶不可變快照與 UUID，不攜帶可變的 domain 物件。玩家名稱由整合者自行查詢。
+- 事件是通知，不保證送達，也不重送。需要完整紀錄的整合要用第 2 節的 API 查詢。
+- Eligibility Reset、Invite Code 更換、`PENDING`／`PROCESSING` 等中間狀態不送事件，有實際需求再評估。
+
+**驗收**
+
+- 每種事件都有測試證明：只在 commit 成功後送出；transaction 失敗時不送出；listener 拋出例外不影響已保存的狀態與後續流程。
+- Spigot 1.8.8 與 Paper 1.21.8 實際載入一個測試 listener 插件，收到 Claim、Qualified 與 Reward 事件。Folia 26.1.2 做相同檢查，結果標示為實驗性。
+
+## 2. 唯讀 API 補充
+
+在 `InviteCodeApi` 新增兩個回傳 `CompletionStage` 的唯讀方法，快照型別放在 `invitecode-api`：
+
+- `getInviterSummary(playerId)`：Invite Code、Inviter、目前 `CLAIMED` 與 `QUALIFIED` 數量、待交付 Reward 數。
+- `getLeaderboard(page, pageSize)`：Inviter Leaderboard 的一頁快照與快照時間。
+
+數量定義與 `/ic stats` 相同：`UNLINKED` 的 Invitation 不計入。既有 API 方法的簽章與語意不變。
+
+## 3. PlaceholderAPI 輸出
+
+偵測到 PlaceholderAPI 時，註冊 identifier `invitecode`。1.0 已有的「以 PlaceholderAPI 值作為 Qualification Condition」保持不變。
+
+| Placeholder | 內容 |
+| --- | --- |
+| `%invitecode_code%` | 玩家的 Invite Code；還沒有時為空字串 |
+| `%invitecode_code_colored%` | 帶顏色的 Invite Code；1.16 以上使用 RGB，舊版使用最接近的 legacy color，與指令顯示一致 |
+| `%invitecode_inviter%` | 目前 Invitation 的 Inviter 名稱；沒有時為空字串 |
+| `%invitecode_claimed%` | 等待資格的 Invitation 數 |
+| `%invitecode_qualified%` | Qualified Invitation 數，與 Milestone Reward 的計數相同 |
+| `%invitecode_pending_rewards%` | 待交付的 Reward Action 數 |
+| `%invitecode_rank%` | 在 Inviter Leaderboard 的名次；沒有上榜時為空字串 |
+| `%invitecode_top_<n>_name%`、`%invitecode_top_<n>_qualified%` | 第 n 名的名稱與數量，`n` 為 1–100 |
+
+- PlaceholderAPI 可能在主執行緒呼叫。所有值都讀取記憶體中的快照，呼叫時不查詢 storage。
+- 線上玩家的快照在登入時、相關 Lifecycle Event 之後，以及 `/ic reload` 後於背景更新。排名類 placeholder 讀取第 4 節的排行榜快照。
+- 還沒有快照、離線玩家或 storage 異常時，回傳設定的 `placeholders.unknown-value`，預設為空字串，不回傳錯誤訊息。
+
+**驗收**：單元測試涵蓋每個 placeholder 的值、沒有快照與 Anonymized Player 的情況；真人以記分板或 TAB 插件確認 Spigot 1.8.8 與 Paper 1.21.8 的顯示。
+
+## 4. Inviter Leaderboard
+
+新增 `/invitecode top [page]`，權限 `invitecode.command.top`，預設所有玩家可用；Console 也可以使用。
+
+- 依目前 Qualified Invitation 數量由多到少排序。數量相同時，最後一筆 Qualified Invitation 較早達成的排前面；仍相同時依玩家 UUID 排序，讓名次固定。
+- 不列出：數量為 0 的玩家、Anonymized Player、處於 Leaderboard Opt-out 的玩家。
+- 每頁預設 10 名。畫面標示快照時間，例如「5 分鐘前更新」。
+- 排行榜快照在背景計算，預設每 5 分鐘更新一次，`/ic reload` 後也會更新。查詢指令只讀快照。
+- 設定 `leaderboard.enabled`（預設 `true`）、`leaderboard.page-size`、`leaderboard.refresh-interval`。關閉時 `/ic top` 回覆功能未啟用，排名 placeholder 為空字串。
+- SQLite、MySQL 與 JSON 都要新增跨玩家的聚合查詢，並加入 repository contract test。只有證明現有索引不足時，才依 ADR 0003 提出 migration。
+
+### Leaderboard Opt-out
+
+擁有 `invitecode.leaderboard.hidden`（預設 `false`）的玩家不出現在排行榜。Bukkit 無法查詢離線玩家的權限，因此 InviteCode 保存最後一次觀察到的 Opt-out 狀態（使用者 2026-11-24 決定）。
+
+| 來源 | 何時更新保存的狀態 | 說明 |
+| --- | --- | --- |
+| 玩家登入 | 每次登入時以 `hasPermission` 檢查 | 一定提供。離線期間的權限變更，要等下次登入或 LuckPerms 查詢才會生效 |
+| LuckPerms（可選） | 背景計算排行榜快照時，查詢即將上榜的玩家；LuckPerms 回報使用者資料重新計算時，也更新該玩家 | 只在偵測到 LuckPerms 時啟用，可用 `leaderboard.luckperms-lookup` 關閉 |
+
+- 保存的欄位包含 Opt-out 狀態、觀察時間與來源（登入或 LuckPerms）。這是 schema 變更，需要依 ADR 0003 為 SQLite、MySQL 與 JSON 提供明確 migration，並同步更新跨 backend 搬移。Anonymized Player 一律不上榜，匿名化時一併移除這個欄位。
+- 從來沒有觀察紀錄的玩家視為沒有 Opt-out。
+
+**LuckPerms 查詢規則**
+
+- 以 `UserManager#loadUser(UUID)` 載入使用者，再用 `getCachedData().getPermissionData().checkPermission(...)` 判斷。離線玩家沒有即時 context，因此使用 LuckPerms 的靜態 query options（例如 `server` context）；只在特定世界授予的權限不會被視為 Opt-out。結果為未定義（undefined）時視為沒有 Opt-out，與權限預設值 `false` 一致。
+- `loadUser` 會查詢 LuckPerms 的資料庫。查詢不在主執行緒、也不在 InviteCode 單一的 storage executor 上等待結果；同時進行的查詢數量有上限，每筆設有逾時。只查詢會出現在排行榜前段的候選玩家（預設最多 100 名，加上同分時需要比對的人），不掃描全部玩家。
+- 查詢失敗、逾時或 LuckPerms 未啟用時，沿用保存的狀態，並在 `doctor` 顯示最後一次 LuckPerms 查詢的結果。不讓排行榜更新失敗。
+- 不使用 Vault Permission 查詢離線玩家：LuckPerms 透過 Vault 處理離線查詢的行為沒有官方文件可以確認。
+- 以 `compileOnly` 依賴 `net.luckperms:api`，`plugin.yml` 只在 `softdepend` 加入 `LuckPerms`，**不得**列入 `depend`：沒有安裝 LuckPerms 的伺服器必須照常啟用 InviteCode，只是 Opt-out 改為只依登入時的觀察（使用者 2026-11-24 的要求）。LuckPerms 相關類別隔離在獨立 adapter，只在偵測到 LuckPerms 時才載入，沒有安裝時不會出現 `NoClassDefFoundError`。本機 LuckPerms-Bukkit 5.4.145、5.5.85 與 Bukkit-Legacy 5.5.85 內附的 API 類別都是 Java 8 位元碼（class major version 52）。
+
+**驗收**：三種 backend 的排序、同分、分頁、Opt-out 與匿名化測試結果一致；舊 schema 經 migration 後沒有 Opt-out 紀錄的玩家正常上榜；排行榜快照計算不阻塞主執行緒；LuckPerms adapter 的查詢成功、失敗、逾時與未安裝都有測試。真人確認聊天與 Console 的顯示，並在 Spigot 1.8.8 搭配 LuckPerms Bukkit-Legacy 5.5.85、Paper 1.21.8 搭配 LuckPerms 5.5.85，確認離線玩家被授予權限後，在下一次排行榜更新時消失。
+
+## 5. 管理員以玩家名稱查詢紀錄
+
+依 2026-10-18 的本機草案整理（存放於專案容器的 `notes/`，不在 repository 內），權限沿用 `invitecode.admin.inspect`：
+
+```text
+/invitecode admin inspect invitations <玩家> [page]
+/invitecode admin inspect rewards <玩家> [page]
+```
+
+- `<玩家>` 沿用既有的 player reference：已知玩家名稱或 UUID。未知或同名歧義時明確拒絕，不猜測。
+- `invitations` 在同一頁分成兩段：先列這名玩家作為 Invitee 的紀錄，再列作為 Inviter 的紀錄。每筆顯示對方名稱、狀態、資格世代與時間。歷史紀錄不會被隱藏成「沒有紀錄」。
+- `rewards` 列出這名玩家作為收件人的 Reward Action，並標明所屬 Reward Delivery、獎勵 ID、種類與狀態。
+- 每頁 8 筆。聊天中每筆紀錄可以點擊，把對應的 `inspect`／管理指令填入聊天列，不會直接執行。Console 在每筆紀錄下方印出含內部 UUID 的完整指令，複製就能執行，不使用限時編號。
+- 既有以 UUID 操作的指令全部保留。執行任何管理操作時，照 1.0 的規則重新檢查權限、紀錄是否存在與目前狀態，並要求填寫原因。
+- 不需要修改 schema。若現有查詢無法有效分頁，先新增查詢 API；只有證明索引不足時才依 ADR 0003 提出 migration。
+
+**驗收**：自動測試涵蓋已知、未知、離線、改名、同名玩家，多筆歷史與資格世代，同一 Invitation 有多個 Reward Action，以及權限過濾與空白分頁。真人確認管理員只知道玩家名稱，就能在聊天與 Console 找到並選取紀錄。
+
+## 6. Repeating Milestone Reward
+
+Milestone Reward 新增可選欄位 `repeat-every`：
+
+```yaml
+milestone-rewards:
+  every-five-after-ten:
+    at: 10
+    repeat-every: 5   # 在 10、15、20…筆時各觸發一次
+    inviter:
+      - type: MESSAGE
+        message: invite.milestone.repeat
+```
+
+- 沒有 `repeat-every` 時，行為與 1.0 完全相同。`repeat-every` 必須是 1 以上的整數。
+- 觸發條件與 1.0 相同：Invitation 成為 Qualified Invitation（包含 Force Qualification）後，Inviter 的數量剛好等於某個門檻時觸發。
+- 沿用 1.0 的冪等鍵 `milestone:<Inviter>:<門檻>:<獎勵 ID>`，格式不變。**前置修正：**1.0.0 在 Unlink 讓數量下降、之後再次達到同一門檻時，會因重建同一筆 Reward Delivery 而讓整筆 Qualification transaction 失敗（2026-11-24 程式碼審查確認）。必須先修正為「已存在的門檻交付直接略過」，本項才能依賴冪等鍵保證不重複發放。
+- 修改 `at` 或 `repeat-every` 不會補發已經錯過的門檻，也不會重發已交付的門檻。
+
+**驗收**：測試涵蓋多次觸發、Unlink 後再次達到同一門檻、Force Qualification、設定驗證錯誤時 reload 保留前一份有效設定。
+
+## 7. 相容性與發行驗證
+
+- Java 8 與 Java 11 完整建置、MySQL 8.4 整合測試、JAR 與 bytecode 檢查。
+- 代表性 smoke：Spigot 1.8.8、Paper 1.21.8、Paper 26.2、Paper 26.3；Folia 26.1.2 標示為實驗性。
+- Spigot 26.3 的完整真人驗收延後，等 InstanceHarbor 能建立 Spigot 26.3 實例後再補（使用者 2026-11-24 的決定）。發行文件不宣稱比實際測試更廣的相容性。
+
+## 不在 1.1 的項目
+
+**1.2 之後的候選**：玩家邀請面板（只能看、不能兌換）、邀請活動期（需要新詞彙與 ADR）、自選顏色邀請碼、每位 Inviter 的達成人數上限。1.1 發布後有實際使用或回報，才開始 1.2。
+
+**備案（暫不排程）**：Discord 伺服器邀請追蹤、子網域邀請連結、遊戲內獎勵編輯器、多層推薦鏈、Web／REST API、自帶點數貨幣、內建 Discord webhook、metrics 與自動更新、Velocity／BungeeCord 網路模式。有實際需求或使用者回報時再重新評估；網路模式與 [ADR 0001](../adr/0001-single-cross-version-plugin-jar.md) 的單一 Java 8 JAR 衝突，評估時需要新的 ADR。
+
+## 建議實作順序
+
+每項各有一個子 Issue，實作時各開一個 task branch：
+
+1. [#42](https://github.com/Command1264/InviteCodeKt/issues/42) Lifecycle Event 與唯讀 API（Leaderboard 與 PlaceholderAPI 依賴它）
+2. [#43](https://github.com/Command1264/InviteCodeKt/issues/43) Inviter Leaderboard（含 Opt-out 的 schema migration 與 LuckPerms adapter），受阻於 1
+3. [#44](https://github.com/Command1264/InviteCodeKt/issues/44) PlaceholderAPI 輸出，受阻於 1 與 2：快照更新依賴 Lifecycle Event，排名類 placeholder 讀取排行榜快照
+4. [#45](https://github.com/Command1264/InviteCodeKt/issues/45) 管理員以玩家名稱查詢紀錄（不依賴其他項目）
+5. [#46](https://github.com/Command1264/InviteCodeKt/issues/46) Repeating Milestone Reward（不依賴其他項目）
+
+第 4、5 項可以和 1–3 平行進行。
+
+## 已決定事項
+
+- 第 1 節的五個事件名稱與範圍隨本文定稿（2026-11-24）。
+- Leaderboard Opt-out 採「登入時記錄權限，並可選擇與 LuckPerms 聯動」（2026-11-24），詳見[第 4 節](#leaderboard-opt-out)。沒有採用設定檔名單：玩家不能自行設定，也不符合「用權限控制」的決定。
